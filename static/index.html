@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>小伴 · 本地语音助手</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header><a class="brand" href="/">小伴<span>COMPANION</span></a><span class="privacy" id="modelPrivacy"><i></i> 按需使用麦克风与摄像头</span></header>
+<main>
+  <section class="companion">
+    <div class="eyebrow">你的桌面小伙伴</div>
+    <h1>你好，我在。</h1>
+    <p class="intro">聊个想法，问个问题，<br>或者把今天的故事说给我听。</p>
+    <div class="robot-scene" aria-hidden="true"><div class="halo"></div><div class="robot" id="robot"><div class="antenna"></div><div class="face"><span></span><span></span><b></b></div><div class="cheek left"></div><div class="cheek right"></div></div><div class="shadow"></div></div>
+    <div class="state" id="state" role="status">正在连接本地模型…</div>
+    <div class="wave" id="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <button class="mic" id="mic" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2M12 19v3M8 22h8"/></svg><span>点击说话</span></button>
+    <p class="mic-hint" id="micHint">点击开始，再次点击结束 · 最长 30 秒</p>
+    <button class="secondary-button" id="wake" disabled aria-pressed="false">开启语音唤醒</button>
+    <p class="wake-hint" id="wakeHint">开启后说「你好小伴」，看到回应后再提问</p>
+    <label class="feature-option"><input id="bargeIn" type="checkbox" checked> 唤醒开启时允许插话打断</label>
+    <p class="feature-help">首次建议戴耳机测试；扬声器回声效果需结合实际设备调试。</p>
+    <div class="action-buttons" aria-label="屏幕动作"><button data-action="nod">点头</button><button data-action="shake">摇头</button><button data-action="left">向左看</button><button data-action="right">向右看</button><button data-action="happy">开心</button><button data-action="reset">回正</button></div>
+    <p class="action-status" id="actionStatus" role="status">屏幕动作体验 · 尚未连接实体机器人</p>
+    <section class="camera-card" aria-label="摄像头">
+      <div class="camera-heading"><span>让我看看你的世界</span><button class="text-button" id="cameraToggle" aria-pressed="false">开启摄像头</button></div>
+      <div class="camera-preview" id="cameraPreview" hidden><video id="camera" autoplay playsinline muted></video><span>本机预览 · 按需拍照</span></div>
+      <p id="cameraHint">开启后说「帮我看看这是什么」，或点击拍照。</p>
+      <button class="secondary-button" id="capture" disabled>拍一张，问小伴</button>
+    </section>
+    <details class="personal-card" id="personalPanel">
+      <summary>用户与记忆</summary>
+      <label for="profileSelect">当前用户</label>
+      <select id="profileSelect"><option value="">访客 · 不读取个人记忆</option></select>
+      <div class="personal-row"><input id="profileName" maxlength="40" placeholder="新用户名称" aria-label="新用户名称"><button id="createProfile" class="secondary-button">创建</button></div>
+      <label for="profileSalutation">首次问候称呼</label>
+      <div class="personal-row"><input id="profileSalutation" maxlength="40" placeholder="例如：王先生、李女士、小王" aria-label="首次问候称呼"><button id="saveSalutation" class="secondary-button">保存称呼</button></div>
+      <p class="feature-help">声纹匹配后，本次会话首次回答会加上此称呼；留空使用档案名。点击“新对话”或刷新页面后重新问候，不从声音推测性别。</p>
+      <p id="speakerStatus" role="status">可手动选择用户，也可主动录入声纹。</p>
+      <label class="feature-option"><input id="speakerAuto" type="checkbox"> 用声纹自动识别本轮说话的人</label>
+      <p class="feature-help">不确定时按访客处理。声纹用于对话个性化，不作为身份验证。</p>
+      <details><summary>录入或删除声纹</summary>
+        <p id="enrollPrompt">请先选择用户，然后本人录制三段不同内容的语音，每段约 6–10 秒。</p>
+        <label class="feature-option"><input id="voiceConsent" type="checkbox"> 我本人同意在这台电脑保存声纹特征；原始录音不落盘。</label>
+        <div class="personal-row"><button id="recordVoice" class="secondary-button">录制第 1 段</button><button id="cancelEnroll" class="text-button">取消录入</button></div>
+        <div class="personal-row"><button id="saveVoice" class="secondary-button" disabled>保存声纹</button><button id="deleteVoice" class="text-button">删除声纹</button></div>
+      </details>
+      <label for="memoryText">明确告诉我需要记住的事</label>
+      <textarea id="memoryText" maxlength="1200" rows="3" placeholder="例如：我喜欢简短的回答"></textarea>
+      <div class="personal-row"><button id="saveMemory" class="secondary-button">保存记忆</button><button id="cancelMemoryEdit" class="text-button">取消编辑</button></div>
+      <ul id="memoryList" class="memory-list"></ul>
+      <p class="feature-help">也可以说“记住：……”或“你记得什么”。新对话不会清除长期记忆。</p>
+      <button id="deleteProfile" class="text-button danger">删除当前用户及其记忆、声纹</button>
+    </details>
+    <details class="personal-card" id="speakerDiagnosticsPanel">
+      <summary>声音识别诊断 · 最近 10 步</summary>
+      <p class="feature-help">查看输入方式、麦克风、有效语音时长和匹配原因。相似度不是识别概率；dBFS 是音频信号电平，不是现场分贝。这里只显示诊断信息，不保存录音或聊天正文。</p>
+      <pre id="speakerDiagnostics" aria-live="polite">等待测试。点击“点击说话”录音；输入框“发送”仅发送文字，不会采集声纹。</pre>
+    </details>
+  </section>
+  <section class="conversation" aria-label="对话">
+    <div class="conversation-header"><div><h2>和小伴聊聊</h2><p id="connection">模型准备中</p></div><button class="text-button" id="clear">新对话</button></div>
+    <div id="messages" class="messages" role="log" aria-live="polite"></div>
+    <div class="suggestions" id="suggestions"><button>给我讲一个短笑话</button><button>请点点头</button><button>笑一个</button></div>
+    <form id="chatForm"><div class="input-wrap"><textarea id="input" rows="2" placeholder="在这里发送文字；测试声纹请点击「点击说话」" aria-label="输入消息" maxlength="6000"></textarea><button id="send" type="submit" aria-label="发送消息" title="发送文字；不录音、不识别声纹" disabled>↑</button></div></form>
+    <div class="footer-controls"><label><input type="checkbox" id="autoplay" checked> 自动朗读回答</label><button class="text-button" id="stopAudio">打断 / 停止</button><span>Enter 发送 · Shift + Enter 换行</span></div>
+    <p class="notice" id="notice" role="status"></p>
+  </section>
+</main>
+<footer>MAC 体验版 <span>·</span> 唤醒开启时监听，允许插话时回答期间也会监听 <span>·</span> 记忆与声纹特征存于本机 <span>·</span> 保持页面打开、电脑不休眠</footer>
+<script src="/app.js"></script>
+<script src="/personal.js"></script>
+</body></html>

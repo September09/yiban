@@ -1,0 +1,14 @@
+{
+  "llm": {
+    "backend": "openai_compatible",
+    "base_url": "https://open.bigmodel.cn/api/paas/v4",
+    "model": "glm-4.7-flash",
+    "vision_model": "",
+    "api_key_env": "ZHIPU_API_KEY",
+    "manage_local_ollama": false,
+    "thinking_type": "disabled",
+    "status_check": "completion",
+    "max_tokens": 512,
+    "timeout": 60
+  }
+}

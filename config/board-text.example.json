@@ -1,0 +1,13 @@
+{
+  "llm": {
+    "backend": "openai_compatible",
+    "base_url": "http://127.0.0.1:8080/v1",
+    "model": "REPLACE_WITH_MODEL_ID",
+    "vision_model": "",
+    "manage_local_ollama": false
+  },
+  "asr": {"backend": "disabled"},
+  "tts": {"backend": "disabled"},
+  "audio": {"input": "browser", "wake_enabled": false},
+  "actions": {"backend": "screen"}
+}

@@ -1,0 +1,13 @@
+{
+  "llm": {
+    "backend": "openai_compatible",
+    "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "model": "qwen-plus",
+    "vision_model": "",
+    "api_key_env": "ASSISTANT_MODEL_API_KEY",
+    "manage_local_ollama": false,
+    "enable_thinking": false,
+    "max_tokens": 512,
+    "timeout": 60
+  }
+}
