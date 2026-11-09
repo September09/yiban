@@ -7,6 +7,7 @@ import threading
 import time
 import wave
 from pathlib import Path
+from yiban.settings import ROOT
 
 
 class SpeakerService:
@@ -20,7 +21,7 @@ class SpeakerService:
 
     def available(self):
         return (self.config['enabled'] and self.path.is_file()
-                and (Path(__file__).resolve().parent / 'models/silero_vad.onnx').is_file()
+                and (ROOT / 'models/silero_vad.onnx').is_file()
                 and importlib.util.find_spec('numpy') is not None
                 and importlib.util.find_spec('sherpa_onnx') is not None)
 
@@ -50,7 +51,7 @@ class SpeakerService:
         if diagnostics['clipping_ratio'] > .05:
             fail('clipped_audio', '录音声音失真，请降低输入音量或稍微远离麦克风。')
         cfg = sherpa_onnx.VadModelConfig()
-        cfg.silero_vad.model = str(Path(__file__).resolve().parent / 'models/silero_vad.onnx')
+        cfg.silero_vad.model = str(ROOT / 'models/silero_vad.onnx')
         cfg.silero_vad.min_speech_duration = .2
         cfg.silero_vad.min_silence_duration = .3
         cfg.sample_rate = 16000

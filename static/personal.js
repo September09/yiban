@@ -1,6 +1,7 @@
 // Explicit memory edits and opt-in voiceprint enrollment. Audio stays in RAM.
-let profiles=[], memoryEdit=null, personalVersion=0;
+let profiles=[], memoryEdit=null, memoryEditRevision=null, personalVersion=0;
 let voiceMatchedProfile='';
+let memoryItems=[], memoryLoaded=false, memoryBusy=false;
 const greetedProfiles=new Set();
 function voiceGreeting(source){
   if(!['manual','wake'].includes(source)||!activeProfile||voiceMatchedProfile!==activeProfile||greetedProfiles.has(activeProfile))return null;
@@ -47,12 +48,18 @@ const enrollmentPrompts=[
 function personalControls(){
   const locked=busy||recording||enrolling||enrollmentSaving||wakePhase==='command';
   $('createProfile').disabled=locked;$('profileName').disabled=locked;
-  for(const id of ['saveMemory','deleteProfile','deleteVoice','saveSalutation','profileSalutation'])$(id).disabled=!activeProfile||locked;
-  $('memoryText').disabled=!activeProfile||locked;
+  for(const id of ['saveMemory','deleteProfile','deleteVoice','saveSalutation','profileSalutation'])$(id).disabled=!activeProfile||locked||memoryBusy;
+  $('profileSelect').disabled=locked||memoryBusy;
+  $('cancelMemoryEdit').disabled=locked||memoryBusy;
+  $('memorySearch').disabled=!activeProfile||!memoryLoaded;
+  $('exportMemories').disabled=!activeProfile||!memoryLoaded||locked||memoryBusy;
+  $('memoryText').disabled=!activeProfile||locked||memoryBusy;
   $('recordVoice').disabled=!activeProfile||!speakerReady||enrollmentSaving||(!enrollmentMic&&(locked||enrollmentSamples.length>=3||!$('voiceConsent').checked));
   $('saveVoice').disabled=!activeProfile||enrollmentSamples.length!==3||enrollmentSaving||!!enrollmentMic||!$('voiceConsent').checked;
   $('voiceConsent').disabled=enrollmentSaving||!!enrollmentMic;
   $('cancelEnroll').disabled=enrollmentSaving;
+  if(typeof memoryImportControls==='function')memoryImportControls();
+  if(typeof memoryReviewControls==='function')memoryReviewControls();
 }
 
 async function refreshProfiles(){
@@ -64,11 +71,14 @@ async function refreshProfiles(){
   $('profileSelect').value=activeProfile;fillSalutation();controls();
 }
 
-function switchProfile(identity){
+function switchProfile(identity,{preserveTrace=false}={}){
   voiceMatchedProfile='';
   if(identity===activeProfile)return;
-  cancelTurn();activeProfile=identity;messages=[];render();
-  memoryEdit=null;$('memoryText').value='';$('saveMemory').textContent='保存记忆';
+  if(typeof sharedPersonalChanged==='function')sharedPersonalChanged();
+  cancelTurn({preserveTrace});activeProfile=identity;messages=[];render();
+  resetMemoryEditor();$('memorySearch').value='';
+  if(typeof resetMemoryImport==='function')resetMemoryImport();
+  if(typeof resetMemoryReview==='function'){resetMemoryReview();closeMemoryHistory();}
   $('profileSelect').value=identity;
   fillSalutation();
   enrollmentSamples=[];enrollmentFrames=[];$('voiceConsent').checked=false;updateEnrollment();
@@ -77,7 +87,7 @@ function switchProfile(identity){
 
 function applySpeaker(result){
   const identity=result.matched&&profiles.some(p=>p.id===result.id)?result.id:'';
-  switchProfile(identity);
+  switchProfile(identity,{preserveTrace:true});
   voiceMatchedProfile=identity;
   $('speakerStatus').textContent=identity?'本轮声音匹配：'+result.name+'（可在上方更正）':'本轮按访客处理：'+(result.reason||'未确认说话人');
   if(!identity&&result.diagnostics?.speech_seconds!==undefined){
@@ -85,24 +95,79 @@ function applySpeaker(result){
   }
 }
 
+function resetMemoryEditor(){
+  memoryEdit=null;memoryEditRevision=null;$('memoryText').value='';$('saveMemory').textContent='保存记忆';
+}
+function memoryLocked(){return busy||recording||enrolling||enrollmentSaving||memoryBusy||wakePhase==='command';}
+function memoryTime(value){
+  if(!value)return '未知（历史记录）';
+  const date=new Date(value.replace(' ','T')+'Z');
+  return Number.isNaN(date.getTime())?'未知':date.toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false});
+}
+function renderMemories(){
+  $('memoryList').replaceChildren();
+  if(!activeProfile){$('memoryCount').textContent='请先选择用户';return;}
+  if(!memoryLoaded){$('memoryCount').textContent='记忆尚未加载';return;}
+  const identity=activeProfile,query=$('memorySearch').value.trim().toLocaleLowerCase();
+  const items=memoryItems.filter(item=>item.content.toLocaleLowerCase().includes(query));
+  $('memoryCount').textContent=query?`找到 ${items.length} / ${memoryItems.length} 条`:`已保存 ${memoryItems.length} / 200 条`;
+  const sources={manual:'手动保存',conversation:'对话中的记住指令',legacy:'历史记录（来源未知）'};
+  for(const memory of items){
+    const row=document.createElement('li'),content=document.createElement('span'),meta=document.createElement('small');
+    content.textContent=memory.content;meta.className='memory-meta';
+    meta.textContent=`来源：${sources[memory.source]||sources.legacy}\n首次保存：${memoryTime(memory.created)}\n最近更新：${memoryTime(memory.updated)}（北京时间）`;
+    const edit=document.createElement('button');edit.className='text-button';edit.textContent='编辑';edit.onclick=()=>{
+      if(memoryLocked()||identity!==activeProfile)return;
+      if(typeof resetMemoryReview==='function')resetMemoryReview();
+      memoryEdit=memory.id;memoryEditRevision=memory.revision;$('memoryText').value=memory.content;$('saveMemory').textContent='更新记忆';$('memoryText').focus();
+    };
+    const remove=document.createElement('button');remove.className='text-button';remove.textContent='删除';remove.onclick=async()=>{
+      if(memoryLocked()||identity!==activeProfile||!window.confirm('删除这条长期记忆？'))return;
+      memoryBusy=true;personalControls();
+      try{
+        const result=await(await api('/api/memory/delete',{profile_id:identity,id:memory.id,expected_revision:memory.revision})).json();
+        if(identity!==activeProfile)return;
+        if(memoryEdit===memory.id)resetMemoryEditor();
+        if(typeof closeMemoryHistory==='function'){closeMemoryHistory();resetMemoryReview();}
+        await refreshMemories();notice(result.deleted?'记忆已删除。':'这条记忆已不存在，列表已更新。');
+      }catch(error){if(identity===activeProfile)notice(error.message);}
+      finally{memoryBusy=false;personalControls();}
+    };
+    const history=document.createElement('button');history.className='text-button';history.textContent='修改历史';
+    history.onclick=()=>{if(!memoryLocked()&&identity===activeProfile)showMemoryHistory(memory.id);};
+    row.append(content,meta,edit,remove,history);$('memoryList').append(row);
+  }
+  if(!items.length){const row=document.createElement('li');row.textContent=memoryItems.length?'没有匹配的记忆，试试其他关键词。':'还没有保存的记忆。可以在上方添加，或在聊天中说“记住：……”。';$('memoryList').append(row);}
+}
 async function refreshMemories(){
   const version=++personalVersion,identity=activeProfile;
-  $('memoryList').replaceChildren();if(!identity)return;
+  memoryItems=[];memoryLoaded=false;renderMemories();personalControls();if(!identity)return;
+  $('memoryCount').textContent='正在加载记忆…';
   try{
     const data=await(await api('/api/memory/list',{profile_id:identity})).json();
     if(version!==personalVersion||identity!==activeProfile)return;
-    for(const memory of data.memories){
-      const row=document.createElement('li'),content=document.createElement('span');content.textContent=memory.content;
-      const edit=document.createElement('button');edit.className='text-button';edit.textContent='编辑';edit.onclick=()=>{if(busy||enrolling)return;memoryEdit=memory.id;$('memoryText').value=memory.content;$('saveMemory').textContent='更新记忆';};
-      const remove=document.createElement('button');remove.className='text-button';remove.textContent='删除';remove.onclick=async()=>{
-        if(busy||enrolling||identity!==activeProfile||!window.confirm('删除这条长期记忆？'))return;
-        try{await api('/api/memory/delete',{profile_id:identity,id:memory.id});refreshMemories();}catch(error){notice(error.message);}
-      };
-      row.append(content,edit,remove);$('memoryList').append(row);
-    }
-    if(!data.memories.length){const row=document.createElement('li');row.textContent='还没有保存的记忆。';$('memoryList').append(row);}
-  }catch(error){if(version===personalVersion)notice(error.message);}
+    memoryItems=data.memories;memoryLoaded=true;
+    if(memoryEdit&&!memoryItems.some(item=>item.id===memoryEdit))resetMemoryEditor();
+    renderMemories();personalControls();
+  }catch(error){if(version===personalVersion){$('memoryCount').textContent='加载失败，请重新选择用户重试';notice(error.message);}}
 }
+async function exportMemories(){
+  if(!activeProfile||!memoryLoaded||memoryLocked())return;
+  const identity=activeProfile;memoryBusy=true;personalControls();
+  let url=null,link=null;
+  try{
+    const data=await(await api('/api/memory/export',{profile_id:identity})).json();
+    if(identity!==activeProfile)return;
+    const blob=new Blob([JSON.stringify(data,null,2)+'\n'],{type:'application/json;charset=utf-8'});
+    url=URL.createObjectURL(blob);link=document.createElement('a');link.href=url;
+    link.download=`yiban-memories-${identity}-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;
+    document.body.append(link);link.click();
+    notice(`已发起下载：${data.memories.length} 条文字记忆，请在浏览器下载中查看。`);
+  }catch(error){if(identity===activeProfile)notice(error.message);}
+  finally{if(link)link.remove();if(url)setTimeout(()=>URL.revokeObjectURL(url),1000);memoryBusy=false;personalControls();}
+}
+$('memorySearch').oninput=renderMemories;
+$('exportMemories').onclick=exportMemories;
 
 function updateEnrollment(){
   $('recordVoice').textContent=enrollmentMic?'结束这一段':`录制第 ${Math.min(3,enrollmentSamples.length+1)} 段`;
@@ -150,8 +215,19 @@ $('saveSalutation').onclick=async()=>{
   try{await api('/api/profiles/salutation',{profile_id:activeProfile,salutation:$('profileSalutation').value});await refreshProfiles();notice('称呼已保存。声纹匹配后的首次回答会使用它；点击“新对话”可重新测试。');}
   catch(error){notice(error.message);}
 };
-$('saveMemory').onclick=async()=>{try{await api('/api/memory/save',{profile_id:activeProfile,content:$('memoryText').value,id:memoryEdit});memoryEdit=null;$('memoryText').value='';$('saveMemory').textContent='保存记忆';await refreshMemories();notice('记忆已保存。');}catch(error){notice(error.message);}};
-$('cancelMemoryEdit').onclick=()=>{memoryEdit=null;$('memoryText').value='';$('saveMemory').textContent='保存记忆';};
+$('saveMemory').onclick=async()=>{
+  if(!activeProfile||memoryLocked())return;
+  const identity=activeProfile,edited=!!memoryEdit;memoryBusy=true;personalControls();
+  try{
+    const result=await(await api('/api/memory/save',{profile_id:identity,content:$('memoryText').value,id:memoryEdit,expected_revision:memoryEditRevision})).json();
+    if(identity!==activeProfile)return;
+    if(result.review){showMemoryReview(result.review);return;}
+    if(typeof resetMemoryReview==='function')resetMemoryReview();
+    resetMemoryEditor();await refreshMemories();notice(edited?'记忆已更新。':'记忆已保存（相同内容只保留一条）。');
+  }catch(error){if(identity===activeProfile)notice(error.message);}
+  finally{memoryBusy=false;personalControls();}
+};
+$('cancelMemoryEdit').onclick=()=>{if(!memoryLocked()){resetMemoryEditor();if(typeof resetMemoryReview==='function')resetMemoryReview();}};
 $('deleteProfile').onclick=async()=>{
   if(!activeProfile||!window.confirm('删除这个用户的全部长期记忆和声纹？'))return;
   try{const identity=activeProfile;await api('/api/profiles/delete',{profile_id:identity});localStorage.removeItem('xiaoban-history-'+identity);switchProfile('');await refreshProfiles();}catch(error){notice(error.message);}

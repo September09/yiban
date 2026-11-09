@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 import threading
 import wave
-from turns import Cancellation
+from yiban.turns import Cancellation
 
 
 class SenseVoiceASR:
@@ -52,9 +52,10 @@ class MacSpeech:
     def available(self):
         return platform.system() == "Darwin" and Path("/usr/bin/say").exists() and Path("/usr/bin/afconvert").exists()
 
-    def synthesize(self, text, cancel=None):
+    def synthesize(self, text, cancel=None, selection=None):
         if not self.available():
             raise RuntimeError("Mac 朗读不可用；Linux 语音服务尚待接入。")
+        selected = dict(selection or self.config)
         cancel = cancel or Cancellation()
         while not self.lock.acquire(timeout=.1):
             cancel.check()
@@ -62,7 +63,7 @@ class MacSpeech:
             cancel.check()
             with tempfile.TemporaryDirectory(prefix="assistant-tts-") as tmp:
                 aiff, wav = Path(tmp) / "speech.aiff", Path(tmp) / "speech.wav"
-                self.run(["/usr/bin/say", "-v", self.config["voice"], "-r", str(self.config["rate"]), "-o", str(aiff)], text, cancel, 60)
+                self.run(["/usr/bin/say", "-v", selected["voice"], "-r", str(selected["rate"]), "-o", str(aiff)], text, cancel, 60)
                 self.run(["/usr/bin/afconvert", "-f", "WAVE", "-d", "LEI16", str(aiff), str(wav)], None, cancel, 20)
                 cancel.check()
                 return wav.read_bytes(), "audio/wav"

@@ -8,9 +8,9 @@ import subprocess
 import sys
 from urllib.parse import urlsplit
 
-from backends.models import ModelClient
-from settings import ROOT, load_settings
-from turns import Cancellation
+from yiban.backends.models import ModelClient
+from yiban.settings import ROOT, load_settings
+from yiban.turns import Cancellation
 
 TEMPLATE = ROOT / 'config/cloud-bailian.example.json'
 CONFIG = ROOT / 'config/cloud.local.json'

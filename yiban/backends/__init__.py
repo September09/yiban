@@ -1,7 +1,7 @@
 """Platform implementations, constructed once and injected into HTTP handlers."""
 from dataclasses import dataclass
 
-from actions import describe
+from yiban.actions import describe
 from .models import ModelClient
 from .speech import SenseVoiceASR, MacSpeech, DisabledASR, DisabledSpeech
 

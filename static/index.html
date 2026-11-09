@@ -45,6 +45,40 @@
       <label for="memoryText">明确告诉我需要记住的事</label>
       <textarea id="memoryText" maxlength="1200" rows="3" placeholder="例如：我喜欢简短的回答"></textarea>
       <div class="personal-row"><button id="saveMemory" class="secondary-button">保存记忆</button><button id="cancelMemoryEdit" class="text-button">取消编辑</button></div>
+      <section id="memoryReviewPanel" class="memory-review" aria-label="记忆修改与冲突确认" hidden>
+        <h3>核对记忆变更</h3>
+        <p id="memoryReviewStatus" role="status"></p>
+        <p id="memoryReviewTarget"></p>
+        <div id="memoryReviewDiff"></div>
+        <p class="feature-help">可能冲突由有限规则提示，不代表完整语义判断。并存会让两种表述都可参与后续对话；替换只更新你选中的一条。</p>
+        <label for="memoryReviewChoice">处理方式</label><select id="memoryReviewChoice"></select>
+        <label class="feature-option"><input id="memoryReviewConsent" type="checkbox"> 我已核对目标、差异和处理方式，确认保存</label>
+        <div class="personal-row"><button id="confirmMemoryReview" class="secondary-button" disabled>确认保存变更</button><button id="cancelMemoryReview" class="text-button">取消变更</button></div>
+      </section>
+      <section id="memoryHistoryPanel" class="memory-review" aria-label="记忆修改历史" hidden>
+        <h3>记忆修改历史</h3><p id="memoryHistoryStatus" role="status"></p>
+        <p class="feature-help">记录从本次升级起保留；只展示最近 100 次。历史内容不参与回答，删除记忆时也删除它的历史。</p>
+        <ul id="memoryHistoryItems" class="memory-list"></ul><button id="closeMemoryHistory" class="text-button">关闭历史</button>
+      </section>
+      <label for="memorySearch">查找已保存的记忆</label>
+      <input id="memorySearch" type="search" maxlength="1200" placeholder="输入关键词筛选当前用户的记忆" disabled>
+      <div class="personal-row memory-toolbar"><span id="memoryCount" role="status">请先选择用户</span><button id="exportMemories" class="text-button" disabled>导出文字记忆</button></div>
+      <p class="feature-help">导出当前用户的全部文字记忆（不受筛选影响），包含称呼、来源和时间，不包含声纹或聊天记录。</p>
+      <details id="memoryImportPanel"><summary>导入文字记忆</summary>
+        <p class="feature-help">先选择上方目标用户，再选择忆伴导出的 JSON 文件（最多 2 MB、200 条）。预览不会保存；确认后只新增不重复的文字记忆，不覆盖已有内容、称呼或声纹。</p>
+        <label for="memoryImportFile">选择记忆文件</label>
+        <input id="memoryImportFile" type="file" accept=".json,application/json" disabled>
+        <div class="personal-row"><button id="previewMemoryImport" class="secondary-button" disabled>预览导入</button><button id="cancelMemoryImport" class="text-button">取消导入</button></div>
+        <p id="memoryImportStatus" role="status">请选择目标用户和文件。</p>
+        <section id="memoryImportPreview" hidden aria-label="导入预览">
+          <p id="memoryImportSummary"></p>
+          <p class="feature-help">仅按去掉首尾空白后的完全相同文字去重；相似、矛盾的内容不会自动合并。来源和时间沿用文件中的记录，不代表已核实内容。</p>
+          <ul id="memoryImportItems" class="memory-list"></ul>
+          <label id="memoryImportConflictLabel" class="feature-option" hidden><input id="memoryImportConflictConsent" type="checkbox"> 文件中存在可能冲突的记忆，我已核对并确认让这些表述并存</label>
+          <label class="feature-option"><input id="memoryImportConsent" type="checkbox"> 我确认将预览中的新增记忆合并到上述目标档案</label>
+          <button id="confirmMemoryImport" class="secondary-button" disabled>确认恢复</button>
+        </section>
+      </details>
       <ul id="memoryList" class="memory-list"></ul>
       <p class="feature-help">也可以说“记住：……”或“你记得什么”。新对话不会清除长期记忆。</p>
       <button id="deleteProfile" class="text-button danger">删除当前用户及其记忆、声纹</button>
@@ -58,13 +92,158 @@
   <section class="conversation" aria-label="对话">
     <div class="conversation-header"><div><h2>和小伴聊聊</h2><p id="connection">模型准备中</p></div><button class="text-button" id="clear">新对话</button></div>
     <div id="messages" class="messages" role="log" aria-live="polite"></div>
+
+    <section id="sharedVoiceBanner" class="shared-voice-banner" aria-label="共同记忆语音状态" hidden>
+      <strong>共同记忆 · 语音交互</strong><p id="sharedVoiceStatus" role="status"></p>
+      <button id="sharedVoiceStop" class="text-button">退出共同记忆语音</button>
+    </section>
     <div class="suggestions" id="suggestions"><button>给我讲一个短笑话</button><button>请点点头</button><button>笑一个</button></div>
     <form id="chatForm"><div class="input-wrap"><textarea id="input" rows="2" placeholder="在这里发送文字；测试声纹请点击「点击说话」" aria-label="输入消息" maxlength="6000"></textarea><button id="send" type="submit" aria-label="发送消息" title="发送文字；不录音、不识别声纹" disabled>↑</button></div></form>
     <div class="footer-controls"><label><input type="checkbox" id="autoplay" checked> 自动朗读回答</label><button class="text-button" id="stopAudio">打断 / 停止</button><span>Enter 发送 · Shift + Enter 换行</span></div>
+    <p class="conversation-state" id="conversationState" role="status">待机 · 等待输入</p>
     <p class="notice" id="notice" role="status"></p>
   </section>
 </main>
+<details class="personal-card shared-card" id="speechSettingsPanel">
+  <summary>回答声音 · 音色与语速</summary>
+  <p class="feature-help">选择 → 试听 → 保存。试听不保存；保存后从下一次朗读开始生效，重启后保留。使用当前播放设备和系统音量，不提高音量。</p>
+  <p id="speechCurrent">展开后读取当前声音。</p>
+  <label for="speechVoice">音色（Mac 系统语音）</label><select id="speechVoice" disabled></select>
+  <label for="speechRate">语速：<output id="speechRateValue" for="speechRate">195</output>（100 慢 — 300 快）</label>
+  <input id="speechRate" type="range" min="100" max="300" step="1" value="195" disabled>
+  <div class="personal-row"><button id="speechPreview" class="secondary-button" disabled>试听当前选择</button><button id="speechPreviewStop" class="text-button" disabled>停止试听</button><button id="speechSave" class="secondary-button" disabled>保存声音设置</button><button id="speechReload" class="text-button">重新加载</button></div>
+  <p id="speechSettingsStatus" role="status" aria-live="polite"></p>
+</details>
+<details class="personal-card shared-card" id="conversationDiagnosticsPanel">
+  <summary>每轮对话诊断 · 后台管理</summary>
+  <p class="feature-help">选一轮查看收音、识别、记忆、回答和播放卡在哪一步。仅保留本页面最近 20 轮，刷新后清空；服务端细分在内存保留最多 30 分钟。不记录聊天正文、记忆内容、账号姓名或录音。</p>
+  <p class="feature-help">“播放完成”表示浏览器完成播放，不能证明扬声器实际出声。没有声音时仍需检查系统音量和输出设备。</p>
+  <div class="trace-toolbar"><button id="conversationTraceExport" class="text-button">导出诊断</button><button id="conversationTraceClear" class="text-button">清空已结束记录</button></div>
+  <div class="trace-layout"><div id="conversationTraceList" aria-label="最近对话轮次"></div><section id="conversationTraceDetail" aria-label="本轮诊断详情"></section></div>
+</details>
+<details class="personal-card shared-card" id="sharedPanel">
+  <summary>家庭与团队 · 后台管理</summary>
+  <p class="feature-help">个人记忆不会自动共享。共同记忆使用独立空间账号，声纹和上方的个人档案选择不授予空间权限；本机账号不是互联网账号。</p>
+  <p id="sharedStatus" role="status">请注册或登录空间账号。</p>
+  <section id="sharedLoginPanel" aria-label="空间账号登录">
+    <label for="sharedAccountName">空间账号名称</label><input id="sharedAccountName" maxlength="40" autocomplete="username" placeholder="每位成员使用自己的账号">
+    <label for="sharedPassword">空间账号口令</label><input id="sharedPassword" type="password" minlength="10" maxlength="128" autocomplete="current-password" placeholder="10–128 个字符">
+    <div class="personal-row"><button id="sharedLogin" class="secondary-button">登录空间</button><button id="sharedRegister" class="text-button">注册空间账号</button></div>
+  </section>
+  <section id="sharedSignedIn" hidden aria-label="共同记忆管理">
+    <div class="personal-row"><strong id="sharedIdentity"></strong><button id="sharedLogout" class="text-button">锁定并退出空间账号</button><button id="sharedRefresh" class="text-button">刷新空间</button></div>
+    <details><summary>修改空间账号口令</summary><label for="sharedOldPassword">原口令</label><input id="sharedOldPassword" type="password" maxlength="128" autocomplete="current-password"><label for="sharedNewPassword">新口令</label><input id="sharedNewPassword" type="password" minlength="10" maxlength="128" autocomplete="new-password"><button id="sharedChangePassword" class="secondary-button">修改口令并退出所有会话</button></details>
+
+    <section class="shared-voice-setup" aria-label="共同记忆语音设置">
+      <h3>语音交互设置</h3>
+      <p class="feature-help">先在「用户与记忆」选择本人已登记声纹的档案，再登录空间账号并选择空间。开启后可直接用麦克风查询、保存、修改；每次写入先播报归属与可见范围，再收听明确确认。声纹只核对本次说话人，不能授予账号权限。</p>
+      <label class="feature-option"><input id="sharedVoicePrivate" type="checkbox"> 我已使用耳机或独处，允许朗读当前账号可见的指定成员记忆</label>
+      <p class="feature-help">默认公开播放：仅查询全体成员可见的记忆。新保存默认全体成员可见、仅作者和管理员修改；可在确认前说“仅让某成员可见”。听完后完整说“我确认保存这条共同记忆”或“我确认修改这条共同记忆”才写入；说“取消”或打断会取消待确认操作。</p>
+      <button id="sharedVoiceStart" class="secondary-button" disabled>开启共同记忆语音</button>
+    </section>
+    <div class="shared-grid">
+      <section aria-label="空间与成员">
+        <label for="sharedSpaceSelect">当前共同记忆空间</label><select id="sharedSpaceSelect"><option value="">请选择空间</option></select>
+        <p id="sharedSpaceInfo" class="feature-help"></p>
+        <details><summary>创建家庭或团队空间</summary><label for="sharedSpaceKind">空间类型</label><select id="sharedSpaceKind"><option value="family">家庭</option><option value="team">团队</option></select><label for="sharedSpaceName">空间名称</label><input id="sharedSpaceName" maxlength="60" placeholder="例如：我们的家庭、产品团队"><button id="sharedCreateSpace" class="secondary-button">创建空间</button></details>
+        <details id="sharedMembersPanel"><summary>成员与角色</summary><ul id="sharedMemberList" class="memory-list"></ul>
+          <div id="sharedMemberAdmin" hidden><label for="sharedMemberName">成员的空间账号名称</label><input id="sharedMemberName" maxlength="40" placeholder="成员需先注册账号"><label for="sharedMemberRole">成员角色</label><select id="sharedMemberRole"><option value="reader">只读成员</option><option value="editor">编辑成员</option></select><button id="sharedSetMember" class="secondary-button">添加或更新成员角色</button><p class="feature-help">管理员可管理所有共同记忆。只读成员仅能查看；编辑成员按每条记忆的修改权限操作。</p></div>
+        </details>
+        <button id="sharedDeleteSpace" class="text-button danger" hidden>删除整个空间及共同记忆</button>
+      </section>
+      <section aria-label="共同记忆编辑">
+        <h3 id="sharedEditorTitle">发布共同记忆</h3><p id="sharedOwnership" class="feature-help">请选择空间。</p>
+        <label for="sharedMemoryText">共同记忆内容</label><textarea id="sharedMemoryText" maxlength="1200" rows="4" placeholder="明确希望在这个家庭或团队中保存的事情"></textarea>
+        <label for="sharedMemoryStatus">记忆状态</label><select id="sharedMemoryStatus"><option value="pending">待核实</option><option value="valid">有效</option><option value="outdated">过时</option></select>
+        <label for="sharedStatusReason">状态说明（标记有效或过时时必填）</label><input id="sharedStatusReason" maxlength="200" placeholder="例如：已与负责人确认；或安排已变更">
+        <p class="feature-help">有效表示成员已核实、可作为当前资料；不代表系统证明客观事实。修改正文或事件日期后自动回到待核实，核对后可单独改为有效。</p>
+        <label for="sharedEventDate">事件日期（可选）</label><input id="sharedEventDate" type="date">
+        <label for="sharedSourceNote">来源说明（可选）</label><input id="sharedSourceNote" maxlength="200" placeholder="例如：家庭讨论、周一例会">
+        <label for="sharedVisibility">谁可以看到</label><select id="sharedVisibility"><option value="selected">指定成员（作者和管理员始终可见）</option><option value="all">全体成员（含以后加入的成员）</option></select>
+        <div id="sharedAudience" class="shared-audience"></div>
+        <label for="sharedEditPolicy">谁可以修改正文</label><select id="sharedEditPolicy"><option value="author">仅作者和管理员</option><option value="editors">允许可见的编辑成员修改</option></select>
+        <p class="feature-help">修改可见范围、删除记忆仅作者（须有编辑角色）或管理员可操作；历史仅作者和管理员可查看。只读角色不会因是作者而获得写入权限。</p>
+        <div class="personal-row"><button id="sharedPreview" class="secondary-button">预览发布范围与内容</button><button id="sharedCancelEdit" class="text-button">取消编辑</button></div>
+        <section id="sharedReviewPanel" class="memory-review" aria-label="共同记忆发布确认" hidden>
+          <h3>发布前核对</h3><p id="sharedReviewSummary"></p><div id="sharedReviewContent"></div>
+          <label id="sharedConflictLabel" class="feature-option" hidden><input id="sharedConflictConsent" type="checkbox"> 我已核对可能冲突的内容，仍确认本次发布</label>
+          <label class="feature-option"><input id="sharedPublishConsent" type="checkbox"> 我确认内容、记忆归属、可见成员和修改权限</label>
+          <button id="sharedConfirm" class="secondary-button" disabled>确认发布共同记忆</button><button id="sharedCancelReview" class="text-button">取消发布</button>
+        </section>
+      </section>
+    </div>
+    <details id="materialPanel" class="material-panel">
+      <summary>资料整理与导入 · 先预览，再保存</summary>
+      <p class="feature-help">① 添加资料 → ② 核对原文 → ③ 编辑候选 → ④ 确认导入。只有最后确认才写入当前家庭／团队记忆。</p>
+      <p id="materialDestination" class="feature-help"></p>
+      <fieldset id="materialEditor">
+        <legend>1 · 添加聊天记录或活动资料</legend>
+        <label for="materialFiles">读取文件（可多选）</label>
+        <input id="materialFiles" type="file" multiple accept=".txt,.md,.csv,.json,.docx,.pdf,.png,.jpg,.jpeg">
+        <p class="feature-help">支持文字、聊天导出 JSON／CSV、Word DOCX、PDF、PNG／JPG。每份最多 4 MB、PDF 最多 20 页，每批最多 10 份／30000 字。图片和扫描页目前在 Mac 本机识别；模糊长图请分段上传。微信原始数据库、旧版 DOC、音视频请先转为以上格式。</p>
+        <button id="materialAddText" type="button" class="secondary-button">添加一份粘贴文字</button>
+        <h3>2 · 核对读取的原文</h3>
+        <div id="materialSources"></div>
+        <label for="materialMode">整理方式</label>
+        <select id="materialMode"><option value="paragraphs">按原文段落生成（不调用模型）</option><option value="ai">AI 提炼活动、决定和团队事实</option></select>
+        <p id="materialModelInfo" class="feature-help">选择 AI 时会检查当前模型。</p>
+        <label><input id="materialRemoteConsent" type="checkbox">如果当前使用远端模型，我同意将本批原文发送给它整理</label>
+        <button id="materialOrganize" type="button" class="secondary-button">生成候选记忆</button>
+        <h3>3 · 逐条编辑并勾选</h3>
+        <p class="feature-help">原文摘录用于核对。日期不确定请留空；AI 结果可能有遗漏或误解。新候选默认待核实，确认导入不等于事实核实。</p>
+        <label><input id="materialKeepEvidence" type="checkbox">保留原文依据，便于日后追溯</label>
+        <p class="feature-help">勾选后保存相关资料的完整文字快照及引用位置；原文件图片／附件不归档。相关摘录随记忆可见范围开放，整份文字只给作者和管理员查看。未勾选则只保存来源说明。</p>
+        <div id="materialCandidates"></div>
+        <label for="materialVisibility">本批记忆谁可以看到</label>
+        <select id="materialVisibility"><option value="selected">指定成员（作者和管理员始终可见）</option><option value="all">全体成员（含以后加入的成员）</option></select>
+        <div id="materialAudience" class="shared-audience"></div>
+        <label for="materialPolicy">本批记忆谁可以修改</label>
+        <select id="materialPolicy"><option value="author">仅作者和管理员</option><option value="editors">可见的编辑成员</option></select>
+        <button id="materialPreview" type="button" class="secondary-button">查看最终导入预览</button>
+      </fieldset>
+      <button id="materialStop" type="button" class="text-button" hidden>停止读取／整理</button>
+      <button id="materialClear" type="button" class="text-button">清空本批资料</button>
+      <section id="materialReview" hidden aria-label="导入最终确认">
+        <h3>4 · 确认导入</h3>
+        <p id="materialReviewSummary"></p><ol id="materialReviewItems" class="memory-list"></ol>
+        <p class="feature-help">只新增，不自动覆盖。重复检查仅比较你可见的记忆和本批内容；冲突提醒是有限规则，仍需人工核对。</p>
+        <label><input id="materialConsent" type="checkbox">我已核对内容、来源、归属、可见范围和修改权限，确认导入以上记忆</label>
+        <label id="materialConflictLabel" hidden><input id="materialConflictConsent" type="checkbox">我已核对可能冲突的内容，仍要新增这些记忆</label>
+        <button id="materialConfirm" type="button" class="primary-button">确认导入</button>
+        <button id="materialBack" type="button" class="text-button">返回修改</button>
+      </section>
+      <p id="materialStatus" role="status" aria-live="polite"></p>
+    </details>
+    <label for="sharedStatusFilter">按记忆状态筛选</label><select id="sharedStatusFilter"><option value="all">全部状态</option><option value="pending">待核实</option><option value="valid">有效</option><option value="outdated">过时</option></select>
+    <section id="sharedEvidencePanel" hidden aria-label="原文依据">
+      <h3>原文依据</h3><p id="sharedEvidenceSummary" class="material-evidence"></p>
+      <ol id="sharedEvidenceQuotes" class="memory-list material-evidence"></ol>
+      <button id="sharedEvidenceFullButton" class="secondary-button" hidden>查看完整原文文字（作者／管理员）</button>
+      <pre id="sharedEvidenceFull" class="material-evidence"></pre>
+      <button id="sharedCloseEvidence" class="text-button">关闭原文依据</button>
+    </section>
+    <label for="sharedSearch">查找我可见的共同记忆</label><input id="sharedSearch" type="search" maxlength="1200" placeholder="按关键词筛选当前空间">
+    <p id="sharedCount" role="status"></p><ul id="sharedMemoryList" class="memory-list shared-memory-list"></ul>
+    <section id="sharedHistoryPanel" class="memory-review" aria-label="共同记忆修改历史" hidden><h3>共同记忆修改历史</h3><p id="sharedHistoryInfo"></p><ul id="sharedHistoryList" class="memory-list"></ul><button id="sharedCloseHistory" class="text-button">关闭共同记忆历史</button></section>
+    <section class="shared-question" aria-label="共同记忆问答">
+      <h3>根据这个空间的记忆提问</h3><p class="feature-help">此入口只读取当前登录账号可见的共同记忆，不带入个人档案、声纹或上方聊天历史。问题与回答只在本页暂存；如选用云端模型，会发送问题和本次可见的相关资料。</p>
+      <label for="sharedQuestion">共同记忆问题</label><textarea id="sharedQuestion" rows="2" maxlength="2000" placeholder="例如：我们上次讨论了什么？"></textarea>
+      <label><input id="sharedIncludeOutdated" type="checkbox">同时检索过时记忆（仅作历史回顾）</label>
+      <button id="sharedAsk" class="secondary-button">询问共同记忆</button><button id="sharedStopAsk" class="text-button" disabled>停止共同记忆问答</button>
+      <p id="sharedAnswer" role="status"></p><details id="sharedSourcesPanel" hidden><summary>本次提供给模型的资料</summary><ul id="sharedSources" class="memory-list"></ul></details>
+    </section>
+  </section>
+</details>
+
 <footer>MAC 体验版 <span>·</span> 唤醒开启时监听，允许插话时回答期间也会监听 <span>·</span> 记忆与声纹特征存于本机 <span>·</span> 保持页面打开、电脑不休眠</footer>
+<script src="/conversation-diagnostics.js"></script>
 <script src="/app.js"></script>
 <script src="/personal.js"></script>
+<script src="/memory-import.js"></script>
+<script src="/memory-review.js"></script>
+<script src="/shared.js"></script>
+<script src="/shared-voice.js"></script>
+<script src="/shared-evidence.js"></script>
+<script src="/material-import.js"></script>
+<script src="/speech-settings.js"></script>
 </body></html>

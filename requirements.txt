@@ -1,2 +1,3 @@
 sherpa-onnx==2.0.1
 numpy==2.5.4
+pypdf==7.0.0

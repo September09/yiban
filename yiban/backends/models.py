@@ -65,7 +65,7 @@ class ModelClient:
                 self._health_checking = False
 
     def verify_completion(self):
-        from turns import Cancellation
+        from yiban.turns import Cancellation
         has_text, complete = False, False
         for event in self.chat([{'role': 'user', 'content': '连接测试，请仅回复：连接成功。'}], cancel=Cancellation()):
             has_text = has_text or bool(event.get('message', {}).get('content', '').strip())
@@ -143,7 +143,7 @@ class ModelClient:
                 response.close()
             connection.close()
 
-    def chat(self, messages, vision=False, cancel=None):
+    def chat(self, messages, vision=False, cancel=None, json_schema=None):
         model = self.config["vision_model"] if vision else self.config["model"]
         if not model:
             raise ValueError("当前配置未启用视觉模型。")
@@ -151,6 +151,8 @@ class ModelClient:
             payload = {"model": model, "messages": messages, "stream": True, "keep_alive": "15m",
                        "options": {"num_ctx": 4096, "num_predict": self.config["max_tokens"],
                                    "temperature": self.config["temperature"]}}
+            if json_schema is not None:
+                payload["format"] = json_schema
             with self.stream_request("/api/chat", payload, cancel) as response:
                 for line in response:
                     if cancel:

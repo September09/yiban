@@ -16,10 +16,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from settings import ROOT, load_settings
-from backends import build_services
-from backends.models import ModelClient, ModelHTTPError
-from turns import Cancellation
+from yiban.settings import ROOT, load_settings
+from yiban.backends import build_services
+from yiban.backends.models import ModelClient, ModelHTTPError
+from yiban.turns import Cancellation
 
 
 class FakeModel(BaseHTTPRequestHandler):
@@ -121,9 +121,9 @@ class BackendTests(unittest.TestCase):
 
     def test_https_proxy_tunnel_keeps_auth_at_destination(self):
         config = dict(self.config['llm'], base_url='https://open.bigmodel.cn/api/paas/v4')
-        with patch('backends.models.urllib.request.getproxies', return_value={'https': 'http://127.0.0.1:7897'}), \
-             patch('backends.models.urllib.request.proxy_bypass', return_value=False), \
-             patch('backends.models.http.client.HTTPSConnection') as connection, \
+        with patch('yiban.backends.models.urllib.request.getproxies', return_value={'https': 'http://127.0.0.1:7897'}), \
+             patch('yiban.backends.models.urllib.request.proxy_bypass', return_value=False), \
+             patch('yiban.backends.models.http.client.HTTPSConnection') as connection, \
              patch.dict(os.environ, {'ASSISTANT_MODEL_API_KEY': 'test-key'}):
             response = connection.return_value.getresponse.return_value
             response.status = 200

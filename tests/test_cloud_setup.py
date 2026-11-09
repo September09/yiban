@@ -10,9 +10,9 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import cloud_setup
-from settings import load_settings
-from backends.models import ModelHTTPError
+from tools import cloud_setup
+from yiban.settings import load_settings
+from yiban.backends.models import ModelHTTPError
 
 
 class CloudSetupTests(unittest.TestCase):

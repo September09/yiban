@@ -10,7 +10,7 @@ from pathlib import Path
 import shutil
 import subprocess
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / "models/vision-download"
 BLOBS = ROOT / "models/ollama/blobs"
 REGISTRY = "https://registry.ollama.ai/v2/library/qwen2.5vl"

@@ -15,7 +15,7 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from settings import ROOT, load_settings
+from yiban.settings import ROOT, load_settings
 from test_backends import FakeModel
 
 
@@ -51,6 +51,62 @@ class PersonalHTTPTests(unittest.TestCase):
         request=urllib.request.Request(f'http://127.0.0.1:{self.http.server_port}'+path,data=json.dumps(data).encode(),headers={'Content-Type':'application/json'})
         with urllib.request.urlopen(request,timeout=5) as response:
             return [json.loads(line) for line in response.read().splitlines()]
+
+    def test_chat_conflict_and_edit_history_require_confirmation(self):
+        a=self.post('/api/profiles/create',{'name':'冲突甲'})[0]['id']
+        b=self.post('/api/profiles/create',{'name':'冲突乙'})[0]['id']
+        first=self.post('/api/memory/save',{'profile_id':a,'content':'我喜欢咖啡'})[0]
+        reply=self.post('/api/chat',{'profile_id':a,'messages':[{'role':'user','content':'记住：我不喜欢咖啡'}]})[0]
+        self.assertFalse(reply['memory_changed'])
+        self.assertIn('尚未保存',reply['message']['content'])
+        self.assertEqual(len(self.app.STORE.memories(a)),1)
+        self.post('/api/memory/review/confirm',{'profile_id':a,'token':reply['memory_review']['token'],'confirmed':True,'resolution':'replace','replace_id':first['id']})
+        history=self.post('/api/memory/history',{'profile_id':a,'id':first['id']})[0]
+        self.assertEqual(history['entries'][0]['after_content'],'我不喜欢咖啡')
+        with self.assertRaises(urllib.error.HTTPError):self.post('/api/memory/history',{'profile_id':b,'id':first['id']})
+        edit=self.post('/api/memory/save',{'profile_id':a,'id':first['id'],'content':'新草稿','expected_revision':0})[0]
+        self.assertTrue(edit['review']['stale'])
+        self.assertEqual(self.app.STORE.memories(a)[0]['content'],'我不喜欢咖啡')
+
+    def test_import_requires_preview_confirmation_and_original_target(self):
+        a = self.post('/api/profiles/create', {'name':'恢复目标'})[0]['id']
+        b = self.post('/api/profiles/create', {'name':'恢复其他目标'})[0]['id']
+        document = self.post('/api/memory/export', {'profile_id':a})[0]
+        document['memories'] = [dict(content='导入内容', source='manual', created=None, updated='2026-01-01 00:00:00')]
+        preview = self.post('/api/memory/import/preview', {'profile_id':a,'document':document})[0]
+        self.assertEqual(self.app.STORE.memories(a), [])
+        for data in ({'profile_id':a,'token':preview['token']}, {'profile_id':b,'token':preview['token'],'confirmed':True}):
+            with self.assertRaises(urllib.error.HTTPError) as error:self.post('/api/memory/import/confirm',data)
+            self.assertEqual(error.exception.code,400)
+        result=self.post('/api/memory/import/confirm',{'profile_id':a,'token':preview['token'],'confirmed':True})[0]
+        self.assertEqual(result['imported'],1)
+        self.assertEqual(self.app.STORE.memories(b),[])
+        request=urllib.request.Request(f'http://127.0.0.1:{self.http.server_port}/api/memory/import/preview',
+            data=json.dumps({'profile_id':a,'document':document}).encode(),headers={'Origin':'https://example.com'})
+        with self.assertRaises(urllib.error.HTTPError) as error:urllib.request.urlopen(request,timeout=5)
+        self.assertEqual(error.exception.code,403)
+
+    def test_export_route_and_server_assigned_source(self):
+        a = self.post('/api/profiles/create', {'name':'导出甲'})[0]['id']
+        b = self.post('/api/profiles/create', {'name':'导出乙'})[0]['id']
+        self.post('/api/memory/save', {'profile_id':a,'content':'手动记忆','source':'conversation'})
+        self.post('/api/chat', {'profile_id':a,'messages':[{'role':'user','content':'记住：对话记忆'}]})
+        self.post('/api/memory/save', {'profile_id':b,'content':'其他人的资料'})
+        self.app.STORE.enroll(a, [1,0,0], 'private-voiceprint')
+        result = self.post('/api/memory/export', {'profile_id':a})[0]
+        self.assertEqual({m['content']:m['source'] for m in result['memories']},
+                         {'手动记忆':'manual','对话记忆':'conversation'})
+        self.assertEqual(result['profile']['id'], a)
+        self.assertNotIn('其他人的资料', json.dumps(result, ensure_ascii=False))
+        self.assertNotIn('private-voiceprint', json.dumps(result))
+        with self.assertRaises(urllib.error.HTTPError) as error:
+            self.post('/api/memory/export', {'profile_id':''})
+        self.assertEqual(error.exception.code, 400)
+        request = urllib.request.Request(f'http://127.0.0.1:{self.http.server_port}/api/memory/export',
+            data=json.dumps({'profile_id':a}).encode(), headers={'Content-Type':'application/json','Origin':'https://example.com'})
+        with self.assertRaises(urllib.error.HTTPError) as error:
+            urllib.request.urlopen(request, timeout=5)
+        self.assertEqual(error.exception.code, 403)
 
     def test_memory_commands_and_model_context_are_profile_scoped(self):
         a=self.post('/api/profiles/create',{'name':'用户甲'})[0]['id']

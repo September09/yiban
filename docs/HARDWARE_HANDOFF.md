@@ -9,14 +9,14 @@
 浏览器：界面、麦克风、摄像头、屏幕动画
     ↓ 原有 /api/* 接口
 server.py：校验请求、组织对话、返回统一事件
-    ├─ backends/models.py：Ollama / OpenAI 兼容模型服务
-    ├─ backends/speech.py：SenseVoice 识别 / Mac 朗读 / 禁用语音
-    └─ backends/__init__.py：组装服务 / 屏幕动作执行
+    ├─ yiban/backends/models.py：Ollama / OpenAI 兼容模型服务
+    ├─ yiban/backends/speech.py：SenseVoice 识别 / Mac 朗读 / 禁用语音
+    └─ yiban/backends/__init__.py：组装服务 / 屏幕动作执行
 
-voice.py：现有唤醒和断句会话
-actions.py：固定动作白名单与意图识别
-settings.py + config/：选择运行后端
-diagnose.py：只读环境与模型连接检查
+yiban/audio/voice.py：现有唤醒和断句会话
+yiban/actions.py：固定动作白名单与意图识别
+yiban/settings.py + config/：选择运行后端
+tools/diagnose.py：只读环境与模型连接检查
 ```
 
 服务接口约定：
@@ -38,7 +38,7 @@ OpenAI 兼容适配器仅接入对话文本/图片与流式回复，不执行模
 原有双击启动、停止方式不变。没有 ASSISTANT_CONFIG 时使用 Mac 默认设置。
 
 ```bash
-./.venv/bin/python diagnose.py
+./.venv/bin/python -m tools.diagnose
 ./.venv/bin/python launcher.py --restart-web --no-open
 ```
 
@@ -56,7 +56,7 @@ OpenAI 兼容适配器仅接入对话文本/图片与流式回复，不执行模
 
 ```bash
 export ASSISTANT_CONFIG="$PWD/config/board.local.json"
-python3 diagnose.py
+python3 -m tools.diagnose
 python3 server.py
 ```
 

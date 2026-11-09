@@ -11,7 +11,7 @@ import wave
 import numpy as np
 import sherpa_onnx
 
-ROOT = Path(__file__).resolve().parent
+from yiban.settings import ROOT
 KWS_DIR = ROOT / "models/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01"
 RATE = 16000
 WAKE_WORD = "你好小伴"
@@ -135,7 +135,7 @@ class VoiceManager:
                     encoder=str(KWS_DIR / "encoder-epoch-12-avg-2-chunk-16-left-64.onnx"),
                     decoder=str(KWS_DIR / "decoder-epoch-12-avg-2-chunk-16-left-64.onnx"),
                     joiner=str(KWS_DIR / "joiner-epoch-12-avg-2-chunk-16-left-64.onnx"),
-                    keywords_file=str(ROOT / "keywords.txt"), num_threads=2,
+                    keywords_file=str(ROOT / "config/keywords.txt"), num_threads=2,
                     keywords_threshold=0.3, keywords_score=1.5)
             session_id = uuid.uuid4().hex
             self.sessions[session_id] = VoiceSession(self.spotter, mode)

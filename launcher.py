@@ -8,7 +8,7 @@ import sys
 import time
 import urllib.request
 import webbrowser
-from settings import load_settings
+from yiban.settings import load_settings
 
 ROOT = Path(__file__).resolve().parent
 RUNTIME = ROOT / ".runtime"

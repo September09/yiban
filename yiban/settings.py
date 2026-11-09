@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from urllib.parse import urlsplit
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 DEFAULTS = {
     "port": 8765,
     "llm": {"backend": "ollama", "base_url": "http://127.0.0.1:11434",

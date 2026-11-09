@@ -14,11 +14,11 @@ from unittest.mock import patch
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from memory_store import MemoryStore
-from speakers import SpeakerService
-from settings import ROOT, load_settings
-from turns import Cancellation, Cancelled, TurnRegistry
-from backends.models import ModelClient
+from yiban.memory.memory_store import MemoryStore
+from yiban.audio.speakers import SpeakerService
+from yiban.settings import ROOT, load_settings
+from yiban.turns import Cancellation, Cancelled, TurnRegistry
+from yiban.backends.models import ModelClient
 
 
 class PersonalTests(unittest.TestCase):
@@ -101,7 +101,7 @@ class PersonalTests(unittest.TestCase):
         self.assertTrue(invoked)
 
     def test_cancel_stops_speech_subprocess(self):
-        from backends.speech import MacSpeech
+        from yiban.backends.speech import MacSpeech
         started, finished = threading.Event(), threading.Event()
         original = subprocess.Popen
         processes, errors = [], []
@@ -118,7 +118,7 @@ class PersonalTests(unittest.TestCase):
                 errors.append(error)
             finally:
                 finished.set()
-        with patch('backends.speech.subprocess.Popen', side_effect=launch):
+        with patch('yiban.backends.speech.subprocess.Popen', side_effect=launch):
             worker = threading.Thread(target=run)
             worker.start()
             self.assertTrue(started.wait(2))
@@ -131,7 +131,7 @@ class PersonalTests(unittest.TestCase):
     def test_vad_interrupt_preserves_speech_before_transcription(self):
         import numpy as np
         import wave
-        from voice import VoiceManager
+        from yiban.audio.voice import VoiceManager
         fixture = ROOT / '.runtime/test-audio/xiaoban-command.wav'
         if not fixture.exists():
             self.skipTest('先运行 tests/make_audio_fixtures.py 生成合成语音')
@@ -160,7 +160,7 @@ class PersonalTests(unittest.TestCase):
             manager.stop(identity)
 
     def test_real_speaker_model_enrollment_and_heldout_audio(self):
-        from voice import pcm_wav
+        from yiban.audio.voice import pcm_wav
         import numpy as np
         fixture = ROOT / '.runtime/test-audio'
         speaker = SpeakerService(self.store, load_settings()['speaker'])

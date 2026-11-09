@@ -8,10 +8,10 @@ import wave
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from diagnostics import audio_metadata, safe_record
-from memory_store import MemoryStore
-from settings import load_settings
-from speakers import SpeakerService
+from yiban.audio.diagnostics import audio_metadata, safe_record
+from yiban.memory.memory_store import MemoryStore
+from yiban.settings import load_settings
+from yiban.audio.speakers import SpeakerService
 
 
 class SpeakerDiagnosticTests(unittest.TestCase):

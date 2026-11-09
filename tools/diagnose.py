@@ -5,8 +5,8 @@ import shutil
 import sys
 from pathlib import Path
 
-from settings import ROOT, load_settings
-from backends import build_services
+from yiban.settings import ROOT, load_settings
+from yiban.backends import build_services
 
 
 def main():

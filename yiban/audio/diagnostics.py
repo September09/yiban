@@ -3,7 +3,7 @@ import io
 import json
 import logging
 from logging.handlers import RotatingFileHandler
-from pathlib import Path
+from yiban.settings import ROOT
 import threading
 import wave
 from datetime import datetime, timezone
@@ -17,7 +17,7 @@ FIELDS = {
 }
 _lock = threading.Lock()
 _logger = None
-LOG_PATH = Path(__file__).resolve().parent / '.runtime' / 'speaker-diagnostics.jsonl'
+LOG_PATH = ROOT / '.runtime' / 'speaker-diagnostics.jsonl'
 
 
 def audio_metadata(raw):

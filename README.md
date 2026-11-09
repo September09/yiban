@@ -4,7 +4,7 @@
 
 **这是一个项目，提供本地 Ollama、阿里云百炼、智谱三种模型接入方式。前端由 Python 服务直接提供，不需要分别启动前端项目或执行 npm install。**
 
-目前记忆按个人档案保存；家庭／组织共同记忆、成员权限和共享范围管理尚未实现。
+支持个人记忆与家庭／团队共同记忆。共同记忆使用独立空间账号，按成员角色、可见范围和修改权限管理；目前供本机体验。详见 [共同记忆使用说明](docs/SHARED_MEMORY.md)。
 
 ## 功能与支持范围
 
@@ -13,12 +13,14 @@
 | 文字对话 | 本地 Qwen2.5 3B，或 OpenAI 兼容云端接口；支持流式显示 |
 | 语音识别 | 本机 Sherpa-ONNX / SenseVoice INT8 |
 | 唤醒与断句 | “你好小伴”唤醒；Silero VAD 检测说话与停顿 |
-| 长期记忆 | SQLite 保存用户明确要求记住的内容，按档案检索 |
+| 长期记忆 | SQLite 按档案保存与检索；支持关键词筛选、来源／时间、编辑删除、文字 JSON 导入导出、修改历史与冲突确认 |
+| 共同记忆 | 家庭／团队空间、独立账号、成员角色、指定可见范围、修改权限、发布确认、历史、空间文字问答及语音查询／保存／修改与口头确认；历史资料读取、候选编辑、预览去重和确认导入；可选保留原文依据、待核实／有效／过时状态及历史 |
 | 声纹识别 | 主动录入三段语音，匹配已登记用户；不确定时作为访客 |
 | 首次称呼 | 识别后按档案里的自定义称呼问候，不根据声音猜测性别 |
 | 打断 | 取消生成、停止播放；开启语音唤醒后可允许插话 |
+| 对话诊断 | 每轮阶段、耗时、失败与打断状态；后台查看最近 20 轮并导出，详见 [使用说明](docs/VOICE_DIAGNOSTICS.md) |
 | 看图 | 本地 Qwen2.5-VL 3B，单张照片问答；云端示例默认关闭 |
-| 朗读 | macOS 系统 Tingting（婷婷）声音；Windows／Linux 朗读尚未接入 |
+| 朗读 | Mac 系统音色选择、试听／停止、语速调整与保存，下一次朗读生效；Windows／Linux 朗读尚未接入 |
 | 动作 | 网页里的点头、摇头等动画，尚未驱动实体电机 |
 | 日期时间 | 每轮读取电脑时钟，使用北京时间；未接入天气、新闻、网页搜索 |
 
@@ -29,6 +31,14 @@
 | Linux／开发板 | 先进行文字模型接口联调；板端音频、TTS、NPU、Wi-Fi 音频和电机需要进一步适配 |
 
 “婷婷”是 macOS 提供的中文合成语音，系统名称为 `Tingting`。当前通过 `/usr/bin/say` 把模型回答转成声音；最初选择它是为了让 Mac 原型无需额外语音服务即可运行。对话模型、语音合成和 ReSpeaker 拾音是独立环节，更换智谱／千问不会自动改变声音。后续可替换语音合成适配器，实现爱凤的专属音色；当前尚未实现声音克隆。若 Mac 未安装该语音，需要先在系统语音设置中下载。
+
+## 回答声音设置（Mac）
+
+在对话区下方展开 **回答声音 · 音色与语速**：选择音色、调整语速（100–300，默认 195），点击 **试听当前选择**，满意后点击 **保存声音设置**。试听不保存，可随时停止；保存后从下一次朗读生效，不需要重启，重启后也会保留。
+
+音色由本机系统语音库提供，中文排在前面；不代表每个音色都适合中文。此设置属于整台助手设备，不按个人／家庭账号区分。试听沿用当前系统输出和音量，不调用系统音量控制、不放大音频；不同音色的主观响度仍可能不同。试听暂停本页唤醒监听，结束后恢复；共同记忆语音模式和录音／回答期间禁止开始试听。
+
+偏好保存在当前记忆数据库所在目录的 `speech-settings.json`（默认 `data/speech-settings.json`），优先于配置文件中的 `tts.voice`／`tts.rate`；不更改模型或记忆。此本机数据已被 Git 排除。未保存时仍使用原配置；旧音色失效或文件损坏会提示并暂用配置默认值。多页面同时修改时，较旧页面需点击“重新加载”再保存。安装新系统音色后，重启助手以刷新音色目录。
 
 ## 工作流程
 
@@ -88,7 +98,7 @@ py -3.12 -m venv .venv
 
 `tzdata` 用于提供北京时间等 IANA 时区数据；Windows 通常没有系统时区数据库，参见 [Python 时区说明](https://docs.python.org/3/library/zoneinfo.html)。如果找不到 `py`，可使用已安装的 Python 3.12 对应的 `python` 命令。
 
-Windows 不运行 `.command` 文件，也不使用目前依赖 Unix 进程管理的 `launcher.py`／`cloud_setup.py`。按第 4 节直接运行 `server.py`，用 `Ctrl+C` 停止服务。这样也不需要修改 PowerShell 执行策略。
+Windows 不运行 `.command` 文件，也不使用目前依赖 Unix 进程管理的 `launcher.py`／`tools/cloud_setup.py`。按第 4 节直接运行 `server.py`，用 `Ctrl+C` 停止服务。这样也不需要修改 PowerShell 执行策略。
 
 ## 2. 准备本地语音模型
 
@@ -286,38 +296,75 @@ try {
 
 麦克风与摄像头不会在页面加载时自动申请权限。多个网页同时监听容易冲突，首次验证只保留一个助手页面。
 
-详细说明见 [记忆、声纹与打断](PERSONAL_FEATURES.md)。
+详细说明见 [记忆、声纹与打断](docs/PERSONAL_FEATURES.md)。
 
 ## 6. 上下文、记忆与数据流
 
 - 最近 30 条文字消息保存在当前浏览器中；每次请求提供最近 16 条消息，不等同于 16 轮对话。
 - 长期记忆按档案保存在 `data/assistant.sqlite3`，需要用户明确保存。每个档案最多 200 条，每条最多 1200 字；每轮选择最多 8 条、总计不超过 2200 字作为背景。
-- 当前使用文字相似度检索，没有自动摘要、向量语义检索或组织级共同记忆。
+- 在「用户与记忆」可按关键词筛选、查看保存来源与时间、编辑或删除，并导出当前用户全部文字记忆为 JSON。导出不受筛选影响，不包含声纹或浏览器聊天历史；导入时先预览新增／重复项，再勾选并确认恢复；仅合并新增记忆，不覆盖已有记录、称呼或声纹。
+- 旧数据库启动时自动补齐记忆元数据字段，原内容与声纹保留；旧记录无法确认的首次时间和来源显示未知。升级前建议备份 `data/assistant.sqlite3`。
+- 编辑记忆先核对差异再确认保存；每条可查看最近 100 次修改历史。相反喜好等有限规则触发冲突时，可确认并存或替换选定的一条。聊天指令和文件导入也检查这些规则，尚未实现通用语义矛盾判断。删除记忆会同步删除其历史，历史不参与模型回答。
+- 当前使用文字相似度检索，尚无自动摘要与向量语义检索；共同记忆使用独立空间和权限过滤。
 - “新对话”清空当前浏览器会话，不清空长期记忆。声纹未确认时按访客处理；手动选择档案也可以使用该档案的记忆。
 - 声纹特征保存在本机，不保存原始登记录音。声纹用于个性化，不作为登录认证。
 - 本地模式下模型推理在本机；云端模式会发送问题文字、近期对话、称呼和本轮相关记忆到所选服务。原始录音与声纹向量不发送到对话模型。
-- 服务仅监听 `127.0.0.1`，没有远程访问账号和共享权限系统。云端模型不代表自动具备网页搜索能力。
+- 服务仅监听 `127.0.0.1`；共同记忆已有本机账号和权限控制，尚未开放跨电脑／公网访问。云端模型不代表自动具备网页搜索能力。
+
+### 家庭／团队共同记忆
+
+展开页面下方「家庭与团队 · 后台管理」→ 注册并登录空间账号 → 创建家庭或团队空间 → 添加已注册成员及角色 → 填写内容并选择可见范围／修改权限 → 预览并确认发布。管理员始终可管理空间全部记忆；编辑成员依每条权限编辑；只读成员只能查看可见内容。个人记忆不会自动共享。
+
+使用同一面板的「询问共同记忆」获取当前账号有权查看的资料回答。开启语音前选择本人已登记声纹的档案，登录并选好空间，再点击「开启共同记忆语音」。之后可说“记住，内容”或“把原记忆关键词改成新内容”，完整听完后说“我确认保存这条共同记忆”或“我确认修改这条共同记忆”。后台会自动收起，页面仍需保持打开。成员管理、退出和使用边界见 [共同记忆说明](docs/SHARED_MEMORY.md)。
 
 ## 7. 配置与代码结构
 
-配置由 `settings.py` 默认值与 `ASSISTANT_CONFIG` 指定的 JSON 合并。文件只需填写要覆盖的字段；`ASSISTANT_PORT` 可以覆盖端口，默认 `8765`。
+根目录保留日常启动入口；按下面的目录查找功能即可：
+
+```text
+yiban-github/
+├── README.md            项目介绍、安装和启动
+├── start*.command       Mac 启动／模型切换
+├── stop.command         Mac 停止
+├── server.py            Web 服务入口与接口
+├── launcher.py          Mac 进程管理
+├── requirements.txt     Python 依赖
+├── yiban/               后台业务代码
+│   ├── memory/          个人／共同记忆、权限、来源、资料导入
+│   ├── audio/           唤醒、声纹、声音设置与音频诊断
+│   ├── backends/        模型接口和语音合成适配
+│   └── *.py             配置、取消、动作与会话诊断
+├── static/              网页界面与浏览器交互
+├── config/              配置示例与唤醒词
+├── docs/                功能说明和硬件对接文档
+├── tests/               测试与统一测试入口
+└── tools/               云端配置、环境诊断、模型下载等工具
+```
+
+本机的 `data/`、`models/`、`runtime/`、`.runtime/` 和 `.venv/` 继续保留原位置，不纳入源码上传。文档入口见 [docs/README.md](docs/README.md)，测试入口见 [tests/README.md](tests/README.md)。
+
+辅助工具请在项目根目录通过模块命令运行：`python -m tools.diagnose`（环境检查）、`python -m tools.cloud_setup`（百炼配置）、`python -m tools.cloud_setup --provider zhipu`（智谱配置）。Mac 双击启动脚本已同步更新，仍按原来的方式使用。
+
+配置由 `yiban/settings.py` 默认值与 `ASSISTANT_CONFIG` 指定的 JSON 合并。文件只需填写要覆盖的字段；`ASSISTANT_PORT` 可以覆盖端口，默认 `8765`。
 
 | 位置 | 职责 |
 |---|---|
+| `yiban/memory/shared_voice.py` / `static/shared-voice.js` | 共同记忆语音状态机、录音凭证、播报后口头确认与语音模式 |
+| `yiban/memory/shared_memory.py` / `static/shared.js` | 空间账号、家庭／团队归属、成员权限、发布确认、历史和空间问答 |
 | `server.py` | HTTP 接口、模型调用、当前时间和用户上下文组织 |
-| `settings.py`、`config/` | 默认设置、Mac／Windows／云端／开发板配置 |
-| `backends/models.py` | Ollama、OpenAI 兼容接口、流式解析、连接取消和代理 |
-| `backends/speech.py` | SenseVoice ASR、macOS TTS 与禁用语音适配器 |
+| `yiban/settings.py`、`config/` | 默认设置、Mac／Windows／云端／开发板配置 |
+| `yiban/backends/models.py` | Ollama、OpenAI 兼容接口、流式解析、连接取消和代理 |
+| `yiban/backends/speech.py` | SenseVoice ASR、macOS TTS 与禁用语音适配器 |
 | `static/` | 网页界面、浏览器录音／摄像头、用户与记忆管理 |
-| `voice.py`、`keywords.txt` | 唤醒、VAD 断句、插话监听和关键词 |
-| `memory_store.py`、`speakers.py` | SQLite 记忆、声纹特征提取与匹配 |
-| `turns.py`、`actions.py` | 每轮取消与固定屏幕动作 |
-| `diagnostics.py`、`diagnose.py` | 声纹诊断记录、环境和模型检查 |
-| `launcher.py`、`cloud_setup.py` | Mac 服务管理与交互式云端启动 |
+| `yiban/audio/voice.py`、`config/keywords.txt` | 唤醒、VAD 断句、插话监听和关键词 |
+| `yiban/memory/memory_store.py`、`yiban/memory/memory_review.py`、`yiban/audio/speakers.py` | SQLite 记忆、修改历史与冲突确认、声纹特征提取与匹配 |
+| `yiban/turns.py`、`yiban/actions.py` | 每轮取消与固定屏幕动作 |
+| `yiban/audio/diagnostics.py`、`tools/diagnose.py` | 声纹诊断记录、环境和模型检查 |
+| `launcher.py`、`tools/cloud_setup.py` | Mac 服务管理与交互式云端启动 |
 | `tests/` | 后端、前端逻辑与合成音频／图像验证 |
-| `download_vision.py` | 下载 Qwen2.5-VL 到项目 Ollama 模型目录并校验文件的辅助工具 |
+| `tools/download_vision.py` | 下载 Qwen2.5-VL 到项目 Ollama 模型目录并校验文件的辅助工具 |
 
-`download_vision.py` 使用项目的 `models/ollama`，不会把模型安装到另一个正在运行的系统 Ollama 实例。通常优先使用 `ollama pull`。
+`tools/download_vision.py` 使用项目的 `models/ollama`，不会把模型安装到另一个正在运行的系统 Ollama 实例。通常优先使用 `ollama pull`。
 
 ## 8. Linux／开发板联调
 
@@ -327,7 +374,7 @@ try {
 cp config/board-text.example.json config/board.local.json
 # 编辑 config/board.local.json 中的 llm.base_url 和 llm.model
 export ASSISTANT_CONFIG="$PWD/config/board.local.json"
-python3 diagnose.py
+python3 -m tools.diagnose
 python3 server.py
 ```
 
@@ -341,7 +388,7 @@ ssh -L 8765:127.0.0.1:8765 用户名@板卡IP
 
 确保电脑本地的 8765 端口未被其他助手实例占用。浏览器使用的是打开网页的电脑上的麦克风／摄像头，不能据此认为已经接通板上的设备。
 
-Linux TTS、板端音频采集、回声消除、ESP32 Wi-Fi 双向音频和实体动作仍需联调，详见 [开发板接入与分工](HARDWARE_HANDOFF.md)。
+Linux TTS、板端音频采集、回声消除、ESP32 Wi-Fi 双向音频和实体动作仍需联调，详见 [开发板接入与分工](docs/HARDWARE_HANDOFF.md)。
 
 ## 9. 排查与验证
 
@@ -375,18 +422,16 @@ Invoke-RestMethod http://127.0.0.1:8765/api/status
 
 状态中的 `model` 表示所配置模型，`chat` 表示对应检查是否通过；仍应实际发送问题确认完整回答。智谱的检查会触发短测试请求，并非只查询模型列表。
 
-macOS 开发验证命令：
+macOS 开发验证命令（需要 Node.js，具体分组见 [测试说明](tests/README.md)）：
 
 ```bash
-./.venv/bin/python -m unittest discover -s tests -p 'test_*.py'
-node tests/check_frontend.cjs
+./.venv/bin/python tests/run_all.py
 ```
 
 Windows 可使用同样的测试入口检查兼容性，将 Python 路径替换为：
 
 ```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py'
-node tests/check_frontend.cjs
+.\.venv\Scripts\python.exe tests/run_all.py
 ```
 
 测试使用模拟模型服务和临时数据库；部分音频测试依赖本地模型／合成素材。测试通过不代表 Windows 真机、云端账号、真人声纹或 ReSpeaker 声学效果已验收。

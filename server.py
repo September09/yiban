@@ -4,28 +4,38 @@ import json
 import re
 import time
 import uuid
+from pathlib import Path
 import urllib.error
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from zoneinfo import ZoneInfo
 from urllib.parse import urlsplit
-from actions import action_for_text
-from settings import ROOT, load_settings
-from backends import build_services
-from memory_store import MemoryStore
-from speakers import SpeakerService
-from turns import TurnRegistry, Cancelled
-from diagnostics import audio_metadata, log_audio_diagnostic
+from yiban.actions import action_for_text
+from yiban.settings import ROOT, load_settings
+from yiban.backends import build_services
+from yiban.audio.speech_preferences import SpeechPreferences
+from yiban.memory.memory_store import MemoryStore
+from yiban.memory.shared_memory import SharedMemory, SharedError
+from yiban.memory.shared_voice import SharedVoice
+from yiban.memory.shared_import import SharedImport
+from yiban.audio.speakers import SpeakerService
+from yiban.turns import TurnRegistry, Cancelled
+from yiban.audio.diagnostics import audio_metadata, log_audio_diagnostic
+from yiban.conversation_diagnostics import TRACES, CURRENT, measured, model_events
 
 SETTINGS = load_settings()
 if SETTINGS["audio"]["wake_enabled"]:
-    from voice import manager as voice_manager, available as voice_available, WAKE_WORD
+    from yiban.audio.voice import manager as voice_manager, available as voice_available, WAKE_WORD
 else:
     voice_manager = None
     WAKE_WORD = "你好小伴"
 
 SERVICES = build_services(SETTINGS)
+SPEECH = SpeechPreferences(SERVICES.tts, SETTINGS["tts"], Path(SETTINGS["memory"]["database"]).parent / "speech-settings.json")
 STORE = MemoryStore(SETTINGS["memory"]["database"])
+SHARED = SharedMemory(STORE)
+SHARED_VOICE = SharedVoice(SHARED)
+SHARED_IMPORT = SharedImport(SHARED, SERVICES.models)
 SPEAKERS = SpeakerService(STORE, SETTINGS["speaker"])
 TURNS = TurnRegistry()
 PORT = SETTINGS["port"]
@@ -65,17 +75,79 @@ def transcribe(raw, identify_speaker=False):
     diagnostic = {**audio_metadata(raw), 'trace_id': uuid.uuid4().hex[:12],
                   'speaker_enabled': identify_speaker, 'code': 'recognition_disabled'}
     try:
-        text = SERVICES.asr.transcribe(raw)
+        text = measured('asr', SERVICES.asr.transcribe, raw)
     except Exception:
         log_audio_diagnostic({**diagnostic, 'code': 'asr_error', 'asr_status': 'error'})
         raise
     result = {"text": text}
     diagnostic['asr_status'] = 'text_detected' if text else 'empty'
     if identify_speaker:
-        result["speaker"] = SPEAKERS.identify(raw)
+        result["speaker"] = measured('speaker', SPEAKERS.identify, raw)
         diagnostic.update(result['speaker']['diagnostics'])
+    result['utterance_id'] = SHARED_VOICE.receipt(text, result.get('speaker', {}))
     result['diagnostics'] = diagnostic
     log_audio_diagnostic(diagnostic)
+    return result
+
+
+def shared_answer(token, data, public_only=False):
+    if not isinstance(data, dict):
+        raise SharedError('请求格式不正确。')
+    context = measured('memory', SHARED.question_context, token, data.get('space_id'), data.get('query'), public_only=public_only,include_outdated=data.get('include_outdated') is True)
+    cancel = TURNS.get(data.get('turn_id'))
+    cancel.check()
+    if not context['sources']:
+        answer = '当前可见范围内没有适用于本次问答的记忆。可检查记忆状态；回顾旧安排时，请明确要求查询过时记忆。'
+    else:
+        answer, completed = '', False
+        events = model_events(SERVICES.models.chat([
+            {'role':'system','content':SYSTEM + current_time_context() + context['context']},
+            {'role':'user','content':context['query']}], cancel=cancel))
+        try:
+            for event in events:
+                cancel.check()
+                if event.get('error'):
+                    raise ValueError('共同记忆问答暂时失败，请稍后重试。')
+                answer += event.get('message', {}).get('content', '')
+                completed = completed or bool(event.get('done'))
+                if len(answer) > 6000:
+                    cancel.cancel()
+                    raise ValueError('回答过长，请缩小问题范围后重试。')
+        finally:
+            events.close()
+        if not completed or not answer.strip():
+            raise ValueError('回答未完成，请重新提问。')
+    # Never deliver a response computed under revoked or changed permissions.
+    cancel.check()
+    measured('access', SHARED.validate_answer, token, context['guard'])
+    states={item['status'] for item in context['sources']}
+    notice=[]
+    if 'pending' in states:notice.append('本次参考资料包含待核实记录，相关内容尚不能确认。')
+    if 'outdated' in states:notice.append('本次参考资料包含过时记录，仅供历史回顾。')
+    if notice:answer=''.join(notice)+'\n'+answer
+    return {'answer':answer, 'sources':context['sources']}
+
+
+def shared_voice_request(token, path, data):
+    if not isinstance(data, dict):
+        raise SharedError('请求格式不正确。')
+    if path == '/api/shared/voice/start':
+        return SHARED_VOICE.start(token, data)
+    if path == '/api/shared/voice/stop':
+        return SHARED_VOICE.cancel(token, data, stop=True)
+    if path == '/api/shared/voice/cancel':
+        return SHARED_VOICE.cancel(token, data)
+    if path == '/api/shared/voice/played':
+        return SHARED_VOICE.played(token, data)
+    if path != '/api/shared/voice/utterance':
+        raise SharedError('未知的共同记忆语音操作。',404)
+    cancel = TURNS.get(data.get('turn_id'))
+    result = measured('access', SHARED_VOICE.process, token,data,cancel)
+    if 'query' in result:
+        answer = shared_answer(token,{**result,'turn_id':data.get('turn_id')},public_only=result['public_only'])
+        SHARED_VOICE.validate_query(token,data,result['generation'])
+        cancel.check()
+        return {'reply':answer['answer'],'sources':answer['sources'],'saved':False}
     return result
 
 
@@ -111,14 +183,20 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if not self.local_request():
             return
+        if self.path == "/api/speech/settings":
+            try:
+                self.json_response(SPEECH.describe())
+            except Exception:
+                self.json_response({"error": "无法读取系统音色，请稍后重新加载。"}, 400)
+            return
         if self.path == "/api/status":
             status = {"chat": False, "vision": False, "model": MODEL, "vision_model": VISION_MODEL,
                       "asr": SERVICES.asr.available(),
                       "wake": SETTINGS["audio"]["wake_enabled"] and voice_available(),
-                      "tts": SERVICES.tts.available(), "wake_word": WAKE_WORD, "version": 4,
+                      "tts": SERVICES.tts.available(), "wake_word": WAKE_WORD, "version": 9,
                       "remote_model": urlsplit(SETTINGS['llm']['base_url']).hostname not in {'localhost', '127.0.0.1', '::1'},
                       "backends": {key: SETTINGS[key]["backend"] for key in ("llm", "asr", "tts", "actions")},
-                      "capabilities": {"audio_input": "browser", "barge_in": SETTINGS["audio"]["wake_enabled"], "memory": True, "speaker": SPEAKERS.available(), "hardware_actions": False}}
+                      "capabilities": {"audio_input": "browser", "barge_in": SETTINGS["audio"]["wake_enabled"], "memory": True, "shared_memory": True, "shared_memory_voice": True, "material_import": True, "memory_provenance": True, "memory_status": True, "conversation_diagnostics": True, "speaker": SPEAKERS.available(), "hardware_actions": False}}
             try:
                 status.update(SERVICES.models.status())
             except Exception:
@@ -126,7 +204,15 @@ class Handler(BaseHTTPRequestHandler):
             self.json_response(status)
             return
         files = {"/": ("index.html", "text/html; charset=utf-8"),
+                 "/speech-settings.js": ("speech-settings.js", "text/javascript; charset=utf-8"),
                  "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+                 "/conversation-diagnostics.js": ("conversation-diagnostics.js", "text/javascript; charset=utf-8"),
+                 "/shared.js": ("shared.js", "text/javascript; charset=utf-8"),
+                 "/shared-evidence.js": ("shared-evidence.js", "text/javascript; charset=utf-8"),
+                 "/material-import.js": ("material-import.js", "text/javascript; charset=utf-8"),
+                 "/shared-voice.js": ("shared-voice.js", "text/javascript; charset=utf-8"),
+                 "/memory-review.js": ("memory-review.js", "text/javascript; charset=utf-8"),
+                 "/memory-import.js": ("memory-import.js", "text/javascript; charset=utf-8"),
                  "/personal.js": ("personal.js", "text/javascript; charset=utf-8"),
                  "/style.css": ("style.css", "text/css; charset=utf-8"),
                  "/recorder.js": ("recorder.js", "text/javascript; charset=utf-8")}
@@ -151,10 +237,20 @@ class Handler(BaseHTTPRequestHandler):
             result = {"deleted": True}
         elif self.path == "/api/memory/list":
             result = {"memories": STORE.memories(profile)}
+        elif self.path == "/api/memory/export":
+            result = STORE.export_memories(profile)
+        elif self.path == "/api/memory/import/preview":
+            result = STORE.preview_import(profile, data.get("document"))
+        elif self.path == "/api/memory/import/confirm":
+            result = STORE.confirm_import(profile, data.get("token"), data.get("confirmed"), data.get("acknowledge_conflicts", False))
         elif self.path == "/api/memory/save":
-            result = {"id": STORE.save(profile, data.get("content"), data.get("id"))}
+            result = STORE.request_save(profile, data.get("content"), data.get("id"), data.get("expected_revision"))
+        elif self.path == "/api/memory/history":
+            result = STORE.history(profile, data.get("id"))
+        elif self.path == "/api/memory/review/confirm":
+            result = STORE.confirm_save(profile, data.get("token"), data.get("confirmed"), data.get("resolution"), data.get("replace_id"))
         elif self.path == "/api/memory/delete":
-            result = {"deleted": STORE.delete_memory(profile, data.get("id"))}
+            result = {"deleted": STORE.delete_memory(profile, data.get("id"), data.get("expected_revision"))}
         elif self.path == "/api/speaker/enroll":
             recordings = data.get("recordings")
             if not isinstance(recordings, list) or len(recordings) != 3 or any(not isinstance(x, str) or len(x) > 1500000 for x in recordings):
@@ -172,6 +268,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.local_request():
             return
         streaming = False
+        trace_token = CURRENT.set(TRACES.begin(self.headers.get('X-Conversation-Trace')))
         try:
             length = int(self.headers.get("Content-Length", "0"))
             if not 0 < length <= 8_000_000:
@@ -179,7 +276,23 @@ class Handler(BaseHTTPRequestHandler):
             raw = self.rfile.read(length)
             if self.path.startswith("/api/listen/") and voice_manager is None:
                 raise ValueError("当前配置未开启语音监听。")
-            if self.path.startswith(("/api/profiles/", "/api/memory/", "/api/speaker/")):
+            if self.path == '/api/diagnostics/trace':
+                data = json.loads(raw)
+                if not isinstance(data, dict):
+                    raise ValueError('请求格式不正确。')
+                self.json_response(TRACES.read(data.get('trace_id')))
+            elif self.path.startswith("/api/shared/"):
+                auth = self.headers.get('Authorization', '')
+                token = auth[7:] if auth.startswith('Bearer ') else None
+                data = json.loads(raw)
+                if self.path.startswith('/api/shared/import/'):
+                    result = SHARED_IMPORT.dispatch(self.path[len('/api/shared/import/'):],token,data,TURNS.get(data.get('turn_id')) if isinstance(data,dict) else None)
+                elif self.path.startswith('/api/shared/voice/'):
+                    result = shared_voice_request(token,self.path,data)
+                else:
+                    result = shared_answer(token, data) if self.path == '/api/shared/ask' else SHARED.dispatch(self.path[len('/api/shared'):], data, token)
+                self.json_response(result)
+            elif self.path.startswith(("/api/profiles/", "/api/memory/", "/api/speaker/")):
                 self.manage_personal(json.loads(raw))
             elif self.path == "/api/turn/cancel":
                 identity = json.loads(raw).get("turn_id")
@@ -217,16 +330,20 @@ class Handler(BaseHTTPRequestHandler):
                 profile = data.get("profile_id") or None
                 if profile:
                     STORE.profile(profile)
-                reply = STORE.command(profile, clean[-1]["content"]) if not picture else None
+                reply = measured('routing', STORE.command, profile, clean[-1]["content"]) if not picture else None
                 memory_changed = reply is not None
+                memory_review = None
+                if isinstance(reply, dict):
+                    memory_review, reply = reply['review'], reply['reply']
+                    memory_changed = False
                 if reply is None and not picture:
                     reply = clock_reply(clean[-1]["content"])
                 if reply is None and not picture:
                     reply = STORE.identity_reply(profile, clean[-1]["content"])
                 if reply is not None:
-                    self.send_bytes(200, (json.dumps({"message": {"role": "assistant", "content": reply}, "memory_changed": memory_changed, "done": True}, ensure_ascii=False) + "\n").encode(), "application/x-ndjson; charset=utf-8")
+                    self.send_bytes(200, (json.dumps({"message": {"role": "assistant", "content": reply}, "memory_changed": memory_changed, "memory_review": memory_review, "done": True}, ensure_ascii=False) + "\n").encode(), "application/x-ndjson; charset=utf-8")
                     return
-                system = SYSTEM + current_time_context() + STORE.context(profile, clean[-1]["content"])
+                system = SYSTEM + current_time_context() + measured('memory', STORE.context, profile, clean[-1]["content"])
                 if picture:
                     if not isinstance(picture, str) or len(picture) > 3_000_000:
                         raise ValueError("图片过大，请重新拍照。")
@@ -245,7 +362,7 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_bytes(200, (json.dumps({"message": {"role": "assistant", "content": event["reply"]},
                         "action": event, "done": True}, ensure_ascii=False) + "\n").encode(), "application/x-ndjson; charset=utf-8")
                     return
-                events = SERVICES.models.chat([{"role": "system", "content": system}] + clean, vision=bool(picture), cancel=cancel)
+                events = model_events(SERVICES.models.chat([{"role": "system", "content": system}] + clean, vision=bool(picture), cancel=cancel))
                 try:
                     first = next(events)  # Fail before sending HTTP 200 when the backend rejects the request.
                     self.send_response(200)
@@ -261,6 +378,16 @@ class Handler(BaseHTTPRequestHandler):
                         self.wfile.flush()
                 finally:
                     events.close()
+            elif self.path == "/api/speech/settings/save":
+                self.json_response(SPEECH.save(json.loads(raw)))
+            elif self.path == "/api/speech/preview":
+                data = json.loads(raw)
+                if not isinstance(data, dict):
+                    raise ValueError("请求格式不正确。")
+                cancel = TURNS.get(data.get("turn_id"))
+                cancel.check()
+                audio, mime = SPEECH.synthesize(SPEECH.SAMPLE, cancel=cancel, selection=data)
+                self.send_bytes(200, audio, mime)
             elif self.path == "/api/speak":
                 data = json.loads(raw)
                 cancel = TURNS.get(data.get("turn_id"))
@@ -268,10 +395,12 @@ class Handler(BaseHTTPRequestHandler):
                 text = data.get("text", "")
                 if not isinstance(text, str) or not text.strip() or len(text) > 6000:
                     raise ValueError("朗读内容为空或过长。")
-                audio, mime = SERVICES.tts.synthesize(text, cancel=cancel)
+                audio, mime = measured('tts', SPEECH.synthesize, text, cancel=cancel)
                 self.send_bytes(200, audio, mime)
             else:
                 self.json_response({"error": "Not found"}, 404)
+        except SharedError as error:
+            self.json_response({"error":str(error)}, error.status)
         except (BrokenPipeError, ConnectionResetError):
             pass
         except Exception as error:
@@ -286,6 +415,8 @@ class Handler(BaseHTTPRequestHandler):
                     pass
             else:
                 self.json_response({"error": message}, 400)
+        finally:
+            CURRENT.reset(trace_token)
 
 
 if __name__ == "__main__":
