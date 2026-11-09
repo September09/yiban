@@ -1,0 +1,403 @@
+# 忆伴 · AI 陪伴助手
+
+忆伴面向家庭、团队与组织的陪伴和记忆场景，以“爱凤”IP 作为后续实验方向。当前是一个可运行的浏览器原型，界面和默认唤醒词仍使用“小伴”。
+
+**这是一个项目，提供本地 Ollama、阿里云百炼、智谱三种模型接入方式。前端由 Python 服务直接提供，不需要分别启动前端项目或执行 npm install。**
+
+目前记忆按个人档案保存；家庭／组织共同记忆、成员权限和共享范围管理尚未实现。
+
+## 功能与支持范围
+
+| 功能 | 当前实现 |
+|---|---|
+| 文字对话 | 本地 Qwen2.5 3B，或 OpenAI 兼容云端接口；支持流式显示 |
+| 语音识别 | 本机 Sherpa-ONNX / SenseVoice INT8 |
+| 唤醒与断句 | “你好小伴”唤醒；Silero VAD 检测说话与停顿 |
+| 长期记忆 | SQLite 保存用户明确要求记住的内容，按档案检索 |
+| 声纹识别 | 主动录入三段语音，匹配已登记用户；不确定时作为访客 |
+| 首次称呼 | 识别后按档案里的自定义称呼问候，不根据声音猜测性别 |
+| 打断 | 取消生成、停止播放；开启语音唤醒后可允许插话 |
+| 看图 | 本地 Qwen2.5-VL 3B，单张照片问答；云端示例默认关闭 |
+| 朗读 | macOS 系统 Tingting（婷婷）声音；Windows／Linux 朗读尚未接入 |
+| 动作 | 网页里的点头、摇头等动画，尚未驱动实体电机 |
+| 日期时间 | 每轮读取电脑时钟，使用北京时间；未接入天气、新闻、网页搜索 |
+
+| 平台 | 使用方式与验证边界 |
+|---|---|
+| macOS | 主要开发与验证环境，可使用录音、朗读和双击启动脚本 |
+| Windows | 提供 PowerShell 安装／启动步骤和本地配置；文字、浏览器采集、记忆等代码可复用，尚未进行 Windows 真机端到端验证；无朗读 |
+| Linux／开发板 | 先进行文字模型接口联调；板端音频、TTS、NPU、Wi-Fi 音频和电机需要进一步适配 |
+
+“婷婷”是 macOS 提供的中文合成语音，系统名称为 `Tingting`。当前通过 `/usr/bin/say` 把模型回答转成声音；最初选择它是为了让 Mac 原型无需额外语音服务即可运行。对话模型、语音合成和 ReSpeaker 拾音是独立环节，更换智谱／千问不会自动改变声音。后续可替换语音合成适配器，实现爱凤的专属音色；当前尚未实现声音克隆。若 Mac 未安装该语音，需要先在系统语音设置中下载。
+
+## 工作流程
+
+```mermaid
+flowchart TD
+    A[浏览器：文字或麦克风输入] --> B[Python 本机服务]
+    B --> C[语音转文字 / 可选声纹匹配]
+    C --> D[当前用户档案 + 近期对话 + 相关记忆]
+    D --> E{选择模型服务}
+    E --> F[本地 Ollama]
+    E --> G[百炼 / 智谱]
+    F --> H[流式文字回答]
+    G --> H
+    H --> I[浏览器显示 / 屏幕动作]
+    H --> J[macOS 语音合成与播放]
+```
+
+浏览器负责采集麦克风和摄像头。ReSpeaker 使用 USB 声卡方式时，先让操作系统识别，再在系统／浏览器中选择它作为输入；当前没有直接读取 USB 声卡或接收 ESP32 UDP 音频的独立进程。
+
+## 1. 环境准备
+
+- Python **3.12**：当前依赖组合在此版本上验证，优先使用此版本创建环境。
+- Chrome 或支持麦克风、AudioWorklet 的现代浏览器，推荐先用 Chrome 验证。
+- 本地模型模式需要安装 [Ollama](https://ollama.com/download)；百炼／智谱模式不需要 Ollama。
+- 语音功能需要下载下文的本地语音模型；仅测试文字对话时可暂不下载。
+- Git 用于克隆项目；Node.js 仅用于可选的前端逻辑测试。
+- 首次安装依赖和下载模型需要网络；本地模型与语音资源齐备后可离线使用。
+
+先克隆自己的仓库，或下载 ZIP 并解压；以下所有命令均在项目根目录执行。将示例 URL 替换为实际仓库地址。
+
+```bash
+git clone "https://github.com/YOUR_NAME/robot-assistant.git"
+cd robot-assistant
+```
+
+### macOS
+
+```bash
+python3.12 -m venv .venv
+./.venv/bin/python -m pip install --upgrade pip
+./.venv/bin/python -m pip install -r requirements.txt
+chmod +x start.command start-local.command start-cloud.command start-zhipu.command stop.command
+```
+
+如本机只有 `python3`，先用 `python3 --version` 确认是 3.12，再将上面的 `python3.12` 换成 `python3`。不需要激活虚拟环境，后续命令直接使用项目内的 Python。
+
+### Windows（PowerShell）
+
+安装 Python 3.12 和 Git，打开 PowerShell，进入项目目录后执行：
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install tzdata
+```
+
+`tzdata` 用于提供北京时间等 IANA 时区数据；Windows 通常没有系统时区数据库，参见 [Python 时区说明](https://docs.python.org/3/library/zoneinfo.html)。如果找不到 `py`，可使用已安装的 Python 3.12 对应的 `python` 命令。
+
+Windows 不运行 `.command` 文件，也不使用目前依赖 Unix 进程管理的 `launcher.py`／`cloud_setup.py`。按第 4 节直接运行 `server.py`，用 `Ctrl+C` 停止服务。这样也不需要修改 PowerShell 执行策略。
+
+## 2. 准备本地语音模型
+
+本地与云端对话都复用同一套语音资源。第一次完整语音体验需要这四项：
+
+| 用途 | 资源 | 项目内位置 |
+|---|---|---|
+| 语音转文字 | SenseVoice INT8 压缩包 | `models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17/` |
+| 中文唤醒 | Wenetspeech Zipformer 3.3M 压缩包 | `models/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01/` |
+| 断句、声纹有效语音检测 | Silero VAD | `models/silero_vad.onnx` |
+| 声纹特征提取 | 3D-Speaker ERes2Net | `models/speaker.onnx` |
+
+模型来源：[SenseVoice 下载说明](https://k2-fsa.github.io/sherpa/onnx/sense-voice/pretrained.html)、[唤醒模型下载说明](https://k2-fsa.github.io/sherpa/onnx/kws/pretrained_models/index.html)、[VAD 模型索引](https://k2-fsa.github.io/sherpa/onnx/pretrained_models/)、[声纹模型发布页](https://github.com/k2-fsa/sherpa-onnx/releases/tag/speaker-recongition-models)。请使用这里指定的文件，代码中的路径和文件名与这些版本对应。
+
+### macOS 下载命令
+
+```bash
+mkdir -p models
+curl -fL --retry 3 -o models/sensevoice.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2
+tar -xjf models/sensevoice.tar.bz2 -C models
+curl -fL --retry 3 -o models/kws.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01.tar.bz2
+tar -xjf models/kws.tar.bz2 -C models
+curl -fL --retry 3 -o models/silero_vad.onnx https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx
+curl -fL --retry 3 -o models/speaker.onnx https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx
+```
+
+### Windows 下载命令
+
+使用 Windows 自带的 `curl.exe` 和 `tar.exe`。如系统没有 tar，可用解压工具展开两个 `.tar.bz2` 文件到 `models`，保留压缩包内的目录名。
+
+```powershell
+New-Item -ItemType Directory -Force models | Out-Null
+curl.exe -fL --retry 3 -o models/sensevoice.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2
+tar.exe -xjf models/sensevoice.tar.bz2 -C models
+curl.exe -fL --retry 3 -o models/kws.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01.tar.bz2
+tar.exe -xjf models/kws.tar.bz2 -C models
+curl.exe -fL --retry 3 -o models/silero_vad.onnx https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx
+curl.exe -fL --retry 3 -o models/speaker.onnx https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx
+```
+
+下载或解压报错时先停止，处理网络问题后再继续。需要确认的主要文件如下，不能多套一层同名目录：
+
+```text
+models/
+├── silero_vad.onnx
+├── speaker.onnx
+├── sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17/
+│   ├── model.int8.onnx
+│   └── tokens.txt
+└── sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01/
+    ├── encoder-epoch-12-avg-2-chunk-16-left-64.onnx
+    ├── decoder-epoch-12-avg-2-chunk-16-left-64.onnx
+    ├── joiner-epoch-12-avg-2-chunk-16-left-64.onnx
+    └── tokens.txt
+```
+
+没有下载语音模型时，仍可先测试文字对话；录音、唤醒、声纹功能需等资源齐备后使用。
+
+## 3. macOS 启动
+
+### 3.1 本地模型：Ollama
+
+新电脑先安装并打开 Ollama，保证其服务在 `http://127.0.0.1:11434` 运行。然后在终端下载模型：
+
+```bash
+ollama pull qwen2.5:3b
+ollama pull qwen2.5vl:3b
+ollama list
+```
+
+第二个是可选的看图模型，不使用摄像头问答可以暂不下载。下载时的 Ollama 服务与助手连接的服务必须是同一个。参见 [Ollama 命令说明](https://docs.ollama.com/cli)。
+
+完成后双击 `start-local.command`，或运行：
+
+```bash
+./start-local.command
+```
+
+打开 **http://127.0.0.1:8765**。若网页没有自动打开，可手动访问。界面状态应显示本机对话已就绪及 `qwen2.5:3b`。
+
+已有开发环境可能带有项目内的 `runtime/ollama/ollama`，启动器会在需要启动 Ollama 时优先使用它，并设置模型目录为 `models/ollama`；否则尝试 `/usr/local/bin/ollama`。系统 Ollama App 通常使用自己的模型目录。新电脑按上述方式先打开系统 Ollama，再拉取模型，可避免模型下载到一个目录、运行时却使用另一个目录的问题。
+
+若提示找不到 Ollama，可先在单独终端运行 `ollama serve` 并保持该终端开启，再启动助手；如果端口已占用，说明已有实例，应检查该实例的 `ollama list`，不要重复启动。
+
+### 3.2 智谱：GLM-4.7-Flash
+
+双击 `start-zhipu.command`，或运行：
+
+```bash
+./start-zhipu.command
+```
+
+| 提示项 | 默认值 |
+|---|---|
+| Base URL | `https://open.bigmodel.cn/api/paas/v4` |
+| 模型 ID | `glm-4.7-flash` |
+| API Key | 从自己的智谱账号获取，在隐藏输入提示中填写 |
+
+地址与模型可以直接回车使用默认值。程序先发送简短测试，成功后保存接口配置并重启助手服务。失败时不切换正在运行的本地服务。
+
+该配置关闭思考模式、开启流式输出，看图关闭。API Key 不写入配置文件，只保留在本次启动的进程环境中；服务停止后重新启动需再次输入。`config/zhipu.local.json` 保存不含密钥的接口配置。免费资格、限流和价格以平台当前规则及账号控制台为准。
+
+参考：[智谱模型与接口说明](https://docs.bigmodel.cn/cn/guide/models/free/glm-4.7-flash)。
+
+### 3.3 阿里云百炼：Qwen Plus
+
+双击 `start-cloud.command`，或运行：
+
+```bash
+./start-cloud.command
+```
+
+默认模型为 `qwen-plus`；默认地址 `https://dashscope.aliyuncs.com/compatible-mode/v1` 对应北京地域。优先填写自己控制台提供的 Base URL，并确保密钥、业务空间、地域与模型权限匹配；地址不要额外添加 `/chat/completions`。官方也提供业务空间专属地址，需将占位符替换成实际空间 ID。[接口说明](https://help.aliyun.com/zh/model-studio/qwen-api-via-openai-chat-completions)
+
+启动器先检查模型列表和一条流式回答，成功后保存 `config/cloud.local.json` 并切换服务。密钥只在启动时隐藏输入，不写入文件。测试请求和后续对话按账号的额度及计费规则处理。
+
+### 3.4 切换、重启与停止
+
+| 操作 | 入口 |
+|---|---|
+| 打开已有服务；未启动时使用默认本地配置 | `start.command` |
+| 明确切回本地模型 | `start-local.command` |
+| 验证并切到智谱 | `start-zhipu.command` |
+| 验证并切到百炼 | `start-cloud.command` |
+| 停止本项目记录并启动的后台服务 | `stop.command` |
+
+切换后刷新已有网页；记忆和声纹数据库不会因为切换而清空。关闭网页只释放页面使用的设备，不等于停止后台服务。`stop.command` 不会退出你单独打开的系统 Ollama App。
+
+## 4. Windows 启动
+
+Windows 使用同一份源码和网页，按以下步骤在 PowerShell 前台启动。**目前没有 Windows TTS 适配器，因此回答显示文字，不会朗读；语音识别与声纹仍需第 2 节的模型资源。**
+
+### 4.1 本地模型
+
+安装并打开 [Ollama Windows](https://docs.ollama.com/windows)，确认 `ollama` 命令可用，然后执行：
+
+```powershell
+ollama pull qwen2.5:3b
+ollama pull qwen2.5vl:3b
+ollama list
+$env:ASSISTANT_CONFIG = "$PWD\config\windows.example.json"
+.\.venv\Scripts\python.exe server.py
+```
+
+`windows.example.json` 关闭朗读和 Ollama 自动进程管理；Ollama 由其 Windows 应用负责运行。看图模型可选。启动后手动访问 **http://127.0.0.1:8765**，保持 PowerShell 窗口开启。
+
+### 4.2 智谱模型
+
+先用 `Ctrl+C` 停止当前前台助手。在项目根目录执行以下命令，输入密钥时不会显示明文：
+
+```powershell
+$env:ASSISTANT_CONFIG = "$PWD\config\cloud-zhipu.example.json"
+$env:ZHIPU_API_KEY = [System.Net.NetworkCredential]::new('', (Read-Host '智谱 API Key' -AsSecureString)).Password
+try {
+    .\.venv\Scripts\python.exe server.py
+} finally {
+    Remove-Item Env:ZHIPU_API_KEY -ErrorAction SilentlyContinue
+}
+```
+
+使用 `glm-4.7-flash`，默认关闭思考及看图。此方式直接启动服务，不经过 Mac 启动器的提前连通测试；打开网页后等待后台短对话检查，再发送一条简单问题验证。检查成功状态缓存 5 分钟，失败缓存 30 秒。云端配置里的 Mac 朗读适配器在 Windows 上检测为不可用，页面会禁用朗读。
+
+### 4.3 百炼模型
+
+同样先停止当前助手，然后运行：
+
+```powershell
+$env:ASSISTANT_CONFIG = "$PWD\config\cloud-bailian.example.json"
+$env:ASSISTANT_MODEL_API_KEY = [System.Net.NetworkCredential]::new('', (Read-Host '百炼 API Key' -AsSecureString)).Password
+try {
+    .\.venv\Scripts\python.exe server.py
+} finally {
+    Remove-Item Env:ASSISTANT_MODEL_API_KEY -ErrorAction SilentlyContinue
+}
+```
+
+默认采用北京地域地址和 `qwen-plus`。如需其他地址或模型，先复制示例为 `config/cloud.local.json`，编辑其中的 `llm.base_url` 和 `llm.model`，再将 `ASSISTANT_CONFIG` 指向该文件。不要把密钥写入 JSON。
+
+### 4.4 停止与切换
+
+在运行 `server.py` 的窗口按 `Ctrl+C` 停止助手，再执行另一种模式的命令。这里只停止助手，Ollama 在系统托盘中单独退出。修改配置后必须重启 Python 服务并刷新网页。
+
+这些 Windows 命令是基于当前代码的启动路径整理，尚未在 Windows 真机验证。Windows 发声需要后续接入本地或云端 TTS，不能通过安装 Mac 的婷婷声音解决。
+
+## 5. 首次体验与设备设置
+
+1. **先文字聊天**：确认网页状态显示正确的模型，发送一句普通问题。不能仅凭网页打开就判定模型已接通。
+2. **选好输入与输出**：USB ReSpeaker 需使用可传数据的线和 USB 音频固件。系统能识别后，选择 ReSpeaker 为输入；输出选择实际连接的扬声器，或 Mac／电脑自带扬声器。不要误选无实体扬声器的虚拟输出设备。
+3. **测试手动录音**：允许浏览器麦克风权限，点击“点击说话”，说完后结束并发送。输入框里的“发送”只发送文字，不执行声纹识别。
+4. **开启唤醒**：点击“开启语音唤醒”，说“你好小伴”，看到收音状态后提问；说完停顿约一秒会发送。
+5. **建立用户与记忆**：在“用户与记忆”创建档案，明确说“记住：我喜欢简短回答”，或使用记忆管理界面保存内容。
+6. **录入声纹**：由本人确认保存特征，录制三段不同内容，再保存并开启自动识别。建议每段连续说 6–10 秒，先在安静环境验证。
+7. **测试打断**：Mac 上先用耳机测试；开启唤醒并勾选允许插话，回答或朗读时说新问题。也可点击“打断／停止”。Windows 可验证取消文字生成，但暂无朗读播放链路。
+8. **测试看图**：本地视觉模型就绪后开启摄像头，点击拍照提问。只有本次明确拍摄的单张照片参与回答。
+
+麦克风与摄像头不会在页面加载时自动申请权限。多个网页同时监听容易冲突，首次验证只保留一个助手页面。
+
+详细说明见 [记忆、声纹与打断](PERSONAL_FEATURES.md)。
+
+## 6. 上下文、记忆与数据流
+
+- 最近 30 条文字消息保存在当前浏览器中；每次请求提供最近 16 条消息，不等同于 16 轮对话。
+- 长期记忆按档案保存在 `data/assistant.sqlite3`，需要用户明确保存。每个档案最多 200 条，每条最多 1200 字；每轮选择最多 8 条、总计不超过 2200 字作为背景。
+- 当前使用文字相似度检索，没有自动摘要、向量语义检索或组织级共同记忆。
+- “新对话”清空当前浏览器会话，不清空长期记忆。声纹未确认时按访客处理；手动选择档案也可以使用该档案的记忆。
+- 声纹特征保存在本机，不保存原始登记录音。声纹用于个性化，不作为登录认证。
+- 本地模式下模型推理在本机；云端模式会发送问题文字、近期对话、称呼和本轮相关记忆到所选服务。原始录音与声纹向量不发送到对话模型。
+- 服务仅监听 `127.0.0.1`，没有远程访问账号和共享权限系统。云端模型不代表自动具备网页搜索能力。
+
+## 7. 配置与代码结构
+
+配置由 `settings.py` 默认值与 `ASSISTANT_CONFIG` 指定的 JSON 合并。文件只需填写要覆盖的字段；`ASSISTANT_PORT` 可以覆盖端口，默认 `8765`。
+
+| 位置 | 职责 |
+|---|---|
+| `server.py` | HTTP 接口、模型调用、当前时间和用户上下文组织 |
+| `settings.py`、`config/` | 默认设置、Mac／Windows／云端／开发板配置 |
+| `backends/models.py` | Ollama、OpenAI 兼容接口、流式解析、连接取消和代理 |
+| `backends/speech.py` | SenseVoice ASR、macOS TTS 与禁用语音适配器 |
+| `static/` | 网页界面、浏览器录音／摄像头、用户与记忆管理 |
+| `voice.py`、`keywords.txt` | 唤醒、VAD 断句、插话监听和关键词 |
+| `memory_store.py`、`speakers.py` | SQLite 记忆、声纹特征提取与匹配 |
+| `turns.py`、`actions.py` | 每轮取消与固定屏幕动作 |
+| `diagnostics.py`、`diagnose.py` | 声纹诊断记录、环境和模型检查 |
+| `launcher.py`、`cloud_setup.py` | Mac 服务管理与交互式云端启动 |
+| `tests/` | 后端、前端逻辑与合成音频／图像验证 |
+| `download_vision.py` | 下载 Qwen2.5-VL 到项目 Ollama 模型目录并校验文件的辅助工具 |
+
+`download_vision.py` 使用项目的 `models/ollama`，不会把模型安装到另一个正在运行的系统 Ollama 实例。通常优先使用 `ollama pull`。
+
+## 8. Linux／开发板联调
+
+先确认厂商的 RK3588／RK182x 模型服务能独立回答，再使用文字模式接入。复制配置并填入实际接口地址和模型 ID：
+
+```bash
+cp config/board-text.example.json config/board.local.json
+# 编辑 config/board.local.json 中的 llm.base_url 和 llm.model
+export ASSISTANT_CONFIG="$PWD/config/board.local.json"
+python3 diagnose.py
+python3 server.py
+```
+
+此配置关闭 ASR、唤醒和 TTS，文字模式不依赖 numpy／sherpa-onnx；使用 Python 3.12，并确保系统具有 Asia/Shanghai 时区数据。认证接口需通过配置里 `api_key_env` 指定的环境变量提供密钥。示例的 `8080` 是占位端口，应按厂商服务修改。
+
+应用运行在板上时，可从电脑建立 SSH 转发后访问本机网页：
+
+```bash
+ssh -L 8765:127.0.0.1:8765 用户名@板卡IP
+```
+
+确保电脑本地的 8765 端口未被其他助手实例占用。浏览器使用的是打开网页的电脑上的麦克风／摄像头，不能据此认为已经接通板上的设备。
+
+Linux TTS、板端音频采集、回声消除、ESP32 Wi-Fi 双向音频和实体动作仍需联调，详见 [开发板接入与分工](HARDWARE_HANDOFF.md)。
+
+## 9. 排查与验证
+
+| 现象 | 优先检查 |
+|---|---|
+| `.venv` 中找不到 Python | 是否在当前系统重新创建环境；Mac 与 Windows 的虚拟环境不能直接互拷 |
+| Python 依赖安装失败 | Python 是否为 3.12、下载网络是否正常、当前架构是否有对应安装包 |
+| 模型一直未就绪 | Ollama 是否运行、`ollama list` 是否有目标模型；云端检查地址、模型 ID、Key 权限与额度 |
+| 切换后仍是旧模型 | 是否重启了实际服务并刷新网页；Mac 的 `start.command` 不负责切换已有服务 |
+| 加密连接失败／SSL EOF | 检查系统代理、节点和网络；不要关闭证书验证，不能仅凭此错误判定 Key 无效 |
+| 日期接口报 ZoneInfoNotFoundError | Windows 安装 `tzdata`，Linux 检查系统时区数据 |
+| 没有声音输出 | Windows／Linux 暂未接 TTS；Mac 检查自动朗读、浏览器播放限制、系统输出与婷婷声音 |
+| Windows 麦克风无权限 | 检查系统麦克风隐私设置、桌面应用权限和浏览器站点权限 |
+| 声纹不匹配 | 查看页面“声音识别诊断”；检查模型、有效语音长度、输入设备和录入环境 |
+| 唤醒无反应 | 检查 KWS 与 VAD 文件、麦克风权限，以及是否已开启监听 |
+| 插话误触发 | 先戴耳机验证，检查扬声器回声；浏览器回声消除不等同于已完成硬件 AEC 联调 |
+
+页面诊断展示最近 10 步。声纹日志在 `.runtime/speaker-diagnostics.jsonl`，记录时长、音频电平、相似度和拒识原因；不记录录音、聊天正文或声纹向量。Mac 后台服务日志在 `.runtime/assistant.log`；Windows 前台错误直接显示在 PowerShell。
+
+查看正在运行的服务状态：
+
+```bash
+# macOS / Linux
+curl http://127.0.0.1:8765/api/status
+```
+
+```powershell
+# Windows
+Invoke-RestMethod http://127.0.0.1:8765/api/status
+```
+
+状态中的 `model` 表示所配置模型，`chat` 表示对应检查是否通过；仍应实际发送问题确认完整回答。智谱的检查会触发短测试请求，并非只查询模型列表。
+
+macOS 开发验证命令：
+
+```bash
+./.venv/bin/python -m unittest discover -s tests -p 'test_*.py'
+node tests/check_frontend.cjs
+```
+
+Windows 可使用同样的测试入口检查兼容性，将 Python 路径替换为：
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py'
+node tests/check_frontend.cjs
+```
+
+测试使用模拟模型服务和临时数据库；部分音频测试依赖本地模型／合成素材。测试通过不代表 Windows 真机、云端账号、真人声纹或 ReSpeaker 声学效果已验收。
+
+Mac 上还可在本地模型和语音资源齐备、助手已启动时验证完整管线：
+
+```bash
+./.venv/bin/python tests/make_audio_fixtures.py
+./.venv/bin/python tests/check_pipeline.py
+./.venv/bin/python tests/check_pipeline.py --vision
+```
+
+这些管线测试会实际调用当前模型与语音服务；合成音频生成依赖 macOS 声音。首次测试建议选择本地模式，并关闭其他页面的监听。
+# yiban
