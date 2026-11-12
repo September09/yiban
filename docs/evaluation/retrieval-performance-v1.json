@@ -1,0 +1,20 @@
+{
+  "records": 1000,
+  "warm_queries": 200,
+  "model": "qwen3-embedding:0.6b",
+  "cold_index_ms": 22303,
+  "warm_median_ms": 464.5,
+  "warm_p95_ms": 482,
+  "fallback_queries": 0,
+  "all_warm_cache_hits": true,
+  "index_bytes": 22683648,
+  "ollama_reported_allocation": [
+    {
+      "name": "qwen3-embedding:0.6b",
+      "size": 1239752376,
+      "size_vram": 1239752376
+    }
+  ],
+  "limitations": "Synthetic engine benchmark, not live HTTP/LLM latency or application capacity. Cold means empty vector index, not necessarily unloaded model. Ollama allocation is not process RSS. Test device details are withheld; timings are not a cross-device performance guarantee.",
+  "embedding_context": 4096
+}

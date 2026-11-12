@@ -58,6 +58,7 @@ function personalControls(){
   $('saveVoice').disabled=!activeProfile||enrollmentSamples.length!==3||enrollmentSaving||!!enrollmentMic||!$('voiceConsent').checked;
   $('voiceConsent').disabled=enrollmentSaving||!!enrollmentMic;
   $('cancelEnroll').disabled=enrollmentSaving;
+  if(typeof personalMemoryControls==='function')personalMemoryControls();
   if(typeof memoryImportControls==='function')memoryImportControls();
   if(typeof memoryReviewControls==='function')memoryReviewControls();
 }
@@ -73,9 +74,14 @@ async function refreshProfiles(){
 
 function switchProfile(identity,{preserveTrace=false}={}){
   voiceMatchedProfile='';
+  $('workspaceSpeakerResult').textContent='';
+  $('workspaceSpeakerResult').hidden=true;
+  $('speakerRetry').hidden=true;
   if(identity===activeProfile)return;
   if(typeof sharedPersonalChanged==='function')sharedPersonalChanged();
-  cancelTurn({preserveTrace});activeProfile=identity;messages=[];render();
+  cancelTurn({preserveTrace});if(typeof personalMemoryCancel==='function')personalMemoryCancel(true);activeProfile=identity;
+  messages=identity?readChatHistory(identity):[];
+  render();
   resetMemoryEditor();$('memorySearch').value='';
   if(typeof resetMemoryImport==='function')resetMemoryImport();
   if(typeof resetMemoryReview==='function'){resetMemoryReview();closeMemoryHistory();}
@@ -89,11 +95,38 @@ function applySpeaker(result){
   const identity=result.matched&&profiles.some(p=>p.id===result.id)?result.id:'';
   switchProfile(identity,{preserveTrace:true});
   voiceMatchedProfile=identity;
+  if(!identity){
+    const reason=result.diagnostics?.code==='low_score'?'声纹相似度未达标':(result.reason||'未确认说话人');
+    $('workspaceSpeakerResult').textContent='本轮按访客处理：'+reason+'。';
+    $('workspaceSpeakerResult').hidden=false;
+  }
   $('speakerStatus').textContent=identity?'本轮声音匹配：'+result.name+'（可在上方更正）':'本轮按访客处理：'+(result.reason||'未确认说话人');
   if(!identity&&result.diagnostics?.speech_seconds!==undefined){
     $('speakerStatus').textContent+=`（有效语音 ${result.diagnostics.speech_seconds} 秒）`;
   }
 }
+
+function speakerRetryNeeded(result,traceId){
+  const code=result.speaker?.diagnostics?.code||result.diagnostics?.code;
+  if(!$('speakerAuto').checked||!result.text||result.speaker?.matched!==false||
+    !['low_score','insufficient_speech','ambiguous'].includes(code)||sharedVoiceActive())return false;
+  const suggestions={
+    insufficient_speech:'请自然说一句完整问题，持续约 5～8 秒。',
+    ambiguous:'两个人的声音分数太接近，请由一人单独说话。',
+    low_score:'请使用登记时的麦克风和距离。反复失败时，可重新录入本人声纹。',
+  };
+  const message='这轮还没认准说话人。请点“重新识别声音”再说一遍完整问题。'+suggestions[code]+
+    '也可在个人记忆中关闭声纹自动识别，按访客对话。';
+  $('workspaceSpeakerResult').textContent=message;
+  $('workspaceSpeakerResult').hidden=false;
+  $('speakerRetry').hidden=false;
+  notice(message);
+  conversationDiagnostics.finish(traceId,'done','speaker_retry');
+  return true;
+}
+$('speakerRetry').onclick=()=>{
+  if(!$('speakerRetry').disabled)startRecording();
+};
 
 function resetMemoryEditor(){
   memoryEdit=null;memoryEditRevision=null;$('memoryText').value='';$('saveMemory').textContent='保存记忆';
@@ -241,5 +274,5 @@ $('saveVoice').onclick=async()=>{
   finally{enrollmentSaving=false;enrolling=false;updateEnrollment();controls();}
 };
 $('deleteVoice').onclick=async()=>{if(!activeProfile||!window.confirm('删除当前用户的声纹特征？'))return;try{await api('/api/speaker/delete',{profile_id:activeProfile});await cancelEnrollment();await refreshProfiles();$('speakerStatus').textContent='声纹已删除。';}catch(error){notice(error.message);}};
-$('speakerAuto').onchange=async()=>{await pauseWake();if($('speakerAuto').checked)switchProfile('');$('speakerStatus').textContent=$('speakerAuto').checked?'下次说话时匹配；不确定时按访客处理。':'已关闭声纹识别，可手动选择用户。';resumeWake();};
+$('speakerAuto').onchange=async()=>{await pauseWake();if($('speakerAuto').checked)switchProfile('');$('speakerStatus').textContent=$('speakerAuto').checked?'下次说话时匹配；不确定时按访客处理。':'已关闭声纹识别，可手动选择用户。';$('speakerRetry').hidden=true;controls();resumeWake();};
 refreshProfiles().catch(error=>notice(error.message));updateEnrollment();

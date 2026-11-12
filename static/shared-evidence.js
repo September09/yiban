@@ -10,11 +10,13 @@ function sharedOpenEvidence(item,includeFull=false){
   return sharedRun(async epoch=>{
     const space=sharedState.space?.id;
     if(!space)return;
-    const generation=++sharedEvidenceState.generation;
-    const result=await sharedApi('/memories/evidence',{space_id:space,id:item.id,include_full:includeFull});
+    sharedCloseEvidence();const generation=sharedEvidenceState.generation;
+    let result;
+    try{result=await sharedApi('/memories/evidence',{space_id:space,id:item.id,expected_version:item.version,include_full:includeFull});}
+    catch(error){if(epoch===sharedState.epoch&&generation===sharedEvidenceState.generation){sharedCloseEvidence();if(error.status===409)sharedClearAnswer();}throw error;}
     if(epoch!==sharedState.epoch||generation!==sharedEvidenceState.generation||space!==sharedState.space?.id)return;
     sharedEvidenceState.id=item.id;
-    $('sharedEvidencePanel').hidden=false;$('sharedEvidenceQuotes').replaceChildren();$('sharedEvidenceFull').textContent='';
+    $('sharedEvidencePanel').hidden=false;$('sharedEvidencePanel').scrollIntoView?.({block:'center',behavior:'smooth'});$('sharedEvidenceQuotes').replaceChildren();$('sharedEvidenceFull').textContent='';
     $('sharedEvidenceFullButton').hidden=!result.available||!result.can_read_full||includeFull;
     $('sharedEvidenceFullButton').onclick=()=>sharedOpenEvidence(item,true);
     if(!result.available){$('sharedEvidenceSummary').textContent=result.message;return;}

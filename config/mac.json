@@ -6,5 +6,15 @@
     "vision_model": "qwen2.5vl:3b",
     "manage_local_ollama": true
   },
-  "tts": {"backend": "macos", "voice": "Tingting", "rate": 195}
+  "tts": {
+    "backend": "macos",
+    "voice": "Tingting",
+    "rate": 195
+  },
+  "retrieval": {
+    "enabled": true,
+    "strategy": "hybrid",
+    "model": "qwen3-embedding:0.6b",
+    "min_similarity": 0.45
+  }
 }

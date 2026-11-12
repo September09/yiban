@@ -189,12 +189,20 @@ class BackendTests(unittest.TestCase):
                     load_settings(f.name)
 
     def test_text_profile_import_without_optional_packages(self):
-        env = os.environ.copy()
-        env["ASSISTANT_CONFIG"] = str(ROOT / "config/board-text.example.json")
-        result = subprocess.run([sys.executable, "-S", "-c",
-            "import sys, server; assert 'sherpa_onnx' not in sys.modules; assert 'numpy' not in sys.modules"],
-            cwd=ROOT, env=env, capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
+        # Importing server initializes its stores; never let this test use the real database.
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            config = load_settings(ROOT / "config/board-text.example.json")
+            config["memory"]["database"] = str(folder / "import-only.sqlite3")
+            config_path = folder / "config.json"
+            config_path.write_text(json.dumps(config))
+            env = os.environ.copy()
+            env["ASSISTANT_CONFIG"] = str(config_path)
+            result = subprocess.run([sys.executable, "-S", "-c",
+                "import sys, server; assert 'sherpa_onnx' not in sys.modules; assert 'numpy' not in sys.modules"],
+                cwd=ROOT, env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((folder / "import-only.sqlite3").exists())
 
     def test_text_profile_http_app(self):
         config = load_settings(ROOT / "config/board-text.example.json")

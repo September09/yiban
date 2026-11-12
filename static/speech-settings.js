@@ -3,6 +3,7 @@ var speechPrefs = {data:null, loading:false, saving:false, preview:null, epoch:0
 function speechPreviewActive(){return !!speechPrefs.preview;}
 function speechSettingsBlocked(){return busy||recording||speaking||enrolling||wakeStarting||wakePhase==='command'||(typeof sharedVoiceActive==='function'&&sharedVoiceActive());}
 function speechSettingsControls(){
+  if(typeof workspaceActivity==='function')workspaceActivity();
   if(typeof speechPrefs==='undefined')return;
   const locked=speechPrefs.loading||speechPrefs.saving||speechPreviewActive(), unavailable=!speechPrefs.data?.available;
   $('speechVoice').disabled=locked||unavailable;$('speechRate').disabled=locked||unavailable;

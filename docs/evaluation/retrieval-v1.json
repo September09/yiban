@@ -1,0 +1,3994 @@
+{
+  "dataset": "synthetic-v1",
+  "dataset_sha256": "bdae0636132f0ba4543db9fcfa00ef7ff39ba4088f4a684d1b3e812b71c7df37",
+  "split": "test",
+  "config": {
+    "enabled": false,
+    "strategy": "hybrid",
+    "base_url": "http://127.0.0.1:11434",
+    "model": "qwen3-embedding:0.6b",
+    "top_k": 5,
+    "min_similarity": 0.45,
+    "min_lexical": 0.18,
+    "timeout": 25,
+    "batch_size": 16
+  },
+  "results": [
+    {
+      "strategy": "legacy",
+      "metrics": {
+        "cases": 80,
+        "answerable": 40,
+        "hit_at_5_count": 22,
+        "hit_at_5": 0.55,
+        "recall_at_5": 0.55,
+        "ordinary_no_answer": 24,
+        "false_match_count": 24,
+        "false_match_rate": 1.0,
+        "security_cases": 16,
+        "security_false_match_count": 8,
+        "unauthorized_hits": 0,
+        "fallback_cases": 0,
+        "median_ms": 0.0,
+        "p95_ms": 0
+      },
+      "categories": {
+        "alias": {
+          "count": 8,
+          "hits": 5,
+          "false_matches": 0
+        },
+        "historical": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 0
+        },
+        "literal": {
+          "count": 8,
+          "hits": 6,
+          "false_matches": 0
+        },
+        "missing_cost": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 8
+        },
+        "missing_phone": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 8
+        },
+        "outsider": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 0
+        },
+        "overview": {
+          "count": 8,
+          "hits": 6,
+          "false_matches": 0
+        },
+        "paraphrase": {
+          "count": 8,
+          "hits": 5,
+          "false_matches": 0
+        },
+        "selected_visibility": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 8
+        },
+        "unrelated": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 8
+        }
+      },
+      "cases": [
+        {
+          "id": "g13-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g13-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g13-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g13-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g13-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g13-old"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g14-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g14-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g14-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g14-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g14-old"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g15-main"
+          ],
+          "actual_ids": [
+            "g15-main",
+            "g14-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g15-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g15-main"
+          ],
+          "actual_ids": [
+            "g15-main",
+            "g14-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g15-main"
+          ],
+          "actual_ids": [
+            "g15-main",
+            "g14-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g15-old"
+          ],
+          "actual_ids": [
+            "g15-main",
+            "g14-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [
+            "g15-main",
+            "g14-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [
+            "g15-main",
+            "g14-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g16-main"
+          ],
+          "actual_ids": [
+            "g16-main",
+            "g14-main",
+            "g15-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g16-main"
+          ],
+          "actual_ids": [
+            "g16-main",
+            "g14-main",
+            "g15-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g16-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g16-main"
+          ],
+          "actual_ids": [
+            "g16-main",
+            "g14-main",
+            "g15-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g16-old"
+          ],
+          "actual_ids": [
+            "g16-main",
+            "g14-main",
+            "g15-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [
+            "g16-main",
+            "g14-main",
+            "g15-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [
+            "g16-main",
+            "g14-main",
+            "g15-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [
+            "g15-main",
+            "g14-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g17-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g17-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g17-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g17-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g17-old"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g18-main"
+          ],
+          "actual_ids": [
+            "g18-main",
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g18-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g18-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g18-main"
+          ],
+          "actual_ids": [
+            "g18-main",
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g18-old"
+          ],
+          "actual_ids": [
+            "g18-main",
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g19-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [
+            "g18-main",
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [
+            "g18-main",
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g19-main"
+          ],
+          "actual_ids": [
+            "g19-main",
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g19-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g19-main"
+          ],
+          "actual_ids": [
+            "g19-main",
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g19-main"
+          ],
+          "actual_ids": [
+            "g19-main",
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g19-old"
+          ],
+          "actual_ids": [
+            "g19-main",
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [
+            "g19-main",
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [
+            "g19-main",
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g20-main"
+          ],
+          "actual_ids": [
+            "g20-main",
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g20-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g20-main"
+          ],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g20-main"
+          ],
+          "actual_ids": [
+            "g20-main",
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g20-old"
+          ],
+          "actual_ids": [
+            "g20-main",
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main"
+          ],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [
+            "g20-main",
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [
+            "g20-main",
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [
+            "g14-main",
+            "g15-main",
+            "g16-main",
+            "g18-main",
+            "g19-main"
+          ],
+          "hit": null,
+          "false_match": true,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        }
+      ]
+    },
+    {
+      "strategy": "lexical",
+      "metrics": {
+        "cases": 80,
+        "answerable": 40,
+        "hit_at_5_count": 24,
+        "hit_at_5": 0.6,
+        "recall_at_5": 0.6,
+        "ordinary_no_answer": 24,
+        "false_match_count": 0,
+        "false_match_rate": 0.0,
+        "security_cases": 16,
+        "security_false_match_count": 0,
+        "unauthorized_hits": 0,
+        "fallback_cases": 0,
+        "median_ms": 0.0,
+        "p95_ms": 0
+      },
+      "categories": {
+        "alias": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 0
+        },
+        "historical": {
+          "count": 8,
+          "hits": 8,
+          "false_matches": 0
+        },
+        "literal": {
+          "count": 8,
+          "hits": 8,
+          "false_matches": 0
+        },
+        "missing_cost": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 0
+        },
+        "missing_phone": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 0
+        },
+        "outsider": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 0
+        },
+        "overview": {
+          "count": 8,
+          "hits": 8,
+          "false_matches": 0
+        },
+        "paraphrase": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 0
+        },
+        "selected_visibility": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 0
+        },
+        "unrelated": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 0
+        }
+      },
+      "cases": [
+        {
+          "id": "g13-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g13-main"
+          ],
+          "actual_ids": [
+            "g13-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 2
+        },
+        {
+          "id": "g13-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g13-main"
+          ],
+          "actual_ids": [],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g13-main"
+          ],
+          "actual_ids": [],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g13-main"
+          ],
+          "actual_ids": [
+            "g13-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g13-old"
+          ],
+          "actual_ids": [
+            "g13-old",
+            "g13-main",
+            "g14-old",
+            "g15-old",
+            "g16-old"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g14-main"
+          ],
+          "actual_ids": [
+            "g14-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g14-main"
+          ],
+          "actual_ids": [],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g14-main"
+          ],
+          "actual_ids": [],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g14-main"
+          ],
+          "actual_ids": [
+            "g14-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g14-old"
+          ],
+          "actual_ids": [
+            "g14-old",
+            "g14-main",
+            "g13-old",
+            "g15-old",
+            "g16-old"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g15-main"
+          ],
+          "actual_ids": [
+            "g15-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g15-main"
+          ],
+          "actual_ids": [],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g15-main"
+          ],
+          "actual_ids": [],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g15-main"
+          ],
+          "actual_ids": [
+            "g15-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g15-old"
+          ],
+          "actual_ids": [
+            "g15-old",
+            "g15-main",
+            "g13-old",
+            "g14-old",
+            "g16-old"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g16-main"
+          ],
+          "actual_ids": [
+            "g16-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g16-main"
+          ],
+          "actual_ids": [],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g16-main"
+          ],
+          "actual_ids": [],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g16-main"
+          ],
+          "actual_ids": [
+            "g16-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g16-old"
+          ],
+          "actual_ids": [
+            "g16-old",
+            "g16-main",
+            "g13-old",
+            "g14-old",
+            "g15-old"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g17-main"
+          ],
+          "actual_ids": [
+            "g17-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g17-main"
+          ],
+          "actual_ids": [],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g17-main"
+          ],
+          "actual_ids": [],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g17-main"
+          ],
+          "actual_ids": [
+            "g17-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g17-old"
+          ],
+          "actual_ids": [
+            "g17-old",
+            "g17-main",
+            "g13-old",
+            "g14-old",
+            "g15-old"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g18-main"
+          ],
+          "actual_ids": [
+            "g18-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g18-main"
+          ],
+          "actual_ids": [],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g18-main"
+          ],
+          "actual_ids": [],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g18-main"
+          ],
+          "actual_ids": [
+            "g18-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g18-old"
+          ],
+          "actual_ids": [
+            "g18-old",
+            "g18-main",
+            "g13-old",
+            "g14-old",
+            "g15-old"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g19-main"
+          ],
+          "actual_ids": [
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g19-main"
+          ],
+          "actual_ids": [],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g19-main"
+          ],
+          "actual_ids": [],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g19-main"
+          ],
+          "actual_ids": [
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g19-old"
+          ],
+          "actual_ids": [
+            "g19-old",
+            "g19-main",
+            "g13-old",
+            "g14-old",
+            "g15-old"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g20-main"
+          ],
+          "actual_ids": [
+            "g20-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g20-main"
+          ],
+          "actual_ids": [],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g20-main"
+          ],
+          "actual_ids": [],
+          "hit": false,
+          "false_match": null,
+          "recall": 0.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g20-main"
+          ],
+          "actual_ids": [
+            "g20-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g20-old"
+          ],
+          "actual_ids": [
+            "g20-old",
+            "g20-main",
+            "g13-old",
+            "g14-old",
+            "g15-old"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        }
+      ]
+    },
+    {
+      "strategy": "hybrid",
+      "metrics": {
+        "cases": 80,
+        "answerable": 40,
+        "hit_at_5_count": 40,
+        "hit_at_5": 1.0,
+        "recall_at_5": 1.0,
+        "ordinary_no_answer": 24,
+        "false_match_count": 0,
+        "false_match_rate": 0.0,
+        "security_cases": 16,
+        "security_false_match_count": 0,
+        "unauthorized_hits": 0,
+        "fallback_cases": 0,
+        "median_ms": 32.0,
+        "p95_ms": 44
+      },
+      "categories": {
+        "alias": {
+          "count": 8,
+          "hits": 8,
+          "false_matches": 0
+        },
+        "historical": {
+          "count": 8,
+          "hits": 8,
+          "false_matches": 0
+        },
+        "literal": {
+          "count": 8,
+          "hits": 8,
+          "false_matches": 0
+        },
+        "missing_cost": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 0
+        },
+        "missing_phone": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 0
+        },
+        "outsider": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 0
+        },
+        "overview": {
+          "count": 8,
+          "hits": 8,
+          "false_matches": 0
+        },
+        "paraphrase": {
+          "count": 8,
+          "hits": 8,
+          "false_matches": 0
+        },
+        "selected_visibility": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 0
+        },
+        "unrelated": {
+          "count": 8,
+          "hits": 0,
+          "false_matches": 0
+        }
+      },
+      "cases": [
+        {
+          "id": "g13-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g13-main"
+          ],
+          "actual_ids": [
+            "g13-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 822
+        },
+        {
+          "id": "g13-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g13-main"
+          ],
+          "actual_ids": [
+            "g13-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 37
+        },
+        {
+          "id": "g13-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g13-main"
+          ],
+          "actual_ids": [
+            "g13-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 42
+        },
+        {
+          "id": "g13-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g13-main"
+          ],
+          "actual_ids": [
+            "g13-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 59
+        },
+        {
+          "id": "g13-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g13-old"
+          ],
+          "actual_ids": [
+            "g13-old",
+            "g13-main",
+            "g16-old",
+            "g14-old",
+            "g18-old"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 214
+        },
+        {
+          "id": "g13-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g13-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 32
+        },
+        {
+          "id": "g13-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 32
+        },
+        {
+          "id": "g13-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g14-main"
+          ],
+          "actual_ids": [
+            "g14-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 27
+        },
+        {
+          "id": "g14-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g14-main"
+          ],
+          "actual_ids": [
+            "g14-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 32
+        },
+        {
+          "id": "g14-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g14-main"
+          ],
+          "actual_ids": [
+            "g14-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 27
+        },
+        {
+          "id": "g14-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g14-main"
+          ],
+          "actual_ids": [
+            "g14-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 32
+        },
+        {
+          "id": "g14-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g14-old"
+          ],
+          "actual_ids": [
+            "g14-old",
+            "g14-main",
+            "g15-old",
+            "g20-old",
+            "g18-old"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 38
+        },
+        {
+          "id": "g14-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g14-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 31
+        },
+        {
+          "id": "g14-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 31
+        },
+        {
+          "id": "g14-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g15-main"
+          ],
+          "actual_ids": [
+            "g15-main",
+            "g20-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 44
+        },
+        {
+          "id": "g15-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g15-main"
+          ],
+          "actual_ids": [
+            "g15-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 32
+        },
+        {
+          "id": "g15-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g15-main"
+          ],
+          "actual_ids": [
+            "g15-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 32
+        },
+        {
+          "id": "g15-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g15-main"
+          ],
+          "actual_ids": [
+            "g15-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 31
+        },
+        {
+          "id": "g15-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g15-old"
+          ],
+          "actual_ids": [
+            "g15-old",
+            "g15-main",
+            "g14-old",
+            "g16-old",
+            "g19-old"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 35
+        },
+        {
+          "id": "g15-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g15-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 33
+        },
+        {
+          "id": "g15-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 32
+        },
+        {
+          "id": "g15-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g16-main"
+          ],
+          "actual_ids": [
+            "g16-main",
+            "g13-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 39
+        },
+        {
+          "id": "g16-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g16-main"
+          ],
+          "actual_ids": [
+            "g16-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 49
+        },
+        {
+          "id": "g16-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g16-main"
+          ],
+          "actual_ids": [
+            "g16-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 28
+        },
+        {
+          "id": "g16-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g16-main"
+          ],
+          "actual_ids": [
+            "g16-main",
+            "g13-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 40
+        },
+        {
+          "id": "g16-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g16-old"
+          ],
+          "actual_ids": [
+            "g16-old",
+            "g13-old",
+            "g16-main",
+            "g14-old",
+            "g15-old"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 37
+        },
+        {
+          "id": "g16-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g16-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 33
+        },
+        {
+          "id": "g16-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 32
+        },
+        {
+          "id": "g16-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g17-main"
+          ],
+          "actual_ids": [
+            "g17-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 28
+        },
+        {
+          "id": "g17-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g17-main"
+          ],
+          "actual_ids": [
+            "g17-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 34
+        },
+        {
+          "id": "g17-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g17-main"
+          ],
+          "actual_ids": [
+            "g17-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 33
+        },
+        {
+          "id": "g17-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g17-main"
+          ],
+          "actual_ids": [
+            "g17-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 36
+        },
+        {
+          "id": "g17-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g17-old"
+          ],
+          "actual_ids": [
+            "g17-old",
+            "g17-main",
+            "g14-old",
+            "g16-old",
+            "g15-old"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 36
+        },
+        {
+          "id": "g17-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g17-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 35
+        },
+        {
+          "id": "g17-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 33
+        },
+        {
+          "id": "g17-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g18-main"
+          ],
+          "actual_ids": [
+            "g18-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 32
+        },
+        {
+          "id": "g18-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g18-main"
+          ],
+          "actual_ids": [
+            "g18-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 35
+        },
+        {
+          "id": "g18-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g18-main"
+          ],
+          "actual_ids": [
+            "g18-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 35
+        },
+        {
+          "id": "g18-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g18-main"
+          ],
+          "actual_ids": [
+            "g18-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 41
+        },
+        {
+          "id": "g18-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g18-old"
+          ],
+          "actual_ids": [
+            "g18-old",
+            "g18-main",
+            "g14-old",
+            "g15-old",
+            "g19-old"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 39
+        },
+        {
+          "id": "g18-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g18-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 43
+        },
+        {
+          "id": "g18-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 41
+        },
+        {
+          "id": "g18-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g19-main"
+          ],
+          "actual_ids": [
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 31
+        },
+        {
+          "id": "g19-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g19-main"
+          ],
+          "actual_ids": [
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 36
+        },
+        {
+          "id": "g19-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g19-main"
+          ],
+          "actual_ids": [
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 29
+        },
+        {
+          "id": "g19-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g19-main"
+          ],
+          "actual_ids": [
+            "g19-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 36
+        },
+        {
+          "id": "g19-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g19-old"
+          ],
+          "actual_ids": [
+            "g19-old",
+            "g19-main",
+            "g14-old",
+            "g15-old",
+            "g18-old"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 42
+        },
+        {
+          "id": "g19-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g19-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 35
+        },
+        {
+          "id": "g19-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 38
+        },
+        {
+          "id": "g19-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q01",
+          "category": "literal",
+          "expected_ids": [
+            "g20-main"
+          ],
+          "actual_ids": [
+            "g20-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 39
+        },
+        {
+          "id": "g20-q02",
+          "category": "paraphrase",
+          "expected_ids": [
+            "g20-main"
+          ],
+          "actual_ids": [
+            "g20-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 35
+        },
+        {
+          "id": "g20-q03",
+          "category": "alias",
+          "expected_ids": [
+            "g20-main"
+          ],
+          "actual_ids": [
+            "g20-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 44
+        },
+        {
+          "id": "g20-q04",
+          "category": "overview",
+          "expected_ids": [
+            "g20-main"
+          ],
+          "actual_ids": [
+            "g20-main",
+            "g15-main",
+            "g17-main"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 37
+        },
+        {
+          "id": "g20-q05",
+          "category": "historical",
+          "expected_ids": [
+            "g20-old"
+          ],
+          "actual_ids": [
+            "g20-old",
+            "g20-main",
+            "g14-old",
+            "g15-old",
+            "g18-old"
+          ],
+          "hit": true,
+          "false_match": null,
+          "recall": 1.0,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 42
+        },
+        {
+          "id": "g20-q06",
+          "category": "missing_cost",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q07",
+          "category": "missing_phone",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        },
+        {
+          "id": "g20-q08",
+          "category": "unrelated",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 41
+        },
+        {
+          "id": "g20-q09",
+          "category": "selected_visibility",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 37
+        },
+        {
+          "id": "g20-q10",
+          "category": "outsider",
+          "expected_ids": [],
+          "actual_ids": [],
+          "hit": null,
+          "false_match": false,
+          "recall": null,
+          "unauthorized": 0,
+          "fallback": false,
+          "elapsed_ms": 0
+        }
+      ]
+    }
+  ],
+  "limitations": "Synthetic, developer-authored data. No human/real-data validation. Retrieval metrics are not final-answer quality.",
+  "runtime": {
+    "python": "3.12.8",
+    "preprocessing": "memory-v1-ctx4096",
+    "embedding_context": 4096,
+    "model_fingerprint": "qwen3-embedding:0.6b:ac6da0dfba84a81fdbfbaf330198c33cd77c4cdfc53e8bc50eb581914a15621d:memory-v1-ctx4096"
+  },
+  "run_note": "Threshold frozen on development split. Test repeated only after reducing context to 4096; quality unchanged."
+}

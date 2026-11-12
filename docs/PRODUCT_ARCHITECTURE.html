@@ -1,0 +1,54 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>忆伴 · 产品架构与下一步</title><style>
+:root{--ink:#203f37;--muted:#687d73;--line:#d9e5da;--green:#e5f0e2;--amber:#fff1d6}*{box-sizing:border-box}body{margin:0;background:#f5f7f1;color:var(--ink);font:15px/1.75 system-ui,-apple-system,"PingFang SC",sans-serif}main{max-width:1240px;margin:44px auto;padding:0 28px 60px}h1{font-size:38px;letter-spacing:-1px;margin:10px 0}h2{font-size:23px;margin:0 0 14px}h3{font-size:17px;margin:0 0 8px}p{margin:8px 0}.kicker{font-size:12px;letter-spacing:3px;color:var(--muted)}.lead{max-width:900px;color:var(--muted);font-size:16px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0}.toolbar button{font:inherit;color:var(--ink);background:white;border:1px solid var(--line);padding:8px 16px;border-radius:24px;cursor:pointer}.toolbar button[aria-pressed=true]{background:var(--ink);color:white}.badge{display:inline-block;border-radius:20px;padding:2px 10px;background:var(--green);font-size:12px}.badge.pending{background:var(--amber)}.badge.future{background:#e9edf0;color:#57636d}.section{background:white;border:1px solid var(--line);border-radius:18px;padding:24px;margin:22px 0}.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:20px;margin:24px 0 16px}.step{border:1px solid var(--line);background:#f7faf4;border-radius:14px;padding:18px 15px;position:relative}.step:not(:last-child):after{content:'→';position:absolute;right:-18px;top:44px;color:#809a83;font-size:24px}.num{font-size:12px;color:var(--muted);margin-bottom:10px}.step strong{display:block;font-size:19px;margin-bottom:10px}.step p{font-size:13px;color:var(--muted)}.twocol{display:grid;grid-template-columns:1fr 1fr;gap:18px}.box{border:1px solid var(--line);padding:18px;border-radius:12px}.box p{font-size:14px}.note{border-left:3px solid #a6bba0;padding:8px 14px;background:#f6f9f1;color:#4b6757}.tech{display:none}body[data-view=technical] .tech{display:block}summary{cursor:pointer;font-weight:600}details{margin:12px 0}.modules{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.module{background:#f8faf5;border-radius:12px;padding:18px}.module p{font-size:13px;color:var(--muted)}.future-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.future-grid .box{border-style:dashed;background:#fafafa}ol,ul{padding-left:24px}li{margin:8px 0}code{overflow-wrap:anywhere;font-size:12px;background:#edf2e9;padding:2px 5px;border-radius:4px}table{width:100%;border-collapse:collapse}td,th{padding:11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:13px;color:var(--muted)}footer{color:var(--muted);font-size:12px;margin-top:28px}@media(max-width:850px){.flow{grid-template-columns:1fr}.step:not(:last-child):after{content:'↓';right:20px;top:auto;bottom:-24px}.twocol,.modules,.future-grid{grid-template-columns:1fr}h1{font-size:29px}main{padding:0 16px}.section{padding:18px}}@media print{.toolbar{display:none}.tech{display:block}.section{break-inside:avoid}body{background:white}main{max-width:none;margin:0;padding:0}}
+</style></head><body data-view="simple"><main>
+<div class="kicker">YIBAN · PRODUCT MAP · 2026-11-12</div><h1>忆伴：能交流，也能一起记住</h1>
+<p class="lead">面向家庭、团队和组织的人工智能陪伴产品，以爱凤 IP 为实验方向。当前运行在 Mac 浏览器中，界面和唤醒词仍叫“小伴”；主要交互是语音，网页承担体验入口与后台管理。</p>
+<div class="toolbar"><button id="simple" aria-pressed="true">给所有成员看</button><button id="technical" aria-pressed="false">展开代码与技术细节</button><button onclick="window.print()">打印／保存 PDF</button></div>
+<section class="section" id="overview"><h2>一轮交互，经过五个部分</h2><span class="badge">本机基础版已接入</span> <span class="badge pending">多人连续使用仍需验收</span>
+<div class="flow">
+<div class="step"><div class="num">01 · 输入</div><strong>你表达需求</strong><p>文字、说话、按需拍照；后台添加聊天记录和活动资料。ReSpeaker USB 可作为音频入口。</p></div>
+<div class="step"><div class="num">02 · 理解</div><strong>听懂与识别</strong><p>唤醒、断句、语音转文字；声纹提供档案候选，不确定时按访客。照片按需进入看图模型。</p></div>
+<div class="step"><div class="num">03 · 调度</div><strong>程序检查与安排</strong><p>区分普通聊天、查记忆、写入预览和固定动作；维护会话、当前时间及打断状态，检查权限。</p></div>
+<div class="step"><div class="num">04 · 思考</div><strong>模型结合记忆</strong><p>只检索当前档案或当前账号可见资料。模型生成回答或提出工具请求，程序校验后执行。</p></div>
+<div class="step"><div class="num">05 · 输出</div><strong>回应并可追溯</strong><p>文字、语音朗读、屏幕表情／动作。记忆回答可看引用与候选，新增或修改按流程确认。</p></div>
+</div>
+<p class="note">保存、修改、恢复、替代纠正等受控操作：先展示影响与范围，再由人确认。模型的建议和资料里的文字不能代替授权。普通对话中明确“记住”的个人新事实，沿用现有直接保存／冲突预览规则。</p>
+<div class="tech"><p>浏览器通过本机 HTTP 接口访问 Python 服务。唤醒／断句使用 Sherpa-ONNX 与 Silero VAD；语音识别为 SenseVoice INT8；声纹独立匹配，普通个人档案选择不构成登录认证。服务端用会话版本、权限、记录版本和取消令牌控制读写。</p></div></section>
+
+<section class="section"><h2>记忆是产品的核心</h2><div class="twocol"><div class="box"><h3>个人记忆</h3><span class="badge">本轮接入语义检索</span><p>每个档案独立保存、检索、导入导出和修改历史。查询个人记忆时展示模型声明引用与其他候选；没有依据就提示。普通聊天展示本轮检索候选。</p><p>个人记忆目前没有待核实／有效／过时的状态字段；已保存不代表已核实。普通档案隔离用于本机体验，不能替代账号权限系统。</p></div>
+<div class="box"><h3>家庭／团队共同记忆</h3><span class="badge">已接入受控流程</span><p>独立空间账号、管理员／编辑／只读角色；每条资料可指定可见成员和修改策略。支持状态、日期、原文依据、历史、导入、备份与恢复。</p><p>回收站、历史内容恢复、末端替代纠正均先预览确认。声纹不授予共享权限；普通个人聊天不会自动读取共同空间资料。</p></div></div>
+<p class="note">短期对话与长期记忆分开：普通聊天每轮发送最近16条消息，浏览器按档案保留最近30条文字。长期记忆按问题检索，每人／每空间最多200条；个人本轮最多取8条以内、合计2200字，不是把全部资料一直塞进上下文。</p>
+<div class="tech"><p>SQLite主库是事实来源；向量缓存为可重建的派生索引。个人索引命名空间 <code>personal:档案ID</code>，共同空间为 <code>shared:空间ID</code>。候选先按档案／权限筛选，再编码；按版本与正文哈希拒绝旧索引。记忆变化会触发重新查询，取消或迟到结果不进入其他档案。</p></div></section>
+
+<section class="section"><h2>模型与存储怎么分工</h2><div class="modules">
+<div class="module"><h3>回答模型</h3><p>本机 Ollama：Qwen2.5 3B。负责组织语言和提出受控工具请求。智谱、百炼兼容接口可切换，真实账号参数、用量与费用仍需验收。</p></div>
+<div class="module"><h3>检索模型</h3><p>本机 Qwen3-Embedding 0.6B，配合文字排序，理解不同问法。不可用时回退有门槛的文字检索，不扩大到其他档案或空间。</p></div>
+<div class="module"><h3>看图与朗读</h3><p>Qwen2.5-VL 3B处理明确拍下的照片；Mac系统语音负责朗读，可选音色和语速。不是持续视频感知，也不代表已有情绪识别。</p></div>
+</div><div class="tech"><table><thead><tr><th>存储</th><th>用途</th></tr></thead><tbody>
+<tr><td>主SQLite数据库</td><td>个人／共同记忆、档案、声纹特征、共享账号与会话、成员权限、历史、原文、替代链、回收站和恢复记录。</td></tr>
+<tr><td>派生向量SQLite</td><td>向量、资料编号、版本与哈希；不存记忆明文或查询历史，仍属于本机派生数据。</td></tr>
+<tr><td>诊断与反馈SQLite</td><td>本人工具操作诊断；用户明确提交的问答反馈与权限内快照。</td></tr>
+<tr><td>浏览器本地与本机JSON</td><td>按档案保存普通文字聊天历史；本机保存音色与语速偏好。共同空间资料不写入个人聊天缓存。</td></tr>
+</tbody></table><p>使用云端回答模型时，本轮问题与相关资料会发给配置的服务；向量服务目前限定本机。日期时间读取电脑时钟，尚无天气、新闻和通用网页搜索。</p></div></section>
+
+<section class="section"><h2>后续能力：还没有全部完成</h2><div class="future-grid">
+<div class="box"><span class="badge pending">下一批软件</span><h3>记忆质量与治理</h3><p>个人记忆状态和疑似冲突处理；更多独立真实资料评测；回收站专门备份与清理；云端用量和费用统计。</p></div>
+<div class="box"><span class="badge future">后续部署</span><h3>多人、多电脑</h3><p>跨设备登录与协作、传输与访问控制、Windows／Linux朗读及部署验收。当前正式服务仅监听本机。</p></div>
+<div class="box"><span class="badge future">后续硬件</span><h3>开发板与实体机器人</h3><p>RK3588／RK182x的Linux、NPU与模型适配；ESP32 Wi-Fi音频；回声与供电；电机协议和执行反馈。当前动作主要是屏幕动画。</p></div>
+</div></section>
+
+<section class="section" id="next"><h2>接下来你需要准备什么</h2><ol>
+<li><strong>现在先准备真实文字资料：</strong>给甲、乙各5–10条不同的偏好、习惯或活动信息，标明归属；再给出希望系统答对的问题及参考答案。先用你愿意用于测试的资料。</li>
+<li><strong>核对本轮体验：</strong>选对应档案，在“个人记忆 → 查询个人记忆”换几种问法，检查引用、无答案提示及甲乙隔离。把答错的问题和正确依据记下来。</li>
+<li><strong>方便讲话时再配合：</strong>甲、乙及未登记访客交替，测试声纹、唤醒、插话与回声。文字测试不能代替这些验收。</li>
+<li><strong>硬件阶段协调同事：</strong>确认板卡及加速芯片准确型号、系统镜像、驱动和麦克风固件，提供远程调试条件，再逐项适配。</li>
+</ol><p>代码侧建议下一步：个人记忆状态与疑似冲突提示 → 真实资料独立评测 → 回收站专门备份和清理。是否切换云端、开放多电脑或接实体动作，可等这些基础流程稳定后决定。</p></section>
+<details class="section tech"><summary>开发成员：代码对应位置</summary><table><tr><th>模块</th><th>文件</th></tr>
+<tr><td>服务与模型路由</td><td><code>server.py</code>、<code>yiban/backends/</code>、<code>yiban/settings.py</code></td></tr>
+<tr><td>个人记忆与检索</td><td><code>yiban/memory/memory_store.py</code>、<code>personal_retrieval.py</code>、<code>retrieval.py</code>、<code>static/personal-retrieval.js</code></td></tr>
+<tr><td>共同记忆与工具</td><td><code>shared_memory.py</code>、<code>read_only_agent.py</code>、<code>memory_agent.py</code>、<code>shared_import.py</code></td></tr>
+<tr><td>原文与保护</td><td><code>shared_evidence.py</code>、<code>shared_replacement.py</code>、<code>shared_backup.py</code>、<code>shared_recovery.py</code></td></tr>
+<tr><td>语音与会话</td><td><code>yiban/audio/</code>、<code>yiban/turns.py</code>、<code>static/app.js</code>、<code>static/shared-voice.js</code></td></tr>
+<tr><td>诊断与反馈</td><td><code>conversation_diagnostics.py</code>、<code>agent_audit.py</code>、<code>answer_feedback.py</code></td></tr></table></details>
+<footer>架构按当前代码与本机配置整理，2026-11-12。绿色表示已接入基础功能，不等于完成全部真实使用验收。此页可离线打开，不加载外部字体、脚本或用户资料。</footer>
+</main><script>for(const mode of ['simple','technical'])document.getElementById(mode).onclick=()=>{document.body.dataset.view=mode;for(const id of ['simple','technical'])document.getElementById(id).setAttribute('aria-pressed',String(id===mode));};</script></body></html>

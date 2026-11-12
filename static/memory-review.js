@@ -26,7 +26,8 @@ function showMemoryReview(plan){
   if(plan.can_append){const option=document.createElement('option');option.value='append';option.textContent='保留现有内容，另存一条（并存）';$('memoryReviewChoice').append(option);}
   for(const target of targets){const option=document.createElement('option');option.value=target.id;option.textContent=target.label;$('memoryReviewChoice').append(option);}
   $('memoryReviewChoice').value=plan.original?.id||(plan.can_append?'append':targets[0]?.id||'');
-  notice('请在「用户与记忆」核对变更并确认；当前尚未写入。');memoryReviewControls();
+  if(typeof showWorkspacePage==='function')showWorkspacePage('personal');
+  notice('请在「个人记忆」核对变更并确认；当前尚未写入。');memoryReviewControls();
 }
 async function confirmMemoryReview(){
   const plan=memoryReviewPlan;if(memoryLocked()||!plan||plan.target.id!==activeProfile||!$('memoryReviewConsent').checked)return;

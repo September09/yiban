@@ -33,3 +33,9 @@ main{align-items:start}.companion{padding-top:20px}.robot-scene{perspective:500p
 #conversationTraceDetail h3{margin-top:0}#conversationTraceDetail h4{margin-bottom:8px}
 #conversationTraceDetail p{line-height:1.65;margin:7px 0}
 @media(max-width:650px){.trace-layout{grid-template-columns:1fr}#conversationTraceList{max-height:180px}}
+
+.answer-sources{margin-top:18px;padding:16px;border:1px solid var(--line);border-radius:12px;background:#f8faf5}.answer-sources h4{margin:12px 0 4px;font-size:14px}.answer-sources summary{cursor:pointer;font-weight:600}.answer-source-list{max-height:none}.answer-source-card>strong{display:block;margin-bottom:7px}.answer-source-card .memory-state{display:inline-block;margin-bottom:8px}.answer-source-card .memory-meta{display:block;white-space:pre-wrap}.answer-source-card .text-button{margin-top:8px}
+
+.agent-audit-row { border-top: 1px solid var(--border, #dce5d4); padding: 12px 0; overflow-wrap: anywhere; }
+.agent-audit-row summary { cursor: pointer; line-height: 1.6; }
+.agent-audit-row li { margin: 6px 0; }

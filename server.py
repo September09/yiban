@@ -16,8 +16,16 @@ from yiban.backends import build_services
 from yiban.audio.speech_preferences import SpeechPreferences
 from yiban.memory.memory_store import MemoryStore
 from yiban.memory.shared_memory import SharedMemory, SharedError
+from yiban.memory.retrieval import MemoryRetriever
+from yiban.memory.answer_evidence import ANSWER_SCHEMA, REFERENCE_INSTRUCTION, answer_question, resolve_answer
 from yiban.memory.shared_voice import SharedVoice
 from yiban.memory.shared_import import SharedImport
+from yiban.memory.read_only_agent import ReadOnlyAgent
+from yiban.memory.memory_agent import MemoryAgent
+from yiban.memory.agent_audit import AgentAudit
+from yiban.memory.answer_feedback import AnswerFeedback
+from yiban.memory.shared_backup import SharedBackup
+from yiban.memory.personal_retrieval import PersonalMemory
 from yiban.audio.speakers import SpeakerService
 from yiban.turns import TurnRegistry, Cancelled
 from yiban.audio.diagnostics import audio_metadata, log_audio_diagnostic
@@ -33,9 +41,17 @@ else:
 SERVICES = build_services(SETTINGS)
 SPEECH = SpeechPreferences(SERVICES.tts, SETTINGS["tts"], Path(SETTINGS["memory"]["database"]).parent / "speech-settings.json")
 STORE = MemoryStore(SETTINGS["memory"]["database"])
-SHARED = SharedMemory(STORE)
+RETRIEVER = MemoryRetriever(SETTINGS['retrieval'], STORE.path.parent/'retrieval/vectors.sqlite3') if SETTINGS['retrieval']['enabled'] else None
+PERSONAL_MEMORY = PersonalMemory(STORE, RETRIEVER, SERVICES.models)
+STORE.personal_retriever = PERSONAL_MEMORY.retriever
+SHARED = SharedMemory(STORE, retriever=RETRIEVER)
+SHARED_BACKUP = SharedBackup(SHARED)
 SHARED_VOICE = SharedVoice(SHARED)
 SHARED_IMPORT = SharedImport(SHARED, SERVICES.models)
+READ_AGENT = ReadOnlyAgent(SHARED, SERVICES.models)
+MEMORY_AGENT = MemoryAgent(SHARED, SERVICES.models)
+AGENT_AUDIT = AgentAudit(SHARED, STORE.path.parent / "agent-diagnostics.sqlite3")
+FEEDBACK = AnswerFeedback(SHARED, STORE.path.parent / "answer-feedback.sqlite3")
 SPEAKERS = SpeakerService(STORE, SETTINGS["speaker"])
 TURNS = TurnRegistry()
 PORT = SETTINGS["port"]
@@ -93,16 +109,21 @@ def transcribe(raw, identify_speaker=False):
 def shared_answer(token, data, public_only=False):
     if not isinstance(data, dict):
         raise SharedError('请求格式不正确。')
-    context = measured('memory', SHARED.question_context, token, data.get('space_id'), data.get('query'), public_only=public_only,include_outdated=data.get('include_outdated') is True)
     cancel = TURNS.get(data.get('turn_id'))
     cancel.check()
-    if not context['sources']:
+    context = measured('memory', SHARED.question_context, token, data.get('space_id'), data.get('query'), public_only=public_only,include_outdated=data.get('include_outdated') is True,cancel=cancel,conversation=data.get('conversation_mode') is True,conversation_id=data.get('conversation_id'),choice_id=data.get('choice_id'))
+    retrieval=TRACES.retrieval(CURRENT.get(),context.get('retrieval'))
+    cancel.check()
+    citation={'answer_source_ids':[], 'source_usage':'not_needed'}
+    if context.get('clarification'):
+        answer=context['clarification']
+    elif not context['sources']:
         answer = '当前可见范围内没有适用于本次问答的记忆。可检查记忆状态；回顾旧安排时，请明确要求查询过时记忆。'
     else:
         answer, completed = '', False
         events = model_events(SERVICES.models.chat([
-            {'role':'system','content':SYSTEM + current_time_context() + context['context']},
-            {'role':'user','content':context['query']}], cancel=cancel))
+            {'role':'system','content':SYSTEM + current_time_context() + context['context'] + REFERENCE_INSTRUCTION},
+            {'role':'user','content':answer_question(context['query'])}], cancel=cancel,json_schema=ANSWER_SCHEMA))
         try:
             for event in events:
                 cancel.check()
@@ -120,12 +141,15 @@ def shared_answer(token, data, public_only=False):
     # Never deliver a response computed under revoked or changed permissions.
     cancel.check()
     measured('access', SHARED.validate_answer, token, context['guard'])
-    states={item['status'] for item in context['sources']}
-    notice=[]
-    if 'pending' in states:notice.append('本次参考资料包含待核实记录，相关内容尚不能确认。')
-    if 'outdated' in states:notice.append('本次参考资料包含过时记录，仅供历史回顾。')
-    if notice:answer=''.join(notice)+'\n'+answer
-    return {'answer':answer, 'sources':context['sources']}
+    if context['sources']:
+        citation=resolve_answer(answer,context['sources'])
+        answer=citation.pop('answer')
+    dialogue={}
+    if context.get('dialogue_plan'):
+        cancel.check()
+        dialogue=SHARED.dialogue.finish(context['dialogue_plan'])
+    return {'answer':answer, 'sources':context['sources'], 'retrieval':retrieval, 'conversation':dialogue, **citation}
+
 
 
 def shared_voice_request(token, path, data):
@@ -193,7 +217,8 @@ class Handler(BaseHTTPRequestHandler):
             status = {"chat": False, "vision": False, "model": MODEL, "vision_model": VISION_MODEL,
                       "asr": SERVICES.asr.available(),
                       "wake": SETTINGS["audio"]["wake_enabled"] and voice_available(),
-                      "tts": SERVICES.tts.available(), "wake_word": WAKE_WORD, "version": 9,
+                      "tts": SERVICES.tts.available(), "wake_word": WAKE_WORD, "version": 23,
+                      "retrieval": {"enabled": RETRIEVER is not None, "strategy": SETTINGS["retrieval"]["strategy"], "model": SETTINGS["retrieval"]["model"]},
                       "remote_model": urlsplit(SETTINGS['llm']['base_url']).hostname not in {'localhost', '127.0.0.1', '::1'},
                       "backends": {key: SETTINGS[key]["backend"] for key in ("llm", "asr", "tts", "actions")},
                       "capabilities": {"audio_input": "browser", "barge_in": SETTINGS["audio"]["wake_enabled"], "memory": True, "shared_memory": True, "shared_memory_voice": True, "material_import": True, "memory_provenance": True, "memory_status": True, "conversation_diagnostics": True, "speaker": SPEAKERS.available(), "hardware_actions": False}}
@@ -203,11 +228,21 @@ class Handler(BaseHTTPRequestHandler):
                 pass
             self.json_response(status)
             return
-        files = {"/": ("index.html", "text/html; charset=utf-8"),
+        files = {"/workspace.js": ("workspace.js", "text/javascript; charset=utf-8"),
+                 "/workspace.css": ("workspace.css", "text/css; charset=utf-8"),
+                 "/": ("index.html", "text/html; charset=utf-8"),
                  "/speech-settings.js": ("speech-settings.js", "text/javascript; charset=utf-8"),
                  "/app.js": ("app.js", "text/javascript; charset=utf-8"),
                  "/conversation-diagnostics.js": ("conversation-diagnostics.js", "text/javascript; charset=utf-8"),
                  "/shared.js": ("shared.js", "text/javascript; charset=utf-8"),
+            "/shared-replacement.js": ("shared-replacement.js", "text/javascript; charset=utf-8"),
+            "/shared-agent.js": ("shared-agent.js", "text/javascript; charset=utf-8"),
+            "/shared-audit.js": ("shared-audit.js", "text/javascript; charset=utf-8"),
+            "/shared-feedback.js": ("shared-feedback.js", "text/javascript; charset=utf-8"),
+            "/shared-backup.js": ("shared-backup.js", "text/javascript; charset=utf-8"),
+            "/shared-recovery.js": ("shared-recovery.js", "text/javascript; charset=utf-8"),
+            "/personal-retrieval.js": ("personal-retrieval.js", "text/javascript; charset=utf-8"),
+                 "/shared-answer-sources.js": ("shared-answer-sources.js", "text/javascript; charset=utf-8"),
                  "/shared-evidence.js": ("shared-evidence.js", "text/javascript; charset=utf-8"),
                  "/material-import.js": ("material-import.js", "text/javascript; charset=utf-8"),
                  "/shared-voice.js": ("shared-voice.js", "text/javascript; charset=utf-8"),
@@ -237,6 +272,11 @@ class Handler(BaseHTTPRequestHandler):
             result = {"deleted": True}
         elif self.path == "/api/memory/list":
             result = {"memories": STORE.memories(profile)}
+        elif self.path == "/api/memory/ask":
+            result = PERSONAL_MEMORY.answer(profile, data.get("query"), TURNS.get(data.get("turn_id")))
+            TRACES.retrieval(CURRENT.get(), result.get("retrieval"))
+        elif self.path == "/api/memory/search":
+            result = PERSONAL_MEMORY.public(PERSONAL_MEMORY.search(profile, data.get("query"), TURNS.get(data.get("turn_id"))))
         elif self.path == "/api/memory/export":
             result = STORE.export_memories(profile)
         elif self.path == "/api/memory/import/preview":
@@ -271,7 +311,8 @@ class Handler(BaseHTTPRequestHandler):
         trace_token = CURRENT.set(TRACES.begin(self.headers.get('X-Conversation-Trace')))
         try:
             length = int(self.headers.get("Content-Length", "0"))
-            if not 0 < length <= 8_000_000:
+            maximum = 32_000_000 if self.path in {'/api/shared/backup/inspect', '/api/shared/backup/preview'} else 8_000_000
+            if not 0 < length <= maximum:
                 raise ValueError("请求为空或过大。")
             raw = self.rfile.read(length)
             if self.path.startswith("/api/listen/") and voice_manager is None:
@@ -285,12 +326,38 @@ class Handler(BaseHTTPRequestHandler):
                 auth = self.headers.get('Authorization', '')
                 token = auth[7:] if auth.startswith('Bearer ') else None
                 data = json.loads(raw)
-                if self.path.startswith('/api/shared/import/'):
+                feedback_guard = None
+                if self.path in {'/api/shared/ask', '/api/shared/agent/ask', '/api/shared/agent/memory/ask'}:
+                    if not isinstance(data, dict):raise SharedError('请求格式不正确。')
+                    feedback_guard = SHARED.question_guard(token, data.get('space_id'))
+                if self.path.startswith('/api/shared/recovery/'):
+                    result = SHARED.recovery.dispatch(self.path[len('/api/shared/recovery/'):], token, data)
+                elif self.path.startswith('/api/shared/backup/'):
+                    result = SHARED_BACKUP.dispatch(self.path[len('/api/shared/backup/'):], token, data)
+                elif self.path.startswith('/api/shared/feedback/'):
+                    result = FEEDBACK.dispatch(self.path[len('/api/shared/feedback/'):], token, data)
+                elif self.path.startswith('/api/shared/import/'):
                     result = SHARED_IMPORT.dispatch(self.path[len('/api/shared/import/'):],token,data,TURNS.get(data.get('turn_id')) if isinstance(data,dict) else None)
+                elif self.path == '/api/shared/agent/memory/ask':
+                    if not isinstance(data,dict):raise SharedError('请求格式不正确。')
+                    result = AGENT_AUDIT.run(token,data,'select' if data.get('selection_token') else 'ask',lambda:MEMORY_AGENT.answer(token,data,TURNS.get(data.get('turn_id'))))
+                elif self.path == '/api/shared/agent/memory/replace-preview':
+                    result = AGENT_AUDIT.run(token,data,'ask',lambda:MEMORY_AGENT.replacement_preview(token,data))
+                elif self.path == '/api/shared/agent/memory/confirm':
+                    result = AGENT_AUDIT.run(token,data,'confirm',lambda:measured('commit',MEMORY_AGENT.confirm,token,data))
+                elif self.path == '/api/shared/agent/memory/cancel':
+                    result = AGENT_AUDIT.run(token,data,'cancel',lambda:measured('cancel',MEMORY_AGENT.cancel,token,data))
+                elif self.path == '/api/shared/agent/records':
+                    result = AGENT_AUDIT.list(token,data)
+                elif self.path == '/api/shared/agent/ask':
+                    if not isinstance(data,dict):raise SharedError('请求格式不正确。')
+                    result = AGENT_AUDIT.run(token,data,'read',lambda:READ_AGENT.answer(token,data,TURNS.get(data.get('turn_id'))))
                 elif self.path.startswith('/api/shared/voice/'):
                     result = shared_voice_request(token,self.path,data)
                 else:
                     result = shared_answer(token, data) if self.path == '/api/shared/ask' else SHARED.dispatch(self.path[len('/api/shared'):], data, token)
+                if feedback_guard is not None:
+                    result = FEEDBACK.offer(token, data, result, feedback_guard)
                 self.json_response(result)
             elif self.path.startswith(("/api/profiles/", "/api/memory/", "/api/speaker/")):
                 self.manage_personal(json.loads(raw))
@@ -343,7 +410,9 @@ class Handler(BaseHTTPRequestHandler):
                 if reply is not None:
                     self.send_bytes(200, (json.dumps({"message": {"role": "assistant", "content": reply}, "memory_changed": memory_changed, "memory_review": memory_review, "done": True}, ensure_ascii=False) + "\n").encode(), "application/x-ndjson; charset=utf-8")
                     return
-                system = SYSTEM + current_time_context() + measured('memory', STORE.context, profile, clean[-1]["content"])
+                personal = measured('memory', PERSONAL_MEMORY.search, profile, clean[-1]['content'][:1200], cancel, not bool(picture) and not bool(action_for_text(clean[-1]['content'])))
+                TRACES.retrieval(CURRENT.get(), personal['retrieval'])
+                system = SYSTEM + current_time_context() + personal['context']
                 if picture:
                     if not isinstance(picture, str) or len(picture) > 3_000_000:
                         raise ValueError("图片过大，请重新拍照。")
@@ -364,7 +433,16 @@ class Handler(BaseHTTPRequestHandler):
                     return
                 events = model_events(SERVICES.models.chat([{"role": "system", "content": system}] + clean, vision=bool(picture), cancel=cancel))
                 try:
+                    if personal['sources']:
+                        buffered = []
+                        for event in events:
+                            cancel.check()
+                            buffered.append(event)
+                        PERSONAL_MEMORY.validate(personal)
+                        cancel.check()
+                        events = iter(buffered)
                     first = next(events)  # Fail before sending HTTP 200 when the backend rejects the request.
+                    first = {**first, 'personal_memory': PERSONAL_MEMORY.public(personal)}
                     self.send_response(200)
                     self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
                     self.send_header("Cache-Control", "no-store")
@@ -377,7 +455,7 @@ class Handler(BaseHTTPRequestHandler):
                         self.wfile.write((json.dumps(event, ensure_ascii=False) + "\n").encode())
                         self.wfile.flush()
                 finally:
-                    events.close()
+                    if hasattr(events, 'close'):events.close()
             elif self.path == "/api/speech/settings/save":
                 self.json_response(SPEECH.save(json.loads(raw)))
             elif self.path == "/api/speech/preview":
@@ -400,7 +478,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self.json_response({"error": "Not found"}, 404)
         except SharedError as error:
-            self.json_response({"error":str(error)}, error.status)
+            self.json_response({"error":str(error),**({"diagnostic":error.agent_diagnostic} if hasattr(error,"agent_diagnostic") else {})}, error.status)
         except (BrokenPipeError, ConnectionResetError):
             pass
         except Exception as error:
@@ -414,7 +492,7 @@ class Handler(BaseHTTPRequestHandler):
                 except (BrokenPipeError, ConnectionResetError):
                     pass
             else:
-                self.json_response({"error": message}, 400)
+                self.json_response({"error": message,**({"diagnostic":error.agent_diagnostic} if hasattr(error,"agent_diagnostic") else {})}, 400)
         finally:
             CURRENT.reset(trace_token)
 

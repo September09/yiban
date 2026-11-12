@@ -1,0 +1,3728 @@
+{
+  "version": "synthetic-v1",
+  "disclaimer": "全部虚构；不代表真实用户问法或真实效果。按事件分组冻结，开发与验收分组不重叠。",
+  "records": [
+    {
+      "id": "g01-main",
+      "space": "team-dev",
+      "group": "g01",
+      "version": 1,
+      "content": "春季植树计划于2026年4月12日在青松公园举行，由李老师负责带队和讲解。",
+      "event_date": "2026-4-12",
+      "status": "pending",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g01-old",
+      "space": "team-dev",
+      "group": "g01",
+      "version": 1,
+      "content": "春季植树的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g01-private",
+      "space": "team-dev",
+      "group": "g01",
+      "version": 1,
+      "content": "内部项目g01的暗号是银杏1号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g01-foreign",
+      "space": "other-family",
+      "group": "g01",
+      "version": 1,
+      "content": "春季植树的内部预算是300元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g02-main",
+      "space": "team-dev",
+      "group": "g02",
+      "version": 1,
+      "content": "周末读书会计划于2026年4月19日在社区阅览室举行，由周敏负责带队和讲解。",
+      "event_date": "2026-4-19",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g02-old",
+      "space": "team-dev",
+      "group": "g02",
+      "version": 1,
+      "content": "周末读书会的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g02-private",
+      "space": "team-dev",
+      "group": "g02",
+      "version": 1,
+      "content": "内部项目g02的暗号是银杏2号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g02-foreign",
+      "space": "other-family",
+      "group": "g02",
+      "version": 1,
+      "content": "周末读书会的内部预算是301元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g03-main",
+      "space": "team-dev",
+      "group": "g03",
+      "version": 1,
+      "content": "亲子烘焙计划于2026年5月3日在麦香工坊举行，由陈师傅负责带队和讲解。",
+      "event_date": "2026-5-3",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g03-old",
+      "space": "team-dev",
+      "group": "g03",
+      "version": 1,
+      "content": "亲子烘焙的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g03-private",
+      "space": "team-dev",
+      "group": "g03",
+      "version": 1,
+      "content": "内部项目g03的暗号是银杏3号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g03-foreign",
+      "space": "other-family",
+      "group": "g03",
+      "version": 1,
+      "content": "亲子烘焙的内部预算是302元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g04-main",
+      "space": "team-dev",
+      "group": "g04",
+      "version": 1,
+      "content": "山区徒步计划于2026年5月10日在云岭步道举行，由王教练负责带队和讲解。",
+      "event_date": "2026-5-10",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g04-old",
+      "space": "team-dev",
+      "group": "g04",
+      "version": 1,
+      "content": "山区徒步的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g04-private",
+      "space": "team-dev",
+      "group": "g04",
+      "version": 1,
+      "content": "内部项目g04的暗号是银杏4号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g04-foreign",
+      "space": "other-family",
+      "group": "g04",
+      "version": 1,
+      "content": "山区徒步的内部预算是303元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g05-main",
+      "space": "team-dev",
+      "group": "g05",
+      "version": 1,
+      "content": "摄影外拍计划于2026年5月17日在滨江码头举行，由赵老师负责带队和讲解。",
+      "event_date": "2026-5-17",
+      "status": "pending",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g05-old",
+      "space": "team-dev",
+      "group": "g05",
+      "version": 1,
+      "content": "摄影外拍的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g05-private",
+      "space": "team-dev",
+      "group": "g05",
+      "version": 1,
+      "content": "内部项目g05的暗号是银杏5号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g05-foreign",
+      "space": "other-family",
+      "group": "g05",
+      "version": 1,
+      "content": "摄影外拍的内部预算是304元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g06-main",
+      "space": "team-dev",
+      "group": "g06",
+      "version": 1,
+      "content": "旧物交换计划于2026年5月24日在社区广场举行，由刘悦负责带队和讲解。",
+      "event_date": "2026-5-24",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g06-old",
+      "space": "team-dev",
+      "group": "g06",
+      "version": 1,
+      "content": "旧物交换的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g06-private",
+      "space": "team-dev",
+      "group": "g06",
+      "version": 1,
+      "content": "内部项目g06的暗号是银杏6号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g06-foreign",
+      "space": "other-family",
+      "group": "g06",
+      "version": 1,
+      "content": "旧物交换的内部预算是305元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g07-main",
+      "space": "team-dev",
+      "group": "g07",
+      "version": 1,
+      "content": "篮球友谊赛计划于2026年6月7日在体育中心举行，由孙队长负责带队和讲解。",
+      "event_date": "2026-6-7",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g07-old",
+      "space": "team-dev",
+      "group": "g07",
+      "version": 1,
+      "content": "篮球友谊赛的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g07-private",
+      "space": "team-dev",
+      "group": "g07",
+      "version": 1,
+      "content": "内部项目g07的暗号是银杏7号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g07-foreign",
+      "space": "other-family",
+      "group": "g07",
+      "version": 1,
+      "content": "篮球友谊赛的内部预算是306元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g08-main",
+      "space": "team-dev",
+      "group": "g08",
+      "version": 1,
+      "content": "端午包粽子计划于2026年6月14日在邻里厨房举行，由吴阿姨负责带队和讲解。",
+      "event_date": "2026-6-14",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g08-old",
+      "space": "team-dev",
+      "group": "g08",
+      "version": 1,
+      "content": "端午包粽子的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g08-private",
+      "space": "team-dev",
+      "group": "g08",
+      "version": 1,
+      "content": "内部项目g08的暗号是银杏8号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g08-foreign",
+      "space": "other-family",
+      "group": "g08",
+      "version": 1,
+      "content": "端午包粽子的内部预算是307元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g09-main",
+      "space": "team-dev",
+      "group": "g09",
+      "version": 1,
+      "content": "急救培训计划于2026年6月21日在红十字教室举行，由郑医生负责带队和讲解。",
+      "event_date": "2026-6-21",
+      "status": "pending",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g09-old",
+      "space": "team-dev",
+      "group": "g09",
+      "version": 1,
+      "content": "急救培训的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g09-private",
+      "space": "team-dev",
+      "group": "g09",
+      "version": 1,
+      "content": "内部项目g09的暗号是银杏9号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g09-foreign",
+      "space": "other-family",
+      "group": "g09",
+      "version": 1,
+      "content": "急救培训的内部预算是308元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g10-main",
+      "space": "team-dev",
+      "group": "g10",
+      "version": 1,
+      "content": "星空观测计划于2026年7月5日在南山营地举行，由许老师负责带队和讲解。",
+      "event_date": "2026-7-5",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g10-old",
+      "space": "team-dev",
+      "group": "g10",
+      "version": 1,
+      "content": "星空观测的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g10-private",
+      "space": "team-dev",
+      "group": "g10",
+      "version": 1,
+      "content": "内部项目g10的暗号是银杏10号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g10-foreign",
+      "space": "other-family",
+      "group": "g10",
+      "version": 1,
+      "content": "星空观测的内部预算是309元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g11-main",
+      "space": "team-dev",
+      "group": "g11",
+      "version": 1,
+      "content": "手工陶艺计划于2026年7月12日在素陶工作室举行，由冯老师负责带队和讲解。",
+      "event_date": "2026-7-12",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g11-old",
+      "space": "team-dev",
+      "group": "g11",
+      "version": 1,
+      "content": "手工陶艺的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g11-private",
+      "space": "team-dev",
+      "group": "g11",
+      "version": 1,
+      "content": "内部项目g11的暗号是银杏11号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g11-foreign",
+      "space": "other-family",
+      "group": "g11",
+      "version": 1,
+      "content": "手工陶艺的内部预算是310元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g12-main",
+      "space": "team-dev",
+      "group": "g12",
+      "version": 1,
+      "content": "社区清洁计划于2026年7月19日在幸福街区举行，由何志愿者负责带队和讲解。",
+      "event_date": "2026-7-19",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g12-old",
+      "space": "team-dev",
+      "group": "g12",
+      "version": 1,
+      "content": "社区清洁的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g12-private",
+      "space": "team-dev",
+      "group": "g12",
+      "version": 1,
+      "content": "内部项目g12的暗号是银杏12号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g12-foreign",
+      "space": "other-family",
+      "group": "g12",
+      "version": 1,
+      "content": "社区清洁的内部预算是311元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g13-main",
+      "space": "team-test",
+      "group": "g13",
+      "version": 1,
+      "content": "植物园自然观察计划于2026年8月2日在城市植物园举行，由林老师负责带队和讲解。",
+      "event_date": "2026-8-2",
+      "status": "pending",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g13-old",
+      "space": "team-test",
+      "group": "g13",
+      "version": 1,
+      "content": "植物园自然观察的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g13-private",
+      "space": "team-test",
+      "group": "g13",
+      "version": 1,
+      "content": "内部项目g13的暗号是银杏13号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g13-foreign",
+      "space": "other-family",
+      "group": "g13",
+      "version": 1,
+      "content": "植物园自然观察的内部预算是312元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g14-main",
+      "space": "team-test",
+      "group": "g14",
+      "version": 1,
+      "content": "家庭露营计划于2026年8月9日在松林营地举行，由马领队负责带队和讲解。",
+      "event_date": "2026-8-9",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g14-old",
+      "space": "team-test",
+      "group": "g14",
+      "version": 1,
+      "content": "家庭露营的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g14-private",
+      "space": "team-test",
+      "group": "g14",
+      "version": 1,
+      "content": "内部项目g14的暗号是银杏14号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g14-foreign",
+      "space": "other-family",
+      "group": "g14",
+      "version": 1,
+      "content": "家庭露营的内部预算是313元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g15-main",
+      "space": "team-test",
+      "group": "g15",
+      "version": 1,
+      "content": "团队桌游计划于2026年8月16日在乐聚活动室举行，由罗主持负责带队和讲解。",
+      "event_date": "2026-8-16",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g15-old",
+      "space": "team-test",
+      "group": "g15",
+      "version": 1,
+      "content": "团队桌游的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g15-private",
+      "space": "team-test",
+      "group": "g15",
+      "version": 1,
+      "content": "内部项目g15的暗号是银杏15号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g15-foreign",
+      "space": "other-family",
+      "group": "g15",
+      "version": 1,
+      "content": "团队桌游的内部预算是314元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g16-main",
+      "space": "team-test",
+      "group": "g16",
+      "version": 1,
+      "content": "博物馆参观计划于2026年9月6日在市历史博物馆举行，由高讲解员负责带队和讲解。",
+      "event_date": "2026-9-6",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g16-old",
+      "space": "team-test",
+      "group": "g16",
+      "version": 1,
+      "content": "博物馆参观的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g16-private",
+      "space": "team-test",
+      "group": "g16",
+      "version": 1,
+      "content": "内部项目g16的暗号是银杏16号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g16-foreign",
+      "space": "other-family",
+      "group": "g16",
+      "version": 1,
+      "content": "博物馆参观的内部预算是315元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g17-main",
+      "space": "team-test",
+      "group": "g17",
+      "version": 1,
+      "content": "中秋赏月计划于2026年9月13日在湖心亭举行，由郭奶奶负责带队和讲解。",
+      "event_date": "2026-9-13",
+      "status": "pending",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g17-old",
+      "space": "team-test",
+      "group": "g17",
+      "version": 1,
+      "content": "中秋赏月的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g17-private",
+      "space": "team-test",
+      "group": "g17",
+      "version": 1,
+      "content": "内部项目g17的暗号是银杏17号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g17-foreign",
+      "space": "other-family",
+      "group": "g17",
+      "version": 1,
+      "content": "中秋赏月的内部预算是316元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g18-main",
+      "space": "team-test",
+      "group": "g18",
+      "version": 1,
+      "content": "自行车骑行计划于2026年9月20日在绿道东段举行，由彭领骑负责带队和讲解。",
+      "event_date": "2026-9-20",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g18-old",
+      "space": "team-test",
+      "group": "g18",
+      "version": 1,
+      "content": "自行车骑行的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g18-private",
+      "space": "team-test",
+      "group": "g18",
+      "version": 1,
+      "content": "内部项目g18的暗号是银杏18号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g18-foreign",
+      "space": "other-family",
+      "group": "g18",
+      "version": 1,
+      "content": "自行车骑行的内部预算是317元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g19-main",
+      "space": "team-test",
+      "group": "g19",
+      "version": 1,
+      "content": "合唱排练计划于2026年10月4日在文化馆音乐厅举行，由苏指挥负责带队和讲解。",
+      "event_date": "2026-10-4",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g19-old",
+      "space": "team-test",
+      "group": "g19",
+      "version": 1,
+      "content": "合唱排练的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g19-private",
+      "space": "team-test",
+      "group": "g19",
+      "version": 1,
+      "content": "内部项目g19的暗号是银杏19号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g19-foreign",
+      "space": "other-family",
+      "group": "g19",
+      "version": 1,
+      "content": "合唱排练的内部预算是318元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g20-main",
+      "space": "team-test",
+      "group": "g20",
+      "version": 1,
+      "content": "冬季围炉茶会计划于2026年10月11日在暖茶小院举行，由方茶师负责带队和讲解。",
+      "event_date": "2026-10-11",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g20-old",
+      "space": "team-test",
+      "group": "g20",
+      "version": 1,
+      "content": "冬季围炉茶会的旧版安排是到老城礼堂集合，原负责人是蒋老师；该安排已经取消。",
+      "event_date": "2025-03-01",
+      "status": "outdated",
+      "visibility": "all",
+      "viewers": []
+    },
+    {
+      "id": "g20-private",
+      "space": "team-test",
+      "group": "g20",
+      "version": 1,
+      "content": "内部项目g20的暗号是银杏20号，仅指定成员知道。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "selected",
+      "viewers": [
+        "editor"
+      ]
+    },
+    {
+      "id": "g20-foreign",
+      "space": "other-family",
+      "group": "g20",
+      "version": 1,
+      "content": "冬季围炉茶会的内部预算是319元，联络电话13900000000。",
+      "event_date": "",
+      "status": "valid",
+      "visibility": "all",
+      "viewers": []
+    }
+  ],
+  "cases": [
+    {
+      "id": "g01-q01",
+      "split": "dev",
+      "group": "g01",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "春季植树在哪里举行？",
+      "expected_ids": [
+        "g01-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g01-q02",
+      "split": "dev",
+      "group": "g01",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "一起栽树那次，谁带着我们？",
+      "expected_ids": [
+        "g01-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g01-q03",
+      "split": "dev",
+      "group": "g01",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "种树这件事安排在哪儿？",
+      "expected_ids": [
+        "g01-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g01-q04",
+      "split": "dev",
+      "group": "g01",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "帮我回顾一下春季植树的安排",
+      "expected_ids": [
+        "g01-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g01-q05",
+      "split": "dev",
+      "group": "g01",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "查询春季植树的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g01-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g01-q06",
+      "split": "dev",
+      "group": "g01",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "春季植树预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g01-q07",
+      "split": "dev",
+      "group": "g01",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "春季植树的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g01-q08",
+      "split": "dev",
+      "group": "g01",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g01-q09",
+      "split": "dev",
+      "group": "g01",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "内部项目g01的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g01-q10",
+      "split": "dev",
+      "group": "g01",
+      "space": "team-dev",
+      "actor": "outsider",
+      "query": "春季植树在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g02-q01",
+      "split": "dev",
+      "group": "g02",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "周末读书会在哪里举行？",
+      "expected_ids": [
+        "g02-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g02-q02",
+      "split": "dev",
+      "group": "g02",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "交流读后感那次，谁带着我们？",
+      "expected_ids": [
+        "g02-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g02-q03",
+      "split": "dev",
+      "group": "g02",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "聊书这件事安排在哪儿？",
+      "expected_ids": [
+        "g02-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g02-q04",
+      "split": "dev",
+      "group": "g02",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "帮我回顾一下周末读书会的安排",
+      "expected_ids": [
+        "g02-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g02-q05",
+      "split": "dev",
+      "group": "g02",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "查询周末读书会的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g02-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g02-q06",
+      "split": "dev",
+      "group": "g02",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "周末读书会预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g02-q07",
+      "split": "dev",
+      "group": "g02",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "周末读书会的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g02-q08",
+      "split": "dev",
+      "group": "g02",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g02-q09",
+      "split": "dev",
+      "group": "g02",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "内部项目g02的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g02-q10",
+      "split": "dev",
+      "group": "g02",
+      "space": "team-dev",
+      "actor": "outsider",
+      "query": "周末读书会在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g03-q01",
+      "split": "dev",
+      "group": "g03",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "亲子烘焙在哪里举行？",
+      "expected_ids": [
+        "g03-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g03-q02",
+      "split": "dev",
+      "group": "g03",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "家长孩子做饼干那次，谁带着我们？",
+      "expected_ids": [
+        "g03-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g03-q03",
+      "split": "dev",
+      "group": "g03",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "做点心这件事安排在哪儿？",
+      "expected_ids": [
+        "g03-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g03-q04",
+      "split": "dev",
+      "group": "g03",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "帮我回顾一下亲子烘焙的安排",
+      "expected_ids": [
+        "g03-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g03-q05",
+      "split": "dev",
+      "group": "g03",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "查询亲子烘焙的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g03-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g03-q06",
+      "split": "dev",
+      "group": "g03",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "亲子烘焙预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g03-q07",
+      "split": "dev",
+      "group": "g03",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "亲子烘焙的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g03-q08",
+      "split": "dev",
+      "group": "g03",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g03-q09",
+      "split": "dev",
+      "group": "g03",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "内部项目g03的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g03-q10",
+      "split": "dev",
+      "group": "g03",
+      "space": "team-dev",
+      "actor": "outsider",
+      "query": "亲子烘焙在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g04-q01",
+      "split": "dev",
+      "group": "g04",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "山区徒步在哪里举行？",
+      "expected_ids": [
+        "g04-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g04-q02",
+      "split": "dev",
+      "group": "g04",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "走山路那次，谁带着我们？",
+      "expected_ids": [
+        "g04-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g04-q03",
+      "split": "dev",
+      "group": "g04",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "爬山这件事安排在哪儿？",
+      "expected_ids": [
+        "g04-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g04-q04",
+      "split": "dev",
+      "group": "g04",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "帮我回顾一下山区徒步的安排",
+      "expected_ids": [
+        "g04-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g04-q05",
+      "split": "dev",
+      "group": "g04",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "查询山区徒步的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g04-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g04-q06",
+      "split": "dev",
+      "group": "g04",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "山区徒步预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g04-q07",
+      "split": "dev",
+      "group": "g04",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "山区徒步的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g04-q08",
+      "split": "dev",
+      "group": "g04",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g04-q09",
+      "split": "dev",
+      "group": "g04",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "内部项目g04的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g04-q10",
+      "split": "dev",
+      "group": "g04",
+      "space": "team-dev",
+      "actor": "outsider",
+      "query": "山区徒步在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g05-q01",
+      "split": "dev",
+      "group": "g05",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "摄影外拍在哪里举行？",
+      "expected_ids": [
+        "g05-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g05-q02",
+      "split": "dev",
+      "group": "g05",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "带相机出门拍照那次，谁带着我们？",
+      "expected_ids": [
+        "g05-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g05-q03",
+      "split": "dev",
+      "group": "g05",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "拍风景这件事安排在哪儿？",
+      "expected_ids": [
+        "g05-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g05-q04",
+      "split": "dev",
+      "group": "g05",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "帮我回顾一下摄影外拍的安排",
+      "expected_ids": [
+        "g05-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g05-q05",
+      "split": "dev",
+      "group": "g05",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "查询摄影外拍的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g05-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g05-q06",
+      "split": "dev",
+      "group": "g05",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "摄影外拍预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g05-q07",
+      "split": "dev",
+      "group": "g05",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "摄影外拍的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g05-q08",
+      "split": "dev",
+      "group": "g05",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g05-q09",
+      "split": "dev",
+      "group": "g05",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "内部项目g05的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g05-q10",
+      "split": "dev",
+      "group": "g05",
+      "space": "team-dev",
+      "actor": "outsider",
+      "query": "摄影外拍在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g06-q01",
+      "split": "dev",
+      "group": "g06",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "旧物交换在哪里举行？",
+      "expected_ids": [
+        "g06-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g06-q02",
+      "split": "dev",
+      "group": "g06",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "交换闲置物品那次，谁带着我们？",
+      "expected_ids": [
+        "g06-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g06-q03",
+      "split": "dev",
+      "group": "g06",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "换旧东西这件事安排在哪儿？",
+      "expected_ids": [
+        "g06-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g06-q04",
+      "split": "dev",
+      "group": "g06",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "帮我回顾一下旧物交换的安排",
+      "expected_ids": [
+        "g06-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g06-q05",
+      "split": "dev",
+      "group": "g06",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "查询旧物交换的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g06-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g06-q06",
+      "split": "dev",
+      "group": "g06",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "旧物交换预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g06-q07",
+      "split": "dev",
+      "group": "g06",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "旧物交换的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g06-q08",
+      "split": "dev",
+      "group": "g06",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g06-q09",
+      "split": "dev",
+      "group": "g06",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "内部项目g06的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g06-q10",
+      "split": "dev",
+      "group": "g06",
+      "space": "team-dev",
+      "actor": "outsider",
+      "query": "旧物交换在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g07-q01",
+      "split": "dev",
+      "group": "g07",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "篮球友谊赛在哪里举行？",
+      "expected_ids": [
+        "g07-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g07-q02",
+      "split": "dev",
+      "group": "g07",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "和邻队打球那次，谁带着我们？",
+      "expected_ids": [
+        "g07-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g07-q03",
+      "split": "dev",
+      "group": "g07",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "篮球比赛这件事安排在哪儿？",
+      "expected_ids": [
+        "g07-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g07-q04",
+      "split": "dev",
+      "group": "g07",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "帮我回顾一下篮球友谊赛的安排",
+      "expected_ids": [
+        "g07-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g07-q05",
+      "split": "dev",
+      "group": "g07",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "查询篮球友谊赛的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g07-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g07-q06",
+      "split": "dev",
+      "group": "g07",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "篮球友谊赛预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g07-q07",
+      "split": "dev",
+      "group": "g07",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "篮球友谊赛的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g07-q08",
+      "split": "dev",
+      "group": "g07",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g07-q09",
+      "split": "dev",
+      "group": "g07",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "内部项目g07的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g07-q10",
+      "split": "dev",
+      "group": "g07",
+      "space": "team-dev",
+      "actor": "outsider",
+      "query": "篮球友谊赛在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g08-q01",
+      "split": "dev",
+      "group": "g08",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "端午包粽子在哪里举行？",
+      "expected_ids": [
+        "g08-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g08-q02",
+      "split": "dev",
+      "group": "g08",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "裹糯米做粽子那次，谁带着我们？",
+      "expected_ids": [
+        "g08-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g08-q03",
+      "split": "dev",
+      "group": "g08",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "做粽子这件事安排在哪儿？",
+      "expected_ids": [
+        "g08-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g08-q04",
+      "split": "dev",
+      "group": "g08",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "帮我回顾一下端午包粽子的安排",
+      "expected_ids": [
+        "g08-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g08-q05",
+      "split": "dev",
+      "group": "g08",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "查询端午包粽子的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g08-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g08-q06",
+      "split": "dev",
+      "group": "g08",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "端午包粽子预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g08-q07",
+      "split": "dev",
+      "group": "g08",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "端午包粽子的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g08-q08",
+      "split": "dev",
+      "group": "g08",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g08-q09",
+      "split": "dev",
+      "group": "g08",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "内部项目g08的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g08-q10",
+      "split": "dev",
+      "group": "g08",
+      "space": "team-dev",
+      "actor": "outsider",
+      "query": "端午包粽子在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g09-q01",
+      "split": "dev",
+      "group": "g09",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "急救培训在哪里举行？",
+      "expected_ids": [
+        "g09-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g09-q02",
+      "split": "dev",
+      "group": "g09",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "学习心肺复苏那次，谁带着我们？",
+      "expected_ids": [
+        "g09-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g09-q03",
+      "split": "dev",
+      "group": "g09",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "救护课这件事安排在哪儿？",
+      "expected_ids": [
+        "g09-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g09-q04",
+      "split": "dev",
+      "group": "g09",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "帮我回顾一下急救培训的安排",
+      "expected_ids": [
+        "g09-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g09-q05",
+      "split": "dev",
+      "group": "g09",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "查询急救培训的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g09-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g09-q06",
+      "split": "dev",
+      "group": "g09",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "急救培训预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g09-q07",
+      "split": "dev",
+      "group": "g09",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "急救培训的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g09-q08",
+      "split": "dev",
+      "group": "g09",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g09-q09",
+      "split": "dev",
+      "group": "g09",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "内部项目g09的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g09-q10",
+      "split": "dev",
+      "group": "g09",
+      "space": "team-dev",
+      "actor": "outsider",
+      "query": "急救培训在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g10-q01",
+      "split": "dev",
+      "group": "g10",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "星空观测在哪里举行？",
+      "expected_ids": [
+        "g10-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g10-q02",
+      "split": "dev",
+      "group": "g10",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "晚上看天上的星星那次，谁带着我们？",
+      "expected_ids": [
+        "g10-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g10-q03",
+      "split": "dev",
+      "group": "g10",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "观星这件事安排在哪儿？",
+      "expected_ids": [
+        "g10-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g10-q04",
+      "split": "dev",
+      "group": "g10",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "帮我回顾一下星空观测的安排",
+      "expected_ids": [
+        "g10-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g10-q05",
+      "split": "dev",
+      "group": "g10",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "查询星空观测的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g10-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g10-q06",
+      "split": "dev",
+      "group": "g10",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "星空观测预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g10-q07",
+      "split": "dev",
+      "group": "g10",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "星空观测的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g10-q08",
+      "split": "dev",
+      "group": "g10",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g10-q09",
+      "split": "dev",
+      "group": "g10",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "内部项目g10的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g10-q10",
+      "split": "dev",
+      "group": "g10",
+      "space": "team-dev",
+      "actor": "outsider",
+      "query": "星空观测在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g11-q01",
+      "split": "dev",
+      "group": "g11",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "手工陶艺在哪里举行？",
+      "expected_ids": [
+        "g11-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g11-q02",
+      "split": "dev",
+      "group": "g11",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "用泥巴做杯子那次，谁带着我们？",
+      "expected_ids": [
+        "g11-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g11-q03",
+      "split": "dev",
+      "group": "g11",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "捏陶杯这件事安排在哪儿？",
+      "expected_ids": [
+        "g11-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g11-q04",
+      "split": "dev",
+      "group": "g11",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "帮我回顾一下手工陶艺的安排",
+      "expected_ids": [
+        "g11-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g11-q05",
+      "split": "dev",
+      "group": "g11",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "查询手工陶艺的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g11-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g11-q06",
+      "split": "dev",
+      "group": "g11",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "手工陶艺预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g11-q07",
+      "split": "dev",
+      "group": "g11",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "手工陶艺的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g11-q08",
+      "split": "dev",
+      "group": "g11",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g11-q09",
+      "split": "dev",
+      "group": "g11",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "内部项目g11的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g11-q10",
+      "split": "dev",
+      "group": "g11",
+      "space": "team-dev",
+      "actor": "outsider",
+      "query": "手工陶艺在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g12-q01",
+      "split": "dev",
+      "group": "g12",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "社区清洁在哪里举行？",
+      "expected_ids": [
+        "g12-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g12-q02",
+      "split": "dev",
+      "group": "g12",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "捡垃圾打扫街道那次，谁带着我们？",
+      "expected_ids": [
+        "g12-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g12-q03",
+      "split": "dev",
+      "group": "g12",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "清扫这件事安排在哪儿？",
+      "expected_ids": [
+        "g12-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g12-q04",
+      "split": "dev",
+      "group": "g12",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "帮我回顾一下社区清洁的安排",
+      "expected_ids": [
+        "g12-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g12-q05",
+      "split": "dev",
+      "group": "g12",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "查询社区清洁的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g12-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g12-q06",
+      "split": "dev",
+      "group": "g12",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "社区清洁预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g12-q07",
+      "split": "dev",
+      "group": "g12",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "社区清洁的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g12-q08",
+      "split": "dev",
+      "group": "g12",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g12-q09",
+      "split": "dev",
+      "group": "g12",
+      "space": "team-dev",
+      "actor": "reader",
+      "query": "内部项目g12的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g12-q10",
+      "split": "dev",
+      "group": "g12",
+      "space": "team-dev",
+      "actor": "outsider",
+      "query": "社区清洁在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g13-q01",
+      "split": "test",
+      "group": "g13",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "植物园自然观察在哪里举行？",
+      "expected_ids": [
+        "g13-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g13-q02",
+      "split": "test",
+      "group": "g13",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "一起看植物认树叶那次，谁带着我们？",
+      "expected_ids": [
+        "g13-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g13-q03",
+      "split": "test",
+      "group": "g13",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "认植物这件事安排在哪儿？",
+      "expected_ids": [
+        "g13-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g13-q04",
+      "split": "test",
+      "group": "g13",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "帮我回顾一下植物园自然观察的安排",
+      "expected_ids": [
+        "g13-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g13-q05",
+      "split": "test",
+      "group": "g13",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "查询植物园自然观察的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g13-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g13-q06",
+      "split": "test",
+      "group": "g13",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "植物园自然观察预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g13-q07",
+      "split": "test",
+      "group": "g13",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "植物园自然观察的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g13-q08",
+      "split": "test",
+      "group": "g13",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g13-q09",
+      "split": "test",
+      "group": "g13",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "内部项目g13的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g13-q10",
+      "split": "test",
+      "group": "g13",
+      "space": "team-test",
+      "actor": "outsider",
+      "query": "植物园自然观察在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g14-q01",
+      "split": "test",
+      "group": "g14",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "家庭露营在哪里举行？",
+      "expected_ids": [
+        "g14-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g14-q02",
+      "split": "test",
+      "group": "g14",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "一家人在户外搭帐篷那次，谁带着我们？",
+      "expected_ids": [
+        "g14-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g14-q03",
+      "split": "test",
+      "group": "g14",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "野营这件事安排在哪儿？",
+      "expected_ids": [
+        "g14-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g14-q04",
+      "split": "test",
+      "group": "g14",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "帮我回顾一下家庭露营的安排",
+      "expected_ids": [
+        "g14-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g14-q05",
+      "split": "test",
+      "group": "g14",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "查询家庭露营的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g14-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g14-q06",
+      "split": "test",
+      "group": "g14",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "家庭露营预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g14-q07",
+      "split": "test",
+      "group": "g14",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "家庭露营的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g14-q08",
+      "split": "test",
+      "group": "g14",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g14-q09",
+      "split": "test",
+      "group": "g14",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "内部项目g14的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g14-q10",
+      "split": "test",
+      "group": "g14",
+      "space": "team-test",
+      "actor": "outsider",
+      "query": "家庭露营在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g15-q01",
+      "split": "test",
+      "group": "g15",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "团队桌游在哪里举行？",
+      "expected_ids": [
+        "g15-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g15-q02",
+      "split": "test",
+      "group": "g15",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "同事一起玩棋盘游戏那次，谁带着我们？",
+      "expected_ids": [
+        "g15-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g15-q03",
+      "split": "test",
+      "group": "g15",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "玩桌游这件事安排在哪儿？",
+      "expected_ids": [
+        "g15-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g15-q04",
+      "split": "test",
+      "group": "g15",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "帮我回顾一下团队桌游的安排",
+      "expected_ids": [
+        "g15-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g15-q05",
+      "split": "test",
+      "group": "g15",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "查询团队桌游的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g15-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g15-q06",
+      "split": "test",
+      "group": "g15",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "团队桌游预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g15-q07",
+      "split": "test",
+      "group": "g15",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "团队桌游的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g15-q08",
+      "split": "test",
+      "group": "g15",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g15-q09",
+      "split": "test",
+      "group": "g15",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "内部项目g15的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g15-q10",
+      "split": "test",
+      "group": "g15",
+      "space": "team-test",
+      "actor": "outsider",
+      "query": "团队桌游在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g16-q01",
+      "split": "test",
+      "group": "g16",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "博物馆参观在哪里举行？",
+      "expected_ids": [
+        "g16-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g16-q02",
+      "split": "test",
+      "group": "g16",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "去看历史文物展览那次，谁带着我们？",
+      "expected_ids": [
+        "g16-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g16-q03",
+      "split": "test",
+      "group": "g16",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "逛展馆这件事安排在哪儿？",
+      "expected_ids": [
+        "g16-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g16-q04",
+      "split": "test",
+      "group": "g16",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "帮我回顾一下博物馆参观的安排",
+      "expected_ids": [
+        "g16-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g16-q05",
+      "split": "test",
+      "group": "g16",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "查询博物馆参观的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g16-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g16-q06",
+      "split": "test",
+      "group": "g16",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "博物馆参观预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g16-q07",
+      "split": "test",
+      "group": "g16",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "博物馆参观的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g16-q08",
+      "split": "test",
+      "group": "g16",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g16-q09",
+      "split": "test",
+      "group": "g16",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "内部项目g16的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g16-q10",
+      "split": "test",
+      "group": "g16",
+      "space": "team-test",
+      "actor": "outsider",
+      "query": "博物馆参观在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g17-q01",
+      "split": "test",
+      "group": "g17",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "中秋赏月在哪里举行？",
+      "expected_ids": [
+        "g17-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g17-q02",
+      "split": "test",
+      "group": "g17",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "团圆一起看月亮那次，谁带着我们？",
+      "expected_ids": [
+        "g17-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g17-q03",
+      "split": "test",
+      "group": "g17",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "赏月这件事安排在哪儿？",
+      "expected_ids": [
+        "g17-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g17-q04",
+      "split": "test",
+      "group": "g17",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "帮我回顾一下中秋赏月的安排",
+      "expected_ids": [
+        "g17-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "pending"
+    },
+    {
+      "id": "g17-q05",
+      "split": "test",
+      "group": "g17",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "查询中秋赏月的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g17-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g17-q06",
+      "split": "test",
+      "group": "g17",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "中秋赏月预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g17-q07",
+      "split": "test",
+      "group": "g17",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "中秋赏月的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g17-q08",
+      "split": "test",
+      "group": "g17",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g17-q09",
+      "split": "test",
+      "group": "g17",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "内部项目g17的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g17-q10",
+      "split": "test",
+      "group": "g17",
+      "space": "team-test",
+      "actor": "outsider",
+      "query": "中秋赏月在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g18-q01",
+      "split": "test",
+      "group": "g18",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "自行车骑行在哪里举行？",
+      "expected_ids": [
+        "g18-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g18-q02",
+      "split": "test",
+      "group": "g18",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "大家骑单车出游那次，谁带着我们？",
+      "expected_ids": [
+        "g18-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g18-q03",
+      "split": "test",
+      "group": "g18",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "骑车这件事安排在哪儿？",
+      "expected_ids": [
+        "g18-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g18-q04",
+      "split": "test",
+      "group": "g18",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "帮我回顾一下自行车骑行的安排",
+      "expected_ids": [
+        "g18-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g18-q05",
+      "split": "test",
+      "group": "g18",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "查询自行车骑行的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g18-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g18-q06",
+      "split": "test",
+      "group": "g18",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "自行车骑行预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g18-q07",
+      "split": "test",
+      "group": "g18",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "自行车骑行的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g18-q08",
+      "split": "test",
+      "group": "g18",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g18-q09",
+      "split": "test",
+      "group": "g18",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "内部项目g18的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g18-q10",
+      "split": "test",
+      "group": "g18",
+      "space": "team-test",
+      "actor": "outsider",
+      "query": "自行车骑行在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g19-q01",
+      "split": "test",
+      "group": "g19",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "合唱排练在哪里举行？",
+      "expected_ids": [
+        "g19-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g19-q02",
+      "split": "test",
+      "group": "g19",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "大家一起练习唱歌那次，谁带着我们？",
+      "expected_ids": [
+        "g19-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g19-q03",
+      "split": "test",
+      "group": "g19",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "练合唱这件事安排在哪儿？",
+      "expected_ids": [
+        "g19-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g19-q04",
+      "split": "test",
+      "group": "g19",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "帮我回顾一下合唱排练的安排",
+      "expected_ids": [
+        "g19-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g19-q05",
+      "split": "test",
+      "group": "g19",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "查询合唱排练的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g19-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g19-q06",
+      "split": "test",
+      "group": "g19",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "合唱排练预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g19-q07",
+      "split": "test",
+      "group": "g19",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "合唱排练的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g19-q08",
+      "split": "test",
+      "group": "g19",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g19-q09",
+      "split": "test",
+      "group": "g19",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "内部项目g19的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g19-q10",
+      "split": "test",
+      "group": "g19",
+      "space": "team-test",
+      "actor": "outsider",
+      "query": "合唱排练在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g20-q01",
+      "split": "test",
+      "group": "g20",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "冬季围炉茶会在哪里举行？",
+      "expected_ids": [
+        "g20-main"
+      ],
+      "category": "literal",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g20-q02",
+      "split": "test",
+      "group": "g20",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "围坐火炉旁边喝茶那次，谁带着我们？",
+      "expected_ids": [
+        "g20-main"
+      ],
+      "category": "paraphrase",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g20-q03",
+      "split": "test",
+      "group": "g20",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "煮茶这件事安排在哪儿？",
+      "expected_ids": [
+        "g20-main"
+      ],
+      "category": "alias",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g20-q04",
+      "split": "test",
+      "group": "g20",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "帮我回顾一下冬季围炉茶会的安排",
+      "expected_ids": [
+        "g20-main"
+      ],
+      "category": "overview",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": "valid"
+    },
+    {
+      "id": "g20-q05",
+      "split": "test",
+      "group": "g20",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "查询冬季围炉茶会的旧版记忆，原来在哪里集合？",
+      "expected_ids": [
+        "g20-old"
+      ],
+      "category": "historical",
+      "include_outdated": true,
+      "public_only": false,
+      "expected_status": "outdated"
+    },
+    {
+      "id": "g20-q06",
+      "split": "test",
+      "group": "g20",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "冬季围炉茶会预算多少钱？",
+      "expected_ids": [],
+      "category": "missing_cost",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g20-q07",
+      "split": "test",
+      "group": "g20",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "冬季围炉茶会的联络电话号码是多少？",
+      "expected_ids": [],
+      "category": "missing_phone",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g20-q08",
+      "split": "test",
+      "group": "g20",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "我家宠物猫的过敏药应该吃几片？",
+      "expected_ids": [],
+      "category": "unrelated",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g20-q09",
+      "split": "test",
+      "group": "g20",
+      "space": "team-test",
+      "actor": "reader",
+      "query": "内部项目g20的暗号是什么？",
+      "expected_ids": [],
+      "category": "selected_visibility",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    },
+    {
+      "id": "g20-q10",
+      "split": "test",
+      "group": "g20",
+      "space": "team-test",
+      "actor": "outsider",
+      "query": "冬季围炉茶会在哪里举行？",
+      "expected_ids": [],
+      "category": "outsider",
+      "include_outdated": false,
+      "public_only": false,
+      "expected_status": null
+    }
+  ]
+}

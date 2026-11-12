@@ -80,6 +80,9 @@ class SharedEvidence:
             memory=self.shared._record(db,data.get('id'))
             if memory['space']!=space['id'] or not self.shared._visible(actor,space,memory):
                 raise SharedError('没有查看这条记忆依据的权限。',403)
+            expected=data.get('expected_version')
+            if expected is not None and (type(expected) is not int or expected!=memory['version']):
+                raise SharedError('这条记忆已更新，原回答的依据可能过时，请重新提问后查看。',409)
             full=space['role']=='owner' or actor['id']==memory['author']
             if data.get('include_full') is True and not full:
                 raise SharedError('完整原文仅仍在空间内的作者和管理员可查看。',403)

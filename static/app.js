@@ -1,6 +1,14 @@
 const $ = id => document.getElementById(id);
-let messages = [];
-try { messages = JSON.parse(localStorage.getItem('xiaoban-history') || '[]').filter(m => ['user','assistant'].includes(m.role) && typeof m.content === 'string').slice(-30); } catch {}
+function readChatHistory(identity=''){
+  try{
+    const key=identity?'xiaoban-history-'+identity:'xiaoban-history';
+    const history=JSON.parse(localStorage.getItem(key)||'[]');
+    if(!Array.isArray(history))return [];
+    return history.filter(item=>item&&['user','assistant'].includes(item.role)&&typeof item.content==='string')
+      .slice(-30).map(item=>({role:item.role,content:item.content}));
+  }catch{return [];}
+}
+let messages=readChatHistory();
 let ready=false, asrReady=false, wakeReady=false, visionReady=false, ttsReady=true, busy=false, recording=false, speaking=false;
 let wakeEnabled=false, wakePhase='', wakeStarting=false, wakeListener=null;
 let audio=null, audioUrl=null, speechVersion=0, manual=null, frames=[], timer, tick;
@@ -11,6 +19,7 @@ const welcome='我是小伴，现在可以听你叫我，也可以看你拍的�
 function state(text,mode=''){ $('state').textContent=text; document.body.className=mode; }
 function notice(text=''){ $('notice').textContent=text; }
 function controls(){
+  if(typeof workspaceActivity==='function')workspaceActivity();
   if(typeof speechSettingsControls==='function')speechSettingsControls();
   $('send').disabled=enrolling||busy||!ready||recording||wakePhase==='command';
   $('mic').disabled=enrolling||busy||!ready||!asrReady||wakeStarting||wakePhase==='command';
@@ -22,6 +31,8 @@ function controls(){
   $('profileSelect').disabled=busy||recording||enrolling||wakePhase==='command';
   $('speakerAuto').disabled=!speakerReady||enrolling||busy||recording;
   $('bargeIn').disabled=enrolling;
+  $('speakerRetry').disabled=$('mic').disabled||!$('speakerAuto').checked||
+    (typeof sharedVoiceActive==='function'&&sharedVoiceActive());
   if(typeof personalControls==='function')personalControls();
   if(typeof sharedVoiceControls==='function')sharedVoiceControls();
   document.querySelectorAll('[data-action]').forEach(b=>b.disabled=enrolling||busy||recording||wakePhase==='command');
@@ -46,6 +57,7 @@ function stopAudio(){speechVersion++;speaking=false;if(audio){audio.pause();audi
 function newTurnId(){return crypto.randomUUID();}
 function cancelTurn({preserveSharedVoice=false,preserveTrace=false}={}){
   if(typeof stopSpeechPreview==='function')stopSpeechPreview(false);
+  if(typeof personalMemoryCancel==='function')personalMemoryCancel();
   if(!preserveTrace)conversationDiagnostics.finish(conversationDiagnostics.current(),'cancelled','stopped');
   if(!preserveSharedVoice&&typeof sharedVoiceCancelPending==='function')sharedVoiceCancelPending();
   turnVersion++;chatAbort?.abort();chatAbort=null;ttsAbort?.abort();ttsAbort=null;
@@ -134,7 +146,7 @@ async function send(text,{image=null,source='text',traceId=null}={}){
     await monitorInterrupt();if(version!==turnVersion)return;
     if(typeof speakerDiagnostic==='function')speakerDiagnostic('问题已提交',{'输入方式':source==='text'?'文字':source==='wake'?'语音唤醒 / 插话':'点击录音','当前档案':activeProfile?'已选择或匹配用户':'访客'});
     const res=await api('/api/chat',{messages:messages.slice(-16),profile_id:activeProfile,turn_id:id,...(image?{image}:{})},'application/json',controller.signal,conversationDiagnostics.headers(traceId));const reader=res.body.getReader(),decoder=new TextDecoder();let pending='';
-    function consume(line){if(version!==turnVersion||!line.trim())return;const data=JSON.parse(line);if(data.error)throw new Error(data.error);if(data.memory_changed&&typeof refreshMemories==='function')refreshMemories();if(data.memory_review&&typeof showMemoryReview==='function')showMemoryReview(data.memory_review);if(data.action)animateAction(data.action);const piece=data.message?.content||'';if(piece&&!answer&&greeting){answer=greeting.text;markVoiceGreeting(greeting);}answer+=piece;row.bubble.textContent=answer||'…';if(data.done)completed=true;scroll();}
+    function consume(line){if(version!==turnVersion||!line.trim())return;const data=JSON.parse(line);if(data.error)throw new Error(data.error);if(data.memory_changed&&typeof refreshMemories==='function')refreshMemories();if(data.memory_review&&typeof showMemoryReview==='function')showMemoryReview(data.memory_review);if(data.action)animateAction(data.action);if(data.personal_memory&&typeof renderPersonalMemoryContext==='function')renderPersonalMemoryContext(row,data.personal_memory);const piece=data.message?.content||'';if(piece&&!answer&&greeting){answer=greeting.text;markVoiceGreeting(greeting);}answer+=piece;row.bubble.textContent=answer||'…';if(data.done)completed=true;scroll();}
     while(true){const{value,done}=await reader.read();if(version!==turnVersion){await reader.cancel();return;}if(done)break;pending+=decoder.decode(value,{stream:true});const lines=pending.split('\n');pending=lines.pop();for(const line of lines)consume(line);}
     pending+=decoder.decode();if(pending.trim())consume(pending);if(!completed||!answer.trim())throw new Error('回答中断了，请再试一次。');
     if(version!==turnVersion)return;activeRow=null;
@@ -193,7 +205,24 @@ class WakeListener{
         else if(result.event==='listening'){if(this.mode==='command'&&!this.confirmStarted&&result.speech){this.confirmStarted=true;this.traceId=conversationDiagnostics.start('confirmation');conversationDiagnostics.stage(this.traceId,'listening');}state(result.speech?'我在听，说完会自动发送…':'我在听，请说你的问题…','listening');}
         else if(result.event==='utterance'||result.event==='timeout'){
           const traceId=this.traceId;conversationDiagnostics.audioResult(traceId,result);conversationDiagnostics.refresh(traceId);
-          await pauseWake();if(typeof transcriptionDiagnostic==='function')transcriptionDiagnostic(result,'wake');if(typeof sharedVoiceActive==='function'&&sharedVoiceActive()){await sharedVoiceReceive(result,'wake',traceId);return;}if(result.speaker&&typeof applySpeaker==='function')applySpeaker(result.speaker);if(result.text)await send(result.text,{source:'wake',traceId});else{conversationDiagnostics.finish(traceId,'empty','empty');notice(result.event==='timeout'?'没有听到问题，已回到唤醒待机。':'没有听清，请再叫我一次。');resumeWake();}return;
+          await pauseWake();
+          if(typeof transcriptionDiagnostic==='function')transcriptionDiagnostic(result,'wake');
+          if(typeof sharedVoiceActive==='function'&&sharedVoiceActive()){
+            await sharedVoiceReceive(result,'wake',traceId);
+            return;
+          }
+          if(result.speaker&&typeof applySpeaker==='function')applySpeaker(result.speaker);
+          if(speakerRetryNeeded(result,traceId)){
+            await resumeWake();
+            return;
+          }
+          if(result.text)await send(result.text,{source:'wake',traceId});
+          else{
+            conversationDiagnostics.finish(traceId,'empty','empty');
+            notice(result.event==='timeout'?'没有听到问题，已回到唤醒待机。':'没有听清，请再叫我一次。');
+            resumeWake();
+          }
+          return;
         }
       }
     }catch(error){if(!this.closed){conversationDiagnostics.finish(this.traceId||conversationDiagnostics.current(),'error','recognition');if(typeof speakerDiagnostic==='function')speakerDiagnostic('唤醒处理失败',{'原因':error.message});wakeEnabled=false;await pauseWake();notice('语音唤醒已暂停：'+error.message);idle();controls();}}
@@ -245,6 +274,7 @@ async function stopRecording(){
     if(typeof sharedVoiceActive==='function'&&sharedVoiceActive()){busy=false;controls();await sharedVoiceReceive(result,'manual',traceId);return;}
     if(result.speaker&&typeof applySpeaker==='function')applySpeaker(result.speaker);
     busy=false;controls();
+    if(speakerRetryNeeded(result,traceId)){await resumeWake();return;}
     if(result.text)send(result.text,{source:'manual',traceId});else{conversationDiagnostics.finish(traceId,'empty','empty');notice('没有听清，请再说一次。');resumeWake();}
   }catch(error){if(version===turnVersion){conversationDiagnostics.finish(traceId,'error','recognition');conversationDiagnostics.refresh(traceId);if(typeof speakerDiagnostic==='function')speakerDiagnostic('录音处理失败',{'原因':error.message});busy=false;controls();notice(error.message);resumeWake();}}
 }

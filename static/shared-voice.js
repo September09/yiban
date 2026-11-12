@@ -7,6 +7,7 @@ function sharedVoiceControls(){
   $('sharedVoicePrivate').disabled=active||sharedVoiceState.starting;
   $('sharedVoiceStop').disabled=!active&&!sharedVoiceState.starting;
   $('sharedVoiceBanner').hidden=!active&&!sharedVoiceState.starting;
+  $('workspaceSharedVoice').hidden=active||sharedVoiceState.starting;
   $('autoplay').disabled=active||!ttsReady;
   if(active){$('speakerAuto').disabled=true;$('capture').disabled=true;}
 }
@@ -114,7 +115,7 @@ $('sharedVoiceStart').onclick=async()=>{
     $('speakerAuto').checked=true;wakeEnabled=true;
     $('messages').replaceChildren();$('suggestions').hidden=true;addMessage('assistant',result.reply);
     $('sharedVoiceStatus').textContent='共同记忆语音：'+sharedState.space.name+' · '+($('sharedVoicePrivate').checked?'私密收听':'公开播放')+' · 30 分钟后需重新开启';
-    $('sharedPanel').open=false;
+    showWorkspacePage('chat');
     $('sharedVoiceBanner').scrollIntoView?.({behavior:'smooth',block:'center'});
     await sharedVoiceSpeak(result.reply);
   }catch(error){notice(error.message);$('sharedVoiceStatus').textContent=error.message;}
