@@ -56,7 +56,7 @@
 | `POST /api/shared/agent/records` | Bearer登录令牌与 `space_id`；返回本人记录 |
 | `/api/shared/agent/memory/ask\|confirm\|cancel`、`/api/shared/agent/ask` | 包装已有受控业务，响应追加 `diagnostic.available` 和记录编号 |
 
-服务内部计时编号不作为公开能力令牌返回。旧 `/api/shared/ask`、普通聊天和语音接口不写入这份持久工具日志；原有对话诊断保留。
+服务内部计时编号不作为公开能力令牌返回。2026-11-13起，普通共同记忆文字问答 `/api/shared/ask` 也接入这份日志。新增模型名称、接口类型、候选／读取／引用编号及版本和安全错误分类；不保存正文。普通个人聊天与个人查询仍只在页面内存展示。统一入口与权限、版本变化的隐藏规则见[统一诊断总览](DIAGNOSTIC_OVERVIEW.md)。原语音诊断保留。
 
 ## 已验收与下一步
 

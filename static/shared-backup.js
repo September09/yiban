@@ -45,7 +45,7 @@ async function backupRun(work){
   finally{if(current()){backupState.running=false;sharedState.busy=false;sharedControls();}}
 }
 function backupCounts(counts){
-  return `记忆 ${counts.memories} 条，历史 ${counts.history} 条，原文 ${counts.sources} 份，依据 ${counts.evidence} 条，替代关联 ${counts.replacements} 条，成员 ${counts.members} 人。`;
+  return `记忆 ${counts.memories} 条，历史 ${counts.history} 条，原文 ${counts.sources} 份，依据 ${counts.evidence} 条，替代关联 ${counts.replacements} 条，成员 ${counts.members} 人，导入批次 ${counts.batches||0} 个。`;
 }
 $('sharedBackupExport').onclick=()=>backupRun(async current=>{
   if(!sharedState.space||sharedState.space.role!=='owner'||!$('sharedBackupExportConsent').checked)return;
@@ -97,6 +97,7 @@ $('sharedBackupPreview').onclick=()=>backupRun(async current=>{
     summary.textContent=title;body.textContent=text;body.style.whiteSpace='pre-wrap';details.append(summary,body);panel.append(details);
   }
   for(const source of backupState.document.sources)disclosure('原文 · '+source.name,source.text);
+  for(const batch of backupState.document.batches||[])disclosure('导入批次 · '+batch.name,'导入时间：'+batch.created+'；在库记忆 '+batch.items.length+' 条。\n'+batch.items.map(i=>'来源：'+(i.source_name||'未提供')+'；原记忆编号：'+i.memory).join('\n'));
   const names=Object.fromEntries(backupState.document.accounts.map(a=>[a.id,a.name]));
   for(const h of backupState.document.history)disclosure('修改历史 · '+h.changed+' · '+names[h.actor],
     '修改前：'+(h.before?.content||'首次创建')+'\n修改后：'+h.after.content+'\n状态：'+sharedStatusNames[h.after.status||'pending']);

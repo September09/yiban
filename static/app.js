@@ -21,6 +21,7 @@ function notice(text=''){ $('notice').textContent=text; }
 function controls(){
   if(typeof workspaceActivity==='function')workspaceActivity();
   if(typeof speechSettingsControls==='function')speechSettingsControls();
+  if(typeof audioDevices!=='undefined')audioDevices.controls();
   $('send').disabled=enrolling||busy||!ready||recording||wakePhase==='command';
   $('mic').disabled=enrolling||busy||!ready||!asrReady||wakeStarting||wakePhase==='command';
   $('wake').disabled=enrolling||(!wakeEnabled&&(busy||recording||!ready||!wakeReady))||wakeStarting;
@@ -53,12 +54,12 @@ async function api(path,body,type='application/json',signal=null,extraHeaders={}
   const res=await fetch(path,{method:'POST',signal,headers:{'Content-Type':type,...extraHeaders},body:type==='application/json'?JSON.stringify(body):body});
   if(!res.ok){const data=await res.json();throw new Error(data.error||'请求失败');}return res;
 }
-function stopAudio(){speechVersion++;speaking=false;if(audio){audio.pause();audio=null;}if(audioUrl){URL.revokeObjectURL(audioUrl);audioUrl=null;}}
+function stopAudio(){speechVersion++;speaking=false;if(audio){if(typeof audioDevices!=='undefined')audioDevices.releaseOutput(audio);audio.pause();audio=null;}if(audioUrl){URL.revokeObjectURL(audioUrl);audioUrl=null;}}
 function newTurnId(){return crypto.randomUUID();}
 function cancelTurn({preserveSharedVoice=false,preserveTrace=false}={}){
   if(typeof stopSpeechPreview==='function')stopSpeechPreview(false);
   if(typeof personalMemoryCancel==='function')personalMemoryCancel();
-  if(!preserveTrace)conversationDiagnostics.finish(conversationDiagnostics.current(),'cancelled','stopped');
+  if(!preserveTrace){if(typeof diagnosticOverview!=='undefined')diagnosticOverview.finishLocal(conversationDiagnostics.current(),'cancelled');conversationDiagnostics.finish(conversationDiagnostics.current(),'cancelled','stopped');}
   if(!preserveSharedVoice&&typeof sharedVoiceCancelPending==='function')sharedVoiceCancelPending();
   turnVersion++;chatAbort?.abort();chatAbort=null;ttsAbort?.abort();ttsAbort=null;
   const previous=turnId;turnId=null;
@@ -90,9 +91,10 @@ async function speak(text,{onComplete=null,onFailure=null,traceId=null}={}){
     const blob=await res.blob();conversationDiagnostics.refresh(traceId);if(version!==speechVersion)return;
     audioUrl=URL.createObjectURL(blob);audio=new Audio(audioUrl);
     audio.onended=async()=>{if(version===speechVersion){stopAudio();if(onComplete)await onComplete();else{conversationDiagnostics.finish(traceId);returnToWake();}}};
-    audio.onerror=()=>{if(version===speechVersion){conversationDiagnostics.finish(traceId,'error','playback');stopAudio();if(onFailure)onFailure();notice('声音播放失败，可以点击「再听一遍」。');returnToWake();}};
-    conversationDiagnostics.stage(traceId,'playback');await audio.play();if(version===speechVersion)state(wakeEnabled&&$('bargeIn').checked?'正在说给你听，可以插话…':'正在说给你听…','speaking');
-  }catch(error){if(version===speechVersion&&error.name!=='AbortError'){conversationDiagnostics.finish(traceId,'error',audio?'playback':'tts');conversationDiagnostics.refresh(traceId);stopAudio();if(onFailure)onFailure();notice('声音未播放：'+error.message);returnToWake();}}
+    audio.onerror=()=>{if(version===speechVersion){conversationDiagnostics.finish(traceId,'error','playback');if(typeof audioDevices!=='undefined')audioDevices.failed('output',{});stopAudio();if(onFailure)onFailure();notice('声音播放失败，可以点击「再听一遍」。');returnToWake();}};
+    const player=audio;if(typeof audioDevices!=='undefined')await audioDevices.routeOutput(player);if(version!==speechVersion||audio!==player)return;
+    conversationDiagnostics.stage(traceId,'playback');await player.play();if(version===speechVersion&&typeof audioDevices!=='undefined')audioDevices.playbackStarted(player);if(version===speechVersion)state(wakeEnabled&&$('bargeIn').checked?'正在说给你听，可以插话…':'正在说给你听…','speaking');
+  }catch(error){if(version===speechVersion&&error.name!=='AbortError'){conversationDiagnostics.finish(traceId,'error',audio?'playback':'tts');conversationDiagnostics.refresh(traceId);if(audio&&typeof audioDevices!=='undefined')audioDevices.failed('output',error);stopAudio();if(onFailure)onFailure();notice('声音未播放：'+error.message);returnToWake();}}
   finally{conversationDiagnostics.refresh(traceId);if(ttsAbort===controller)ttsAbort=null;}
 }
 
@@ -137,7 +139,7 @@ async function send(text,{image=null,source='text',traceId=null}={}){
     try{image=takePhoto();}catch(error){conversationDiagnostics.finish(traceId,'error','camera');notice(error.message);resumeWake();return;}
   }
   cancelTurn({preserveTrace:true});conversationDiagnostics.stage(traceId,'request');const version=turnVersion,id=newTurnId();turnId=id;const controller=new AbortController();chatAbort=controller;
-  busy=true;controls();await pauseWake();if(version!==turnVersion)return;notice();$('input').value='';$('suggestions').hidden=true;
+  busy=true;if(typeof diagnosticOverview!=='undefined')diagnosticOverview.startLocal(traceId,'chat',text);controls();await pauseWake();if(version!==turnVersion)return;notice();$('input').value='';$('suggestions').hidden=true;
   messages.push({role:'user',content:text});addMessage('user',text,image);persist();
   const row=addMessage('assistant','');activeRow=row;state(image?'让我仔细看看…':'让我想一想…','thinking');
   const greeting=typeof voiceGreeting==='function'?voiceGreeting(source):null;
@@ -146,14 +148,14 @@ async function send(text,{image=null,source='text',traceId=null}={}){
     await monitorInterrupt();if(version!==turnVersion)return;
     if(typeof speakerDiagnostic==='function')speakerDiagnostic('问题已提交',{'输入方式':source==='text'?'文字':source==='wake'?'语音唤醒 / 插话':'点击录音','当前档案':activeProfile?'已选择或匹配用户':'访客'});
     const res=await api('/api/chat',{messages:messages.slice(-16),profile_id:activeProfile,turn_id:id,...(image?{image}:{})},'application/json',controller.signal,conversationDiagnostics.headers(traceId));const reader=res.body.getReader(),decoder=new TextDecoder();let pending='';
-    function consume(line){if(version!==turnVersion||!line.trim())return;const data=JSON.parse(line);if(data.error)throw new Error(data.error);if(data.memory_changed&&typeof refreshMemories==='function')refreshMemories();if(data.memory_review&&typeof showMemoryReview==='function')showMemoryReview(data.memory_review);if(data.action)animateAction(data.action);if(data.personal_memory&&typeof renderPersonalMemoryContext==='function')renderPersonalMemoryContext(row,data.personal_memory);const piece=data.message?.content||'';if(piece&&!answer&&greeting){answer=greeting.text;markVoiceGreeting(greeting);}answer+=piece;row.bubble.textContent=answer||'…';if(data.done)completed=true;scroll();}
+    function consume(line){if(version!==turnVersion||!line.trim())return;const data=JSON.parse(line);if(data.reply_mode==='rule'&&typeof diagnosticOverview!=='undefined')diagnosticOverview.sourcesLocal(traceId,{profile:null,sources:[],answer_source_ids:[],source_usage:'program_selected'});if(data.error)throw new Error(data.error);if(data.memory_changed&&typeof refreshMemories==='function')refreshMemories();if(data.memory_review&&typeof showMemoryReview==='function')showMemoryReview(data.memory_review);if(data.action)animateAction(data.action);if(data.personal_memory){if(typeof diagnosticOverview!=='undefined')diagnosticOverview.sourcesLocal(traceId,data.personal_memory,data.reply_mode!=='personal_conflict');if(typeof renderPersonalMemoryContext==='function')renderPersonalMemoryContext(row,data.personal_memory);}const piece=data.message?.content||'';if(piece&&!answer&&greeting){answer=greeting.text;markVoiceGreeting(greeting);}answer+=piece;row.bubble.textContent=answer||'…';if(data.done)completed=true;scroll();}
     while(true){const{value,done}=await reader.read();if(version!==turnVersion){await reader.cancel();return;}if(done)break;pending+=decoder.decode(value,{stream:true});const lines=pending.split('\n');pending=lines.pop();for(const line of lines)consume(line);}
     pending+=decoder.decode();if(pending.trim())consume(pending);if(!completed||!answer.trim())throw new Error('回答中断了，请再试一次。');
     if(version!==turnVersion)return;activeRow=null;
     messages.push({role:'assistant',content:answer});persist();replayButton(row.item,answer);
     $('connection').textContent=`${image?'看图':'对话'} · 用时 ${((performance.now()-started)/1000).toFixed(1)} 秒`;
-  }catch(error){if(version===turnVersion&&error.name!=='AbortError'){conversationDiagnostics.finish(traceId,'error','request');row.bubble.textContent=answer?answer+'\n（回答中断）':'暂时没能回答，请再试一次。';notice(error.message);}}
-  finally{conversationDiagnostics.refresh(traceId);if(version===turnVersion){busy=false;activeRow=null;chatAbort=null;controls();idle();}}
+  }catch(error){if(version===turnVersion&&error.name!=='AbortError'){if(typeof diagnosticOverview!=='undefined')diagnosticOverview.finishLocal(traceId,'failed');conversationDiagnostics.finish(traceId,'error','request');row.bubble.textContent=answer?answer+'\n（回答中断）':'暂时没能回答，请再试一次。';notice(error.message);}}
+  finally{if(typeof diagnosticOverview!=='undefined'&&version===turnVersion&&completed)diagnosticOverview.finishLocal(traceId);conversationDiagnostics.refresh(traceId);if(version===turnVersion){busy=false;activeRow=null;chatAbort=null;controls();idle();}}
   if(version!==turnVersion)return;
   if(completed&&answer&&ttsReady&&$('autoplay').checked)await speak(answer,{traceId});else{conversationDiagnostics.finish(traceId,'done',ttsReady?'muted':'unavailable');returnToWake();}
 }
@@ -168,19 +170,23 @@ class Microphone{
   async start(onAudio,onEnded=null){
     this.closed=false;
     try{
-      this.stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true}});
+      const plan=typeof audioDevices!=='undefined'?await audioDevices.capturePlan():{constraints:{channelCount:1,echoCancellation:true,noiseSuppression:true}};
+      if(this.closed)return;
+      this.stream=await navigator.mediaDevices.getUserMedia({audio:plan.constraints});
       if(this.closed){this.stream.getTracks().forEach(t=>t.stop());return;}
       const track=this.stream.getAudioTracks()[0],settings=track?.getSettings?.()||{};
-      if(track)track.onended=()=>{if(!this.closed&&onEnded)onEnded();};
+      const lost=()=>{if(this.closed)return;this.stop();if(onEnded)onEnded();};
+      if(track)track.onended=lost;
+      if(typeof audioDevices!=='undefined')audioDevices.captureStarted(track,plan,lost);
       if(typeof speakerDiagnostic==='function')speakerDiagnostic('已打开麦克风',{'实际设备':track?.label||'浏览器未提供设备名称','设备采样率':settings.sampleRate||'未知','设备声道数':settings.channelCount||'未知','回声消除':settings.echoCancellation===undefined?'未知':String(settings.echoCancellation)});
       this.context=new AudioContext({sampleRate:16000});await this.context.resume();
       if(this.context.sampleRate!==16000)throw new Error('当前浏览器不支持 16kHz 录音，请使用 Chrome。');
       await this.context.audioWorklet.addModule('/recorder.js');if(this.closed)return;
       this.node=new AudioWorkletNode(this.context,'pcm-recorder');this.node.port.onmessage=e=>{if(!this.closed)onAudio(e.data);};
       this.source=this.context.createMediaStreamSource(this.stream);this.source.connect(this.node);this.node.connect(this.context.destination);
-    }catch(error){await this.stop();throw error;}
+    }catch(error){const message=typeof audioDevices!=='undefined'?audioDevices.failed('input',error):error.message;await this.stop();throw new Error(message);}
   }
-  async stop(){this.closed=true;this.stream?.getTracks().forEach(t=>t.stop());if(this.node){this.node.port.onmessage=null;this.node.disconnect();}this.source?.disconnect();if(this.context&&this.context.state!=='closed')await this.context.close();}
+  async stop(){this.closed=true;this.stream?.getTracks().forEach(t=>{t.stop();if(typeof audioDevices!=='undefined')audioDevices.releaseInput(t);});if(this.node){this.node.port.onmessage=null;this.node.disconnect();}this.source?.disconnect();if(this.context&&this.context.state!=='closed')await this.context.close();}
 }
 class WakeListener{
   constructor(mode='wake'){this.mode=mode;this.closed=false;this.queue=[];this.pending=[];this.count=0;this.sequence=0;this.sending=false;this.mic=new Microphone();this.traceId=mode==='command'?conversationDiagnostics.current():null;}

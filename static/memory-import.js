@@ -35,7 +35,7 @@ async function previewMemoryImport(){
     const labels={new:'将新增',existing:'跳过：档案已有',file_duplicate:'跳过：文件内重复'};
     for(const item of plan.items){
       const row=document.createElement('li'),label=document.createElement('small'),content=document.createElement('span');
-      label.textContent=labels[item.status];label.className='memory-meta';content.textContent=item.content;
+      label.textContent=labels[item.status]+'；'+personalStateText({...item,status:item.memory_status||'pending'})+(item.state_differs?'；正文已存在，保留当前状态／日期，不覆盖':'');label.className='memory-meta';content.textContent=item.content;
       row.append(label,content);
       for(const conflict of item.conflicts||[]){const warning=document.createElement('small');warning.className='memory-meta';warning.textContent='可能冲突：'+conflict.content;row.append(warning);}$('memoryImportItems').append(row);
     }

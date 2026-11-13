@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 from yiban.memory.shared_memory import SharedError
 from yiban.memory.answer_evidence import ANSWER_SCHEMA, REFERENCE_INSTRUCTION, answer_question, resolve_answer, COMPARISON_SCHEMA, COMPARISON_INSTRUCTION, resolve_comparison
 from yiban.turns import Cancellation, Cancelled
-from yiban.conversation_diagnostics import measured, model_events
+from yiban.conversation_diagnostics import measured, model_events, TRACES, CURRENT
 
 
 STEP_SCHEMA={'type':'object','properties':{
@@ -101,7 +101,8 @@ class ReadOnlyAgent:
             if not expired.is_set():raise
             self.shared.validate_answer(token,guard)
             return self.response('本轮工具查询超过时间限制，已停止。请缩小问题范围后重试。',steps,status='timeout')
-        except (AgentProtocolError,RuntimeError,ValueError,OSError):
+        except (AgentProtocolError,RuntimeError,ValueError,OSError) as error:
+            TRACES.failure(CURRENT.get(),error,'routing')
             parent_cancel.check();self.shared.validate_answer(token,guard)
             if expired.is_set():return self.response('本轮工具查询超过时间限制，已停止。请缩小问题范围后重试。',steps,status='timeout')
             return self.response('本轮工具未能完成处理，请重新提问。没有保存、修改或删除任何记忆。',steps,status='failed')

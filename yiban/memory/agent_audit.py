@@ -14,7 +14,7 @@ from yiban.turns import Cancelled
 
 TOOL_NAMES={'search_memory','read_material','get_current_time','invalid_request','save_memory_preview','update_memory_preview','replace_memory_preview'}
 STATUSES={'running','done','needs_confirmation','needs_selection','needs_clarification','needs_details','failed','timeout','cancelled','saved','rejected','interrupted'}
-REASONS={'ok','waiting_confirmation','choose_target','need_details','model_or_tool','timeout','cancelled','permission','stale','invalid_request','unexpected','service_restarted','result_unrecorded'}
+REASONS={'ok','waiting_confirmation','choose_target','need_details','model_or_tool','timeout','cancelled','permission','stale','invalid_request','unexpected','service_restarted','result_unrecorded','model_http','model_connection','model_output','tool_protocol'}
 
 
 def clean_trace(trace):
@@ -28,7 +28,29 @@ def clean_trace(trace):
     usage['reported_calls']=min(usage['reported_calls'] or 0,usage['model_calls'])
     usage['complete']=usage['model_calls']>0 and usage['reported_calls']==usage['model_calls']
     if not usage['reported_calls']:usage['input_tokens']=usage['output_tokens']=None
-    return {'steps':steps,'usage':usage}
+    models=[]
+    for model in trace.get('models',[])[:8]:
+        if isinstance(model,dict) and isinstance(model.get('model'),str) and 1<=len(model['model'])<=160 and model.get('backend') in {'ollama','openai_compatible'} and model.get('route') in {'local_service','remote_service'}:
+            models.append({k:model[k] for k in ('model','backend','route')})
+    failure=trace.get('failure') or {}; safe_failure=None
+    if failure.get('code') in REASONS:
+        safe_failure={'code':failure['code'],'stage':failure.get('stage') if failure.get('stage') in STAGES else None}
+        if type(failure.get('http_status')) is int and 100<=failure['http_status']<=599:safe_failure['http_status']=failure['http_status']
+    refs={}
+    for kind in ('searched','read'):
+        refs[kind]=[]
+        for item in trace.get('material_refs',{}).get(kind,[])[:40]:
+            if isinstance(item,dict) and isinstance(item.get('id'),str) and 1<=len(item['id'])<=128 and type(item.get('version')) is int and item['version']>=0:
+                ref={'id':item['id'],'version':item['version']}
+                if ref not in refs[kind]:refs[kind].append(ref)
+    retrieval={}
+    for k,v in (trace.get('retrieval') or {}).items():
+        if k=='fallback' and type(v) is bool:retrieval[k]=v
+        elif k in {'candidate_count','hit_count','cache_hits','elapsed_ms'} and bounded(v) is not None:retrieval[k]=bounded(v)
+        elif k in {'strategy','reason_code'} and isinstance(v,str) and v in {'lexical','hybrid','relevant_candidates','missing_attribute','no_relevant_memory','embedding_unavailable'}:retrieval[k]=v
+    return {'steps':steps,'usage':usage,'models':models,'failure':safe_failure,'material_refs':refs,
+            'search_performed':trace.get('search_performed') is True,'retrieval':retrieval}
+
 
 
 def bounded(value):return min(value,86400000) if type(value) is int and value>=0 else None
@@ -94,11 +116,26 @@ class AgentAudit:
             if status not in STATUSES:status='failed'
             reason={'needs_confirmation':'waiting_confirmation','needs_selection':'choose_target','needs_clarification':'choose_target',
                     'needs_details':'need_details','failed':'model_or_tool','timeout':'timeout','cancelled':'cancelled'}.get(status,'ok')
+        if status=='timeout':
+            detail['failure']={'code':'timeout','stage':(detail['failure'] or {}).get('stage')}
+            reason='timeout'
+        elif status=='failed' and detail['failure']:
+            reason=detail['failure']['code']
         tools=[]
         for step in result.get('agent',{}).get('steps',[])[:8]:
             if step.get('name') in TOOL_NAMES and step.get('status') in {'running','done','failed','blocked','cancelled'}:
                 tools.append({'name':step['name'],'status':step['status'],'elapsed_ms':bounded(step.get('elapsed_ms')),'count':bounded(step.get('count'))})
         detail.update(tools=tools,source_count=min(len(result.get('sources',[])),200),citation_status=result.get('source_usage') if result.get('source_usage') in {'model_reported','unavailable','not_needed'} else None)
+        known={x['id']:x for x in result.get('sources',[]) if isinstance(x,dict) and isinstance(x.get('id'),str) and type(x.get('version')) is int}
+        for source in known.values():
+            if type(source.get('version')) is int:
+                ref={'id':source['id'],'version':source['version']}
+                if ref not in detail['material_refs']['searched']:detail['material_refs']['searched'].append(ref)
+        citations=result.get('answer_source_ids'); usage=result.get('source_usage')
+        checked=not error and usage in {'model_reported','linked_record','program_selected','not_needed'} and isinstance(citations,list) and all(isinstance(x,str) and x in known for x in citations) and len(set(citations))==len(citations)
+        detail['cited_refs']=[{'id':x,'version':known[x]['version']} for x in citations] if checked else []
+        detail['citation_checked']=checked
+        if usage=='linked_record':detail['citation_status']='linked_record'
         preview=result.get('memory_preview') or result.get('memory_selection') or {}
         with self.connect() as db:
             changed=db.execute('UPDATE events SET status=?,reason=?,elapsed_ms=?,details=? WHERE id=?',(status,reason,bounded(elapsed),json.dumps(detail),event['id'])).rowcount
@@ -107,7 +144,7 @@ class AgentAudit:
             if digest:db.execute('INSERT OR REPLACE INTO links VALUES (?,?,?,?,?)',(digest,guard['actor'],guard['space'],event['operation'],self.clock()))
         return True
 
-    def run(self,token,data,action,callback):
+    def run(self,token,data,action,callback,mirror_public=False):
         if not isinstance(data,dict):raise SharedError('请求格式不正确。')
         if action not in {'ask','select','read','confirm','cancel'}:raise ValueError('Unknown diagnostic action')
         guard=self.shared.question_guard(token,data.get('space_id'))
@@ -115,7 +152,7 @@ class AgentAudit:
         try:event=self.begin(guard,action,data)
         except Exception:pass
         # This identity is never returned as a public trace capability.
-        identity=TRACES.begin(str(uuid.uuid4()));context=CURRENT.set(identity)
+        outer=CURRENT.get();identity=TRACES.begin(str(uuid.uuid4()));context=CURRENT.set(identity)
         if event:
             with self.lock:self.active[event['id']]=identity
         try:
@@ -123,7 +160,8 @@ class AgentAudit:
         except BaseException as caught:
             error=caught
         finally:
-            trace=TRACES.read(identity);CURRENT.reset(context)
+            trace=TRACES.read(identity,private=True);CURRENT.reset(context)
+            if outer and mirror_public:TRACES.absorb(outer,trace)
             try:available=self.finish(event,guard,result,error,trace,round((time.monotonic()-started)*1000))
             except Exception:
                 # A completed business save must never be turned into an apparent failure.
@@ -140,7 +178,7 @@ class AgentAudit:
         if isinstance(result,dict):result={**result,'diagnostic':diagnostic}
         return result
 
-    def list(self,token,data):
+    def list(self,token,data,include_refs=False):
         if not isinstance(data,dict):raise SharedError('请求格式不正确。')
         guard=self.shared.question_guard(token,data.get('space_id'))
         if not self.ready:return {'available':False,'records':[]}
@@ -153,8 +191,40 @@ class AgentAudit:
                 record=dict(row);record.update(json.loads(record.pop('details')))
                 with self.lock:identity=self.active.get(record['id'])
                 if record['status']=='running' and identity:
-                    record.update(clean_trace(TRACES.read(identity)));record['elapsed_ms']=bounded(round((self.clock()-record['started'])*1000))
+                    record.update(clean_trace(TRACES.read(identity,private=True)));record['elapsed_ms']=bounded(round((self.clock()-record['started'])*1000))
+                if not include_refs:
+                    record.pop('material_refs',None);record.pop('cited_refs',None)
                 records.append(record)
             self.shared.validate_answer(token,guard)
             return {'available':True,'records':records,'limit':50,'retention_days':self.retention//86400}
         except (OSError,sqlite3.Error,json.JSONDecodeError):return {'available':False,'records':[]}
+
+    def overview(self,token,data):
+        if not isinstance(data,dict):raise SharedError('请求格式不正确。')
+        guard=self.shared.question_guard(token,data.get('space_id'))
+        response=self.list(token,data,include_refs=True)
+        if not response['available']:return response
+        s=self.shared
+        with s.store.connect() as db:
+            db.execute('BEGIN');actor=s._actor(db,token);space=s._member(db,actor['id'],guard['space'])
+            for record in response['records']:
+                recorded='material_refs' in record
+                groups=record.pop('material_refs',{})
+                groups['cited']=record.pop('cited_refs',[])
+                materials={}
+                for kind in ('searched','read','cited'):
+                    rows=[]
+                    for ref in groups.get(kind,[]):
+                        current=db.execute('SELECT id FROM shared_memories WHERE id=? AND space=?',(ref['id'],space['id'])).fetchone()
+                        item=s._record(db,ref['id']) if current else None
+                        if item is None or not s._visible(actor,space,item):
+                            rows.append({'available':False,'reason':'资料已删除或当前不可访问。'})
+                        elif item['version']!=ref['version']:
+                            rows.append({'available':False,'reason':'资料已更新；未保存当时正文，已隐藏旧版依据。'})
+                        else:
+                            rows.append({k:item[k] for k in ('id','version','content','status','status_reason','event_date','source_note','author_name','has_evidence','evidence_source_name')})
+                            rows[-1]['available']=True
+                    materials[kind]=rows
+                record['materials']=materials if recorded else None
+        self.shared.validate_answer(token,guard)
+        return response

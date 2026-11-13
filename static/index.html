@@ -9,6 +9,7 @@
 <button id="navPersonal" type="button" role="tab" aria-controls="viewPersonal" aria-selected="false" tabindex="-1">个人记忆</button>
 <button id="navShared" type="button" role="tab" aria-controls="viewShared" aria-selected="false" tabindex="-1">共同记忆</button>
 <button id="navSpeech" type="button" role="tab" aria-controls="viewSpeech" aria-selected="false" tabindex="-1">声音设置</button>
+<button id="navModels" type="button" role="tab" aria-controls="viewModels" aria-selected="false" tabindex="-1">模型设置</button>
 <button id="navDiagnostics" type="button" role="tab" aria-controls="viewDiagnostics" aria-selected="false" tabindex="-1">运行诊断</button></div><aside id="workspaceActivity" class="workspace-activity" hidden aria-live="polite"><span id="workspaceActivityText"></span><button id="workspaceReturnChat" class="text-button">返回对话</button><button id="workspaceReviewDraft" class="text-button" hidden>查看待确认内容</button></aside>
 <section id="viewChat" class="workspace-panel" role="tabpanel" aria-labelledby="navChat" tabindex="0"><main>
   <section class="companion">
@@ -74,13 +75,17 @@
       </details>
       <label for="memoryText">明确告诉我需要记住的事</label>
       <textarea id="memoryText" maxlength="1200" rows="3" placeholder="例如：我喜欢简短的回答"></textarea>
-      <div class="personal-row"><button id="saveMemory" class="secondary-button">保存记忆</button><button id="cancelMemoryEdit" class="text-button">取消编辑</button></div>
+      <label for="memoryState">记忆状态</label><select id="memoryState"><option value="pending">待核实</option><option value="valid">有效（本人已核对）</option><option value="outdated">过时（仅作回顾）</option></select>
+<label for="memoryStateReason">状态说明（有效／过时时必填）</label><input id="memoryStateReason" maxlength="500" placeholder="例如：已核对当前情况；或安排已改变">
+<label for="memoryEventDate">事件日期（可留空）</label><input id="memoryEventDate" type="date">
+<p class="feature-help">旧记忆先按待核实处理；正文或事件日期变化后回到待核实。有效是本人标记，不代表系统证明。修改和疑似冲突需先预览确认；无冲突的新增待核实记忆可直接保存。</p>
+<div class="personal-row"><button id="saveMemory" class="secondary-button">保存记忆</button><button id="cancelMemoryEdit" class="text-button">取消编辑</button></div>
       <section id="memoryReviewPanel" class="memory-review" aria-label="记忆修改与冲突确认" hidden>
         <h3>核对记忆变更</h3>
         <p id="memoryReviewStatus" role="status"></p>
         <p id="memoryReviewTarget"></p>
         <div id="memoryReviewDiff"></div>
-        <p class="feature-help">可能冲突由有限规则提示，不代表完整语义判断。并存会让两种表述都可参与后续对话；替换只更新你选中的一条。</p>
+        <p class="feature-help">疑似冲突由有限规则提示，不代表完整语义判断。存在冲突的新增／修改按待核实保存；并存仍保留冲突提示。替换正文会留修改历史；下方疑似冲突区也可预览两条状态同时变更，保留原记录。</p>
         <label for="memoryReviewChoice">处理方式</label><select id="memoryReviewChoice"></select>
         <label class="feature-option"><input id="memoryReviewConsent" type="checkbox"> 我已核对目标、差异和处理方式，确认保存</label>
         <div class="personal-row"><button id="confirmMemoryReview" class="secondary-button" disabled>确认保存变更</button><button id="cancelMemoryReview" class="text-button">取消变更</button></div>
@@ -90,20 +95,23 @@
         <p class="feature-help">记录从本次升级起保留；只展示最近 100 次。历史内容不参与回答，删除记忆时也删除它的历史。</p>
         <ul id="memoryHistoryItems" class="memory-list"></ul><button id="closeMemoryHistory" class="text-button">关闭历史</button>
       </section>
-      <details id="personalMemoryQueryPanel" class="editor-disclosure" open>
+      <details class="memory-review" id="personalConflictsPanel" open><summary>疑似冲突 · 对照后再处理</summary><p id="personalConflictInfo" role="status">请选择个人档案。</p><button id="personalConflictRefresh" class="text-button">刷新并检查</button><p class="feature-help">仅检查当前档案的未过时记录，有限规则可能漏检；不同日期／情境也可能合理并存，不自动判断真伪。点击预览不会修改，勾选确认后才生效。</p><div id="personalConflictItems"></div></details>
+<details id="personalMemoryQueryPanel" class="editor-disclosure" open>
         <summary>查询个人记忆 · 换一种说法也能找</summary>
-        <p class="feature-help">只查询上方当前档案的已保存记忆。找到后列出引用和候选，没有依据就明确提示。使用远端回答模型时，问题和相关记忆会发送给该服务。个人档案选择不等同于账号认证。</p>
+        <p class="feature-help">只查询上方当前档案的已保存记忆。找到后列出引用和候选，没有依据就明确提示。个人记忆问答只使用本机回答模型；档案选择不等同于账号认证。</p>
         <label for="personalMemoryQuestion">想查询的个人记忆问题</label><textarea id="personalMemoryQuestion" rows="2" maxlength="1200" placeholder="例如：我通常喜欢喝什么口味的饮品？"></textarea>
-        <div class="personal-row"><button id="personalMemoryAsk" class="secondary-button" disabled>询问个人记忆</button><button id="personalMemoryStop" class="text-button" disabled>停止个人记忆查询</button></div>
+        <label class="feature-option"><input id="personalIncludeOutdated" type="checkbox">同时查询过时记忆（仅供历史回顾）</label>
+<div class="personal-row"><button id="personalMemoryAsk" class="secondary-button" disabled>询问个人记忆</button><button id="personalMemoryStop" class="text-button" disabled>停止个人记忆查询</button></div>
         <p id="personalMemoryResultInfo" role="status"></p><p id="personalMemoryAnswer" class="personal-memory-answer"></p>
         <section id="personalMemoryEvidence" hidden aria-label="个人记忆回答依据">
           <h3 id="personalMemoryCitedTitle">实际引用（模型声明）</h3><ul id="personalMemorySources" class="memory-list"></ul>
           <details id="personalMemoryCandidatesPanel"><summary>其他候选资料 · 不代表被引用</summary><ul id="personalMemoryCandidates" class="memory-list"></ul></details>
-          <p class="feature-help">引用表示模型声明使用了该记录，不等于证明答案正确。个人记忆目前没有核实状态，原始资料文件也未在这里归档。</p>
+          <p class="feature-help">引用表示模型声明使用了该记录，不等于证明答案正确。状态是本人标记，原始资料文件未在这里归档。疑似冲突时由程序列出不同说法，不擅自确定当前答案。</p>
         </section>
       </details>
       <label for="memorySearch">查找已保存的记忆</label>
-      <input id="memorySearch" type="search" maxlength="1200" placeholder="输入关键词筛选当前用户的记忆" disabled>
+      <label for="memoryStatusFilter">按状态筛选</label><select id="memoryStatusFilter"><option value="all">全部状态</option><option value="pending">待核实</option><option value="valid">有效</option><option value="outdated">过时</option></select>
+<input id="memorySearch" type="search" maxlength="1200" placeholder="输入关键词筛选当前用户的记忆" disabled>
       <div class="personal-row memory-toolbar"><span id="memoryCount" role="status">请先选择用户</span><button id="exportMemories" class="text-button" disabled>导出文字记忆</button></div>
       <p class="feature-help">导出当前用户的全部文字记忆（不受筛选影响），包含称呼、来源和时间，不包含声纹或聊天记录。</p>
       <details id="memoryImportPanel"><summary>导入文字记忆</summary>
@@ -184,7 +192,7 @@
         <button id="sharedAuditExport" class="text-button">导出最近50条记录</button>
         <label><input id="sharedAuditFailures" type="checkbox">仅看异常</label>
         <p id="sharedAuditInfo" class="feature-help" role="status">请选择空间后刷新。</p>
-        <div id="sharedAuditList"></div>
+        <div id="sharedAuditList"></div><button id="sharedOpenOverview" class="text-button">在统一诊断总览查看</button>
       </details>
 </section></section>
 <section id="sharedPageLibrary" class="workspace-panel" role="tabpanel" aria-labelledby="navSharedLibrary" tabindex="0" hidden><div class="pane-heading"><h2>记忆库</h2><p>查找、核实和更新这个空间中你有权查看的记忆。</p><button id="sharedOpenRecovery" class="text-button">回收站与恢复记录</button></div><details id="sharedEditorDisclosure" class="editor-disclosure"><summary>新增／编辑共同记忆</summary>
@@ -219,12 +227,31 @@
 </section>
 <section id="sharedHistoryPanel" class="memory-review" aria-label="共同记忆修改历史" hidden><h3>共同记忆修改历史</h3><p id="sharedHistoryInfo"></p><ul id="sharedHistoryList" class="memory-list"></ul><button id="sharedCloseHistory" class="text-button">关闭共同记忆历史</button>
 </section></section>
-<section id="sharedPageImport" class="workspace-panel" role="tabpanel" aria-labelledby="navSharedImport" tabindex="0" hidden><div class="pane-heading"><h2>资料导入</h2><p>把聊天记录和活动资料整理成候选，核对后再保存。</p></div><details open id="materialPanel" class="material-panel">
+<section id="sharedPageImport" class="workspace-panel" role="tabpanel" aria-labelledby="navSharedImport" tabindex="0" hidden><div class="pane-heading"><h2>资料导入</h2><p>把聊天记录和活动资料整理成候选，核对后再保存。</p></div><details id="sharedBatchPanel" class="editor-disclosure" open>
+  <summary>资料来源与导入批次</summary>
+  <p class="feature-help">按导入批次查看记忆、原文摘录和文字快照。撤销先预览，只将保持导入原样且有权限的记录移入回收站；已修改或关联新旧安排的内容保留。旧资料不推测导入批次。</p>
+  <button id="sharedBatchLoad" class="secondary-button">刷新导入批次</button>
+  <label for="sharedBatchSearch">查找批次名称、编号或导入者</label><input id="sharedBatchSearch" type="search" maxlength="160">
+  <p id="sharedBatchStatus" role="status" aria-live="polite"></p><ul id="sharedBatchList" class="memory-list"></ul>
+  <section id="sharedBatchDetail" hidden><h3>本批记忆与来源</h3><p id="sharedBatchInfo" class="material-evidence"></p><ul id="sharedBatchItems" class="memory-list"></ul>
+    <h3>本批撤销记录</h3><ul id="sharedBatchEvents" class="memory-list"></ul>
+    <label for="sharedBatchReason">撤销说明（必填）</label><input id="sharedBatchReason" maxlength="200" placeholder="例如：导入了错误版本的活动通知">
+    <button id="sharedBatchPreview" class="secondary-button">预览撤销本批未修改记忆</button>
+  </section>
+  <section id="sharedBatchSource" class="memory-review" aria-label="批次原文依据" hidden><h3>原文依据</h3><pre id="sharedBatchSourceText"></pre><button id="sharedBatchCloseSource" class="text-button">关闭原文</button></section>
+  <section id="sharedBatchReview" class="memory-review" aria-label="导入批次撤销确认" hidden><h3>撤销前核对 · 尚未执行</h3><div id="sharedBatchReviewBody"></div>
+    <label class="feature-option"><input id="sharedBatchConsent" type="checkbox"> 我已核对将移入和保留的记忆，以及撤销说明</label>
+    <label class="feature-option"><input id="sharedBatchScope" type="checkbox"> 我确认归属、可见范围和权限，以上待撤销记录将停止参与问答</label>
+    <button id="sharedBatchConfirm" class="secondary-button" disabled>确认移入回收站</button>
+  </section><button id="sharedBatchCancel" class="text-button">取消撤销预览</button>
+</details>
+<details open id="materialPanel" class="material-panel">
       <summary>资料整理与导入 · 先预览，再保存</summary>
       <p class="feature-help">① 添加资料 → ② 核对原文 → ③ 编辑候选 → ④ 确认导入。只有最后确认才写入当前家庭／团队记忆。</p>
       <p id="materialDestination" class="feature-help"></p>
       <fieldset id="materialEditor">
         <legend>1 · 添加聊天记录或活动资料</legend>
+        <label for="materialBatchName">本次导入批次名称</label><input id="materialBatchName" maxlength="160" placeholder="例如：十一月活动纪要 · 第一批">
         <label for="materialFiles">读取文件（可多选）</label>
         <input id="materialFiles" type="file" multiple accept=".txt,.md,.csv,.json,.docx,.pdf,.png,.jpg,.jpeg">
         <p class="feature-help">支持文字、聊天导出 JSON／CSV、Word DOCX、PDF、PNG／JPG。每份最多 4 MB、PDF 最多 20 页，每批最多 10 份／30000 字。图片和扫描页目前在 Mac 本机识别；模糊长图请分段上传。微信原始数据库、旧版 DOC、音视频请先转为以上格式。</p>
@@ -327,7 +354,17 @@
 </section>
 </details>
 </section>
-<section id="viewSpeech" class="workspace-panel" role="tabpanel" aria-labelledby="navSpeech" tabindex="0" hidden><div class="page-heading"><h1>声音设置</h1><p>选择回答的音色与语速。试听后满意再保存。</p></div><details class="personal-card shared-card" id="speechSettingsPanel">
+<section id="viewSpeech" class="workspace-panel" role="tabpanel" aria-labelledby="navSpeech" tabindex="0" hidden><div class="page-heading"><h1>声音设置</h1><p>查看输入输出档位和设备状态，或调整回答音色与语速。只读自检不录音、不播放。</p></div><section class="personal-card shared-card" id="audioDevicesPanel" aria-label="音频设备与只读自检">
+<h2>音频设备档位与自检</h2><p class="feature-help">准备选择 → 核对输入输出 → 应用并保存。设置只影响本浏览器，不改系统默认设备或音量。自检不会录音、播放或申请麦克风权限。</p>
+<p id="audioApplied"></p><label for="audioProfile">准备使用的档位</label><select id="audioProfile"><option value="system">沿用系统默认（原有通路）</option><option value="builtin">电脑内置麦克风＋内置扬声器</option><option value="respeaker">ReSpeaker 麦克风＋ReSpeaker 输出</option><option value="mixed">ReSpeaker 麦克风＋电脑内置扬声器</option></select>
+<div class="personal-row"><div><label for="audioInput">具体输入</label><select id="audioInput"><option value="">随系统默认</option></select></div><div><label for="audioOutput">具体输出</label><select id="audioOutput"><option value="">随系统默认</option></select></div></div>
+<div class="personal-row"><button id="audioApply" class="secondary-button">应用并保存档位</button><button id="audioRefresh" class="secondary-button">只读自检／刷新设备</button><button id="audioReload" class="text-button">重新加载已保存档位</button><button id="audioAuthorizeOutput" class="text-button" disabled>选择输出授权（不播放）</button></div>
+<p id="audioStatus" role="status">尚未自检；未录音、未播放。设备名称可能需要先前已授予的浏览器权限。</p>
+<div class="overview-summary"><div><strong>浏览器实际输入</strong><p id="audioActualInput"></p></div><div><strong>浏览器实际输出</strong><p id="audioActualOutput"></p></div></div><p id="audioSystemDefaults" class="feature-help"></p>
+<div id="audioChecks" class="audio-checks" role="status" aria-live="polite"></div><details><summary>查看系统与浏览器设备清单</summary><div id="audioInventory"></div></details>
+<p class="feature-help">正在录音、唤醒、声纹录入或播放时请先结束再切换。设备缺失或权限不足时明确报错，不会静默改用其他设备。回声、插话和喇叭发声效果留待语音实测。</p>
+</section>
+<details class="personal-card shared-card" id="speechSettingsPanel">
   <summary>回答声音 · 音色与语速</summary>
   <p class="feature-help">选择 → 试听 → 保存。试听不保存；保存后从下一次朗读开始生效，重启后保留。使用当前播放设备和系统音量，不提高音量。</p>
   <p id="speechCurrent">展开后读取当前声音。</p>
@@ -338,10 +375,34 @@
   <p id="speechSettingsStatus" role="status" aria-live="polite"></p>
 </details>
 </section>
-<section id="viewDiagnostics" class="workspace-panel" role="tabpanel" aria-labelledby="navDiagnostics" tabindex="0" hidden><div class="page-heading"><h1>运行诊断</h1><p>遇到识别、回答或播放问题时，在这里查看每轮处理记录。</p></div><details id="feedbackPanel" class="personal-card shared-card"><summary>回答反馈 · 当前空间与账号</summary>
+<section id="viewModels" class="workspace-panel" role="tabpanel" aria-labelledby="navModels" tabindex="0" hidden>
+<div class="page-heading"><h1>模型设置</h1><p>先保存档位，再检测连接。切换对新请求生效；正在处理的请求保持原模型。</p></div>
+<section class="personal-card shared-card"><h2>本机与云端</h2><p id="modelsActive" role="status"></p>
+<p class="feature-help">本页设置作用于整台助手。密钥通过服务进程的环境变量提供，不在网页填写或显示。云端普通聊天只发送本次输入，不带历史对话；个人记忆和指定成员可见资料留在本机，云端暂不生成记忆写入草稿。全体成员可见仅表示空间内共享，不等于公开资料。</p>
+<div class="personal-row"><label>编辑档位<select id="modelsProfile"><option value="local">本机模型</option><option value="cloud">云端模型</option></select></label><label>接口类型<select id="modelsBackend"><option value="ollama">Ollama</option><option value="openai_compatible">OpenAI 兼容</option></select></label></div>
+<label>服务地址<input id="modelsURL" maxlength="500" autocomplete="off" placeholder="http://127.0.0.1:11434"></label>
+<div class="personal-row"><label>文字模型名称<input id="modelsName" maxlength="160" autocomplete="off"></label><label>视觉模型（可留空）<input id="modelsVision" maxlength="160" autocomplete="off"></label></div>
+<label>服务商思考参数<select id="modelsThinking"><option value="none">标准兼容接口（不额外传思考参数）</option><option value="zhipu">智谱：关闭思考</option><option value="bailian">百炼：关闭思考</option><option value="keep">保留启动配置的思考参数</option></select></label>
+<label>密钥环境变量名<input id="modelsKeyEnv" maxlength="80" autocomplete="off" placeholder="ZHIPU_API_KEY"></label><p id="modelsKeyInfo" class="feature-help"></p>
+<label>保存后的使用档位<select id="modelsActiveSelect"><option value="local">本机</option><option value="cloud">云端</option></select></label>
+<label class="feature-option"><input type="checkbox" id="modelsRemoteConsent">我确认将云端档位的新问题及允许的资料发送到所配置服务；检测仅发送固定短句</label>
+<div class="personal-row"><button id="modelsSave" class="secondary-button">保存并应用</button><button id="modelsProbe" class="secondary-button">检测已保存的当前编辑档位</button><button id="modelsReload" class="text-button">重新加载</button></div><p id="modelsMessage" role="status"></p><div id="modelsProbeResult"></div></section>
+<section class="personal-card shared-card"><h2>本地／云端同题对比 · 只显示文字</h2><p class="feature-help">先预览，再确认发送。两边使用同一问题和同一份资料，无工具写入、不播报、不写入正式对话或记忆。结果仅保留在本页，离开此页即清空。云端可能产生服务费用。</p>
+<label>问题范围<select id="modelsCompareScope"><option value="general">手动输入的普通问题（不带记忆）</option><option value="shared">当前登录空间的全体成员可见记忆</option></select></label>
+<p id="modelsSpaceInfo" class="feature-help"></p><label>对比问题<textarea id="modelsCompareQuery" rows="3" maxlength="1200" placeholder="例如：请用两句话解释长期记忆有什么作用。"></textarea></label>
+<label class="feature-option"><input type="checkbox" id="modelsIncludeOutdated">查询过时记忆（仅供历史回顾）</label>
+<button id="modelsComparePreview" class="secondary-button">预览将发送的问题和资料</button>
+<div id="modelsCompareReview" hidden><div id="modelsComparePreviewText"></div><label class="feature-option"><input id="modelsCompareConsent" type="checkbox">我已核对本次问题、资料与模型，同意将上述内容发送到本机和云端服务</label><button id="modelsCompareConfirm" class="secondary-button">确认并开始文字对比</button><button id="modelsCompareCancel" class="text-button">取消预览</button></div>
+<p id="modelsCompareMessage" role="status"></p><button id="modelsCompareStop" class="text-button" hidden>停止本次测试</button><div id="modelsCompareResult"></div></section></section>
+
+<section id="viewDiagnostics" class="workspace-panel" role="tabpanel" aria-labelledby="navDiagnostics" tabindex="0" hidden><div class="page-heading"><h1>运行诊断</h1><p>遇到识别、回答或播放问题时，在这里查看每轮处理记录。</p></div><section id="diagnosticOverviewPanel" class="personal-card shared-card" aria-label="统一诊断总览">
+  <h2>统一诊断总览</h2><p class="feature-help">选一轮看候选、实际引用、模型、耗时和错误。共同记忆保留本人最近14天的元数据，正文按当前权限重新读取；个人查询与普通对话仅保留本页最近20轮。刷新或切换身份会清空本页资料。</p>
+  <div class="overview-toolbar"><div><label for="overviewScope">显示范围</label><select id="overviewScope"><option value="all">全部文字轮次</option><option value="shared">当前空间共同记忆</option><option value="local">本页个人查询与普通对话</option></select></div><button id="overviewRefresh" class="secondary-button">刷新诊断总览</button><button id="overviewClearLocal" class="text-button">清空本页轮次</button><label><input id="overviewErrors" type="checkbox">仅看异常</label></div>
+  <p id="overviewInfo" role="status"></p><div class="overview-layout"><div id="overviewList" aria-label="可查看的文字轮次"></div><section id="overviewDetail" aria-label="统一轮次详情"></section></div>
+</section><details id="feedbackPanel" class="personal-card shared-card"><summary>回答反馈 · 当前空间与账号</summary>
   <p class="feature-help">先在共同记忆中登录并选择空间。查看本人反馈、当时问答与资料快照，记录处理进度，再把原问题带回问答复测。资料权限或内容变化后会重新核验快照。仅展示最近50条，保留90天，全机最多500条。</p>
   <button id="feedbackRefresh" class="secondary-button">刷新回答反馈</button><p id="feedbackInfo" role="status"></p><ul id="feedbackList" class="memory-list"></ul><section id="feedbackDetail" aria-label="反馈回放"></section>
-</details><details open class="personal-card shared-card" id="conversationDiagnosticsPanel">
+</details><details class="personal-card shared-card" id="conversationDiagnosticsPanel">
   <summary>每轮对话诊断 · 后台管理</summary>
   <p class="feature-help">选一轮查看收音、识别、记忆、回答和播放卡在哪一步。仅保留本页面最近 20 轮，刷新后清空；服务端细分在内存保留最多 30 分钟。不记录聊天正文、记忆内容、账号姓名或录音。</p>
   <p class="feature-help">“播放完成”表示浏览器完成播放，不能证明扬声器实际出声。没有声音时仍需检查系统音量和输出设备。</p>
@@ -349,7 +410,7 @@
   <div class="trace-layout"><div id="conversationTraceList" aria-label="最近对话轮次"></div>
 <section id="conversationTraceDetail" aria-label="本轮诊断详情">
 </section></div>
-</details><details open class="personal-card" id="speakerDiagnosticsPanel">
+</details><details class="personal-card" id="speakerDiagnosticsPanel">
       <summary>声音识别诊断 · 最近 10 步</summary>
       <p class="feature-help">查看输入方式、麦克风、有效语音时长和匹配原因。相似度不是识别概率；dBFS 是音频信号电平，不是现场分贝。这里只显示诊断信息，不保存录音或聊天正文。</p>
       <pre id="speakerDiagnostics" aria-live="polite">等待测试。点击“点击说话”录音；输入框“发送”仅发送文字，不会采集声纹。</pre>
@@ -363,6 +424,7 @@
 <script src="/personal-retrieval.js"></script>
 <script src="/memory-import.js"></script>
 <script src="/memory-review.js"></script>
+<script src="/personal-state.js"></script>
 <script src="/shared-answer-sources.js"></script>
 <script src="/shared.js"></script>
 <script src="/shared-agent.js"></script>
@@ -371,9 +433,13 @@
 <script src="/shared-feedback.js"></script>
 <script src="/shared-backup.js"></script>
 <script src="/shared-recovery.js"></script>
+<script src="/shared-batches.js"></script>
 <script src="/shared-voice.js"></script>
 <script src="/shared-evidence.js"></script>
 <script src="/material-import.js"></script>
 <script src="/speech-settings.js"></script>
+<script src="/audio-devices.js"></script>
+<script src="/diagnostic-overview.js"></script>
+<script src="/model-settings.js"></script>
 <script src="/workspace.js"></script>
 </body></html>

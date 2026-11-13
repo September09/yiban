@@ -13,6 +13,9 @@ function sharedResetEditor(){
   $('sharedVisibility').value='selected';$('sharedEditPolicy').value='author';$('sharedEditorTitle').textContent='发布共同记忆';sharedRenderAudience();
 }
 function sharedClearSpace(){
+  if(typeof modelSettingsUI!=="undefined")modelSettingsUI.invalidate();
+  if(typeof diagnosticOverview!=='undefined')diagnosticOverview.clearShared();
+  if(typeof sharedBatchesClear==='function')sharedBatchesClear();
   if(typeof sharedRecoveryClear==='function')sharedRecoveryClear();
   if(typeof sharedBackupClear==='function')sharedBackupClear();
   if(typeof sharedFeedbackClear==='function')sharedFeedbackClear();
@@ -47,7 +50,7 @@ async function sharedApi(path,data={},signal=null){
   if(!response.ok){
     if(response.status===401&&token===sharedState.token&&epoch===sharedState.epoch)sharedLock('登录失效或账号口令不正确，请重新登录。');
     if(response.status===403&&token===sharedState.token&&epoch===sharedState.epoch)sharedClearSpace();
-    const error=new Error(result.error||'操作失败，请重试。');error.status=response.status;throw error;
+    const error=new Error(result.error||'操作失败，请重试。');error.status=response.status;error.diagnostic=result.diagnostic;throw error;
   }
   return result;
 }
@@ -73,6 +76,7 @@ function sharedControls(){
   if(typeof sharedFeedbackControls==='function')sharedFeedbackControls();
   if(typeof sharedBackupControls==='function')sharedBackupControls();
   if(typeof sharedRecoveryControls==='function')sharedRecoveryControls();
+  if(typeof sharedBatchesControls==='function')sharedBatchesControls();
   sharedAudienceControls();
   $('sharedCancelEdit').disabled=locked;$('sharedCancelReview').disabled=locked;
   $('sharedSearch').disabled=!space;$('sharedStatusFilter').disabled=!space;$('sharedIncludeOutdated').disabled=!space||locked;
@@ -124,7 +128,7 @@ async function sharedLoadCurrent(){
   const epoch=sharedState.epoch,id=sharedState.space.id,load=++sharedState.loadVersion;
   const [result,members]=await Promise.all([sharedApi('/memories/list',{space_id:id}),sharedApi('/members/list',{space_id:id})]);
   if(epoch!==sharedState.epoch||sharedState.space?.id!==id||load!==sharedState.loadVersion)return;
-  if(sharedState.space.version!==result.space.version){if(typeof sharedRecoveryClear==='function')sharedRecoveryClear();if(typeof sharedFeedbackClear==='function')sharedFeedbackClear();if(typeof sharedReplacementClear==='function')sharedReplacementClear();if(typeof sharedCloseEvidence==='function')sharedCloseEvidence();sharedResetReview();sharedCloseHistory();sharedClearAnswer();$('sharedQuestion').value='';}
+  if(sharedState.space.version!==result.space.version){if(typeof modelSettingsUI!=='undefined')modelSettingsUI.invalidate();if(typeof diagnosticOverview!=='undefined')diagnosticOverview.clearShared();if(typeof sharedBatchesClear==='function')sharedBatchesClear();if(typeof sharedRecoveryClear==='function')sharedRecoveryClear();if(typeof sharedFeedbackClear==='function')sharedFeedbackClear();if(typeof sharedReplacementClear==='function')sharedReplacementClear();if(typeof sharedCloseEvidence==='function')sharedCloseEvidence();sharedResetReview();sharedCloseHistory();sharedClearAnswer();$('sharedQuestion').value='';}
   const materialChanged=sharedState.space.version!==result.space.version;
   sharedState.space=result.space;sharedState.members=members.members;sharedState.memories=result.memories;
   if(typeof materialPermissionsChanged==='function'&&materialChanged)materialPermissionsChanged();
@@ -221,13 +225,14 @@ async function sharedAskQuestion(choiceId=null,agentSelection=null){
   sharedClearAnswer(true);$('sharedChoices').replaceChildren();$('sharedChoices').hidden=true;const epoch=sharedState.epoch,version=sharedState.askVersion,id=sharedState.space.id,auth=sharedState.token;
   sharedState.asking=true;sharedState.turn=crypto.randomUUID();sharedState.askAbort=new AbortController();$('sharedAnswer').textContent='正在根据你可见的共同记忆回答…';sharedControls();
   try{const result=await sharedApi($('sharedAgentMode').checked?'/agent/memory/ask':'/ask',{space_id:id,query,conversation_mode:true,conversation_id:sharedState.conversation,choice_id:choiceId,turn_id:sharedState.turn,include_outdated:$('sharedIncludeOutdated').checked,...(agentSelection||{})},sharedState.askAbort.signal);if(epoch!==sharedState.epoch||version!==sharedState.askVersion){if(typeof sharedDiscardAgentResult==='function')sharedDiscardAgentResult({...result,space_id:id},auth);return;}
+    if(typeof diagnosticOverview!=='undefined')diagnosticOverview.noteShared(result,query);
     sharedState.conversation=result.conversation?.id||null;
     $('sharedTopic').textContent=result.conversation?.topic?'当前话题：'+result.conversation.topic+'。可以继续问，也可以开始新话题。':result.conversation?.needs_clarification?'请先选择活动，再回答刚才的问题。':'';
     for(const choice of result.conversation?.choices||[]){const button=document.createElement('button');button.className='secondary-button';button.textContent=choice.label;button.onclick=()=>sharedAskQuestion(choice.id);$('sharedChoices').append(button);}
     $('sharedChoices').hidden=!$('sharedChoices').children.length;
     if(typeof sharedFeedbackOffer==='function')sharedFeedbackOffer(result);
     $('sharedAnswer').textContent=result.answer;$('sharedRetrievalInfo').textContent=retrievalDiagnosticText(result.retrieval);sharedRenderAnswerSources(result);sharedRenderAgent(result.agent);if(typeof sharedRenderAgentDraft==='function')sharedRenderAgentDraft(result);}
-  catch(error){if(epoch===sharedState.epoch&&version===sharedState.askVersion){sharedResetTopic();$('sharedAnswer').textContent=error.name==='AbortError'?'已停止。':error.message;}}
+  catch(error){if(epoch===sharedState.epoch&&version===sharedState.askVersion){if(typeof diagnosticOverview!=='undefined')diagnosticOverview.noteShared({diagnostic:error.diagnostic},query);sharedResetTopic();$('sharedAnswer').textContent=error.name==='AbortError'?'已停止。':error.message;}}
   finally{if(epoch===sharedState.epoch&&version===sharedState.askVersion){sharedState.asking=false;sharedState.askAbort=null;sharedState.turn=null;sharedControls();}}
 }
 $('sharedAsk').onclick=()=>sharedAskQuestion();

@@ -45,7 +45,7 @@ class PersonalRetrievalTests(unittest.TestCase):
         self.assertEqual(result['answer_source_ids'],[self.ma]);self.assertEqual(result['sources'][0]['revision'],1)
         sent=json.dumps(self.model.seen,ensure_ascii=False)+' '.join(self.provider.seen)
         self.assertNotIn('全糖热可可',sent);self.assertEqual(result['profile']['id'],self.a)
-        self.assertEqual(result['sources'][0]['status'],'recorded')
+        self.assertEqual(result['sources'][0]['status'],'pending')
 
     def test_guest_and_missing_personal_fact_do_not_call_answer_model(self):
         result=self.service.answer(None,'我的饮品习惯')

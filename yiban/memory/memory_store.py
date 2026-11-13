@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from yiban.memory.memory_review import MemoryReviewMixin, possible_conflicts
+from yiban.memory.personal_state import state_fields
 
 
 class MemoryStore(MemoryReviewMixin):
@@ -28,6 +29,7 @@ class MemoryStore(MemoryReviewMixin):
                 CREATE TABLE IF NOT EXISTS voiceprints(profile TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
                     embedding TEXT NOT NULL, model TEXT NOT NULL, enrolled TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
             ''')
+            db.execute('BEGIN IMMEDIATE')
             if 'salutation' not in {row['name'] for row in db.execute('PRAGMA table_info(profiles)')}:
                 db.execute("ALTER TABLE profiles ADD COLUMN salutation TEXT NOT NULL DEFAULT ''")
             columns = {row['name'] for row in db.execute('PRAGMA table_info(memories)')}
@@ -36,6 +38,8 @@ class MemoryStore(MemoryReviewMixin):
                 db.execute('ALTER TABLE memories ADD COLUMN created TEXT')
             if 'source' not in columns:
                 db.execute("ALTER TABLE memories ADD COLUMN source TEXT NOT NULL DEFAULT 'legacy'")
+            for column,definition in [('status',"TEXT NOT NULL DEFAULT 'pending'"),('status_reason',"TEXT NOT NULL DEFAULT ''"),('event_date',"TEXT NOT NULL DEFAULT ''")]:
+                if column not in columns:db.execute('ALTER TABLE memories ADD COLUMN '+column+' '+definition)
             self.init_history(db)
         self.path.chmod(0o600)
 
@@ -91,7 +95,7 @@ class MemoryStore(MemoryReviewMixin):
     def memories(self, identity):
         self.profile(identity)
         with self.connect() as db:
-            return [dict(row) for row in db.execute('SELECT id,content,created,updated,source,(SELECT MAX(h.id) FROM memory_history h WHERE h.memory=memories.id) AS revision FROM memories WHERE profile=? ORDER BY updated DESC,rowid DESC', (identity,))]
+            return [dict(row) for row in db.execute('SELECT id,content,created,updated,source,status,status_reason,event_date,(SELECT MAX(h.id) FROM memory_history h WHERE h.memory=memories.id) AS revision FROM memories WHERE profile=? ORDER BY updated DESC,rowid DESC', (identity,))]
 
     def export_memories(self, identity):
         # One read transaction; explicit allowlist excludes voiceprints and other users.
@@ -101,7 +105,7 @@ class MemoryStore(MemoryReviewMixin):
             if not profile:
                 raise ValueError('用户档案不存在，请重新选择。')
             memories = [dict(row) for row in db.execute(
-                'SELECT id,content,created,updated,source FROM memories WHERE profile=? ORDER BY updated DESC,rowid DESC',
+                'SELECT id,content,created,updated,source,status,status_reason,event_date FROM memories WHERE profile=? ORDER BY updated DESC,rowid DESC',
                 (identity,))]
         return {'format': 'yiban-personal-memories', 'version': 1,
                 'exported_at': datetime.now(timezone.utc).isoformat(), 'timestamp_timezone': 'UTC',
@@ -141,7 +145,8 @@ class MemoryStore(MemoryReviewMixin):
             created, updated = timestamp(row.get('created'), True), timestamp(row.get('updated'))
             if created and created > updated:
                 raise ValueError('记忆首次保存时间不能晚于更新时间。')
-            cleaned.append({'content':row['content'].strip(), 'source':source, 'created':created, 'updated':updated})
+            fields=state_fields(row.get('status','pending'),row.get('status_reason',''),row.get('event_date',''))
+            cleaned.append({'content':row['content'].strip(), 'source':source, 'created':created, 'updated':updated,**fields})
         return profile['name'].strip(), cleaned
 
     @staticmethod
@@ -152,7 +157,7 @@ class MemoryStore(MemoryReviewMixin):
         if profile is None:
             raise ValueError('目标档案不存在，请重新选择。')
         rows = [dict(row) for row in db.execute(
-            'SELECT id,content,created,updated,source,(SELECT MAX(h.id) FROM memory_history h WHERE h.memory=memories.id) AS revision FROM memories WHERE profile=? ORDER BY id', (identity,))]
+            'SELECT id,content,created,updated,source,status,status_reason,event_date,(SELECT MAX(h.id) FROM memory_history h WHERE h.memory=memories.id) AS revision FROM memories WHERE profile=? ORDER BY id', (identity,))]
         fingerprint = hashlib.sha256(json.dumps([dict(profile), rows], ensure_ascii=False, sort_keys=True).encode()).hexdigest()
         return dict(profile), rows, fingerprint
 
@@ -171,12 +176,12 @@ class MemoryStore(MemoryReviewMixin):
             status = 'file_duplicate' if content in seen else ('existing' if content in known else 'new')
             seen.add(content)
             counts[status] += 1
-            conflicts = possible_conflicts(content,conflict_rows) if status=='new' else []
+            conflicts = possible_conflicts(content,conflict_rows) if status=='new' and row['status']!='outdated' else []
             conflict_count += bool(conflicts)
-            items.append({**row, 'status':status, 'conflicts':conflicts})
+            items.append({**row, 'memory_status':row['status'], 'status':status, 'conflicts':conflicts,'state_differs':status=='existing' and any(row[k]!=next(x for x in existing if x['content'].strip()==content)[k] for k in ('status','status_reason','event_date'))})
             if status == 'new':
                 additions.append(row)
-                conflict_rows.append({'id':'file:'+str(len(items)), 'content':content})
+                conflict_rows.append({'id':'file:'+str(len(items)), **row})
         result = {'source_name':source_name, 'target':profile, 'total':len(rows), 'counts':counts,
                   'conflict_count':conflict_count, 'requires_conflict_confirmation':bool(conflict_count),
                   'current_count':len(existing), 'result_count':len(existing)+len(additions), 'items':items,
@@ -219,8 +224,8 @@ class MemoryStore(MemoryReviewMixin):
                     raise ValueError('合并后超过每人 200 条，请先整理记忆。')
                 for row in plan['rows']:
                     new_id = uuid.uuid4().hex
-                    db.execute('INSERT INTO memories(id,profile,content,created,updated,source) VALUES (?,?,?,?,?,?)',
-                               (new_id, identity, row['content'], row['created'], row['updated'], row['source']))
+                    db.execute('INSERT INTO memories(id,profile,content,created,updated,source,status,status_reason,event_date) VALUES (?,?,?,?,?,?,?,?,?)',
+                               (new_id, identity, row['content'], row['created'], row['updated'], row['source'],row['status'],row['status_reason'],row['event_date']))
                     self._mark_history(db,new_id,'imported')
             self._imports.pop(token, None)
             return {'imported':len(plan['rows']), 'total':len(existing)+len(plan['rows'])}
@@ -236,27 +241,25 @@ class MemoryStore(MemoryReviewMixin):
             db.execute('BEGIN IMMEDIATE')
             return self._write_memory(db,identity,content,memory_id,source)
 
-    def _write_memory(self, db, identity, content, memory_id, source):
+    def _write_memory(self,db,identity,content,memory_id,source,fields=None):
         if memory_id:
+            original=db.execute('SELECT * FROM memories WHERE id=? AND profile=?',(memory_id,identity)).fetchone()
+            if not original:raise ValueError('这条记忆不存在或不属于当前用户。')
+            selected=fields or (state_fields(event_date=original['event_date']) if original['content']!=content else {k:original[k] for k in ('status','status_reason','event_date')})
             try:
-                changed = db.execute('UPDATE memories SET content=?,updated=CURRENT_TIMESTAMP WHERE id=? AND profile=?',
-                                     (content, memory_id, identity)).rowcount
+                db.execute('UPDATE memories SET content=?,status=?,status_reason=?,event_date=?,updated=CURRENT_TIMESTAMP WHERE id=? AND profile=?',
+                    (content,selected['status'],selected['status_reason'],selected['event_date'],memory_id,identity))
             except sqlite3.IntegrityError as error:
-                if error.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_UNIQUE:
-                    raise ValueError('相同内容已经存在。') from None
+                if error.sqlite_errorcode==sqlite3.SQLITE_CONSTRAINT_UNIQUE:raise ValueError('相同内容已经存在。') from None
                 raise
-            if not changed:
-                raise ValueError('这条记忆不存在或不属于当前用户。')
         else:
-            existing = db.execute('SELECT id FROM memories WHERE profile=? AND content=?', (identity, content)).fetchone()
-            if existing:
-                return existing['id']
-            if db.execute('SELECT COUNT(*) FROM memories WHERE profile=?', (identity,)).fetchone()[0] >= 200:
-                raise ValueError('每位用户最多保存 200 条记忆，请先整理。')
-            memory_id = uuid.uuid4().hex
-            db.execute('INSERT INTO memories(id,profile,content,created,source) VALUES (?,?,?,CURRENT_TIMESTAMP,?)',
-                       (memory_id, identity, content, source))
-        self.invalidate_personal(identity, memory_id)
+            existing=db.execute('SELECT id FROM memories WHERE profile=? AND content=?',(identity,content)).fetchone()
+            if existing:return existing['id']
+            if db.execute('SELECT COUNT(*) FROM memories WHERE profile=?',(identity,)).fetchone()[0]>=200:raise ValueError('每位用户最多保存200条记忆，请先整理。')
+            selected=fields or state_fields();memory_id=uuid.uuid4().hex
+            db.execute('INSERT INTO memories(id,profile,content,created,source,status,status_reason,event_date) VALUES (?,?,?,CURRENT_TIMESTAMP,?,?,?,?)',
+                (memory_id,identity,content,source,selected['status'],selected['status_reason'],selected['event_date']))
+        self.invalidate_personal(identity,memory_id)
         return memory_id
 
     def delete_memory(self, identity, memory_id, expected_revision=None):
@@ -285,10 +288,10 @@ class MemoryStore(MemoryReviewMixin):
             result = self.request_save(identity,save[1],source='conversation')
             if result.get('review'):
                 return {'reply':'发现可能冲突的记忆，尚未保存。请在「个人记忆」核对差异，选择并存或替换后确认。','review':result['review']}
-            return '已保存到你的长期记忆：' + save[1]
+            return '已保存到你的长期记忆（待核实；相同内容沿用已有状态）：' + save[1]
         items = self.memories(identity)
         if recall:
-            return '你保存的记忆：\n' + '\n'.join(item['content'] for item in items[:20]) if items else '你还没有保存长期记忆。'
+            return '你保存的记忆：\n' + '\n'.join('【'+{'pending':'待核实','valid':'有效（档案标记）','outdated':'过时'}[item['status']]+'】'+item['content'] for item in items[:20]) if items else '你还没有保存长期记忆。'
         query = forget[1].strip().rstrip('。')
         matches = [item for item in items if item['content'].rstrip('。') == query]
         if len(matches) != 1:

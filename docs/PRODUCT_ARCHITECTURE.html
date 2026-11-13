@@ -15,8 +15,8 @@
 <p class="note">保存、修改、恢复、替代纠正等受控操作：先展示影响与范围，再由人确认。模型的建议和资料里的文字不能代替授权。普通对话中明确“记住”的个人新事实，沿用现有直接保存／冲突预览规则。</p>
 <div class="tech"><p>浏览器通过本机 HTTP 接口访问 Python 服务。唤醒／断句使用 Sherpa-ONNX 与 Silero VAD；语音识别为 SenseVoice INT8；声纹独立匹配，普通个人档案选择不构成登录认证。服务端用会话版本、权限、记录版本和取消令牌控制读写。</p></div></section>
 
-<section class="section"><h2>记忆是产品的核心</h2><div class="twocol"><div class="box"><h3>个人记忆</h3><span class="badge">本轮接入语义检索</span><p>每个档案独立保存、检索、导入导出和修改历史。查询个人记忆时展示模型声明引用与其他候选；没有依据就提示。普通聊天展示本轮检索候选。</p><p>个人记忆目前没有待核实／有效／过时的状态字段；已保存不代表已核实。普通档案隔离用于本机体验，不能替代账号权限系统。</p></div>
-<div class="box"><h3>家庭／团队共同记忆</h3><span class="badge">已接入受控流程</span><p>独立空间账号、管理员／编辑／只读角色；每条资料可指定可见成员和修改策略。支持状态、日期、原文依据、历史、导入、备份与恢复。</p><p>回收站、历史内容恢复、末端替代纠正均先预览确认。声纹不授予共享权限；普通个人聊天不会自动读取共同空间资料。</p></div></div>
+<section class="section"><h2>记忆是产品的核心</h2><div class="twocol"><div class="box"><h3>个人记忆</h3><span class="badge">本轮接入语义检索</span><p>每个档案独立保存、检索、导入导出和修改历史。查询个人记忆时展示模型声明引用与其他候选；没有依据就提示。普通聊天展示本轮检索候选。</p><p>个人记忆已支持待核实／有效／过时；疑似冲突先列出不同说法，预览确认后才改状态，旧记录保留。有效是档案标记，不代表系统证明。普通档案隔离用于本机体验，不能替代账号权限系统。</p></div>
+<div class="box"><h3>家庭／团队共同记忆</h3><span class="badge">已接入受控流程</span><p>独立空间账号、管理员／编辑／只读角色；每条资料可指定可见成员和修改策略。支持状态、日期、原文依据、历史、按资料批次导入和追溯、备份与恢复。</p><p>资料批次撤销、回收站、历史内容恢复、末端替代纠正均先预览确认。声纹不授予共享权限；普通个人聊天不会自动读取共同空间资料。</p></div></div>
 <p class="note">短期对话与长期记忆分开：普通聊天每轮发送最近16条消息，浏览器按档案保留最近30条文字。长期记忆按问题检索，每人／每空间最多200条；个人本轮最多取8条以内、合计2200字，不是把全部资料一直塞进上下文。</p>
 <div class="tech"><p>SQLite主库是事实来源；向量缓存为可重建的派生索引。个人索引命名空间 <code>personal:档案ID</code>，共同空间为 <code>shared:空间ID</code>。候选先按档案／权限筛选，再编码；按版本与正文哈希拒绝旧索引。记忆变化会触发重新查询，取消或迟到结果不进入其他档案。</p></div></section>
 
@@ -25,14 +25,14 @@
 <div class="module"><h3>检索模型</h3><p>本机 Qwen3-Embedding 0.6B，配合文字排序，理解不同问法。不可用时回退有门槛的文字检索，不扩大到其他档案或空间。</p></div>
 <div class="module"><h3>看图与朗读</h3><p>Qwen2.5-VL 3B处理明确拍下的照片；Mac系统语音负责朗读，可选音色和语速。不是持续视频感知，也不代表已有情绪识别。</p></div>
 </div><div class="tech"><table><thead><tr><th>存储</th><th>用途</th></tr></thead><tbody>
-<tr><td>主SQLite数据库</td><td>个人／共同记忆、档案、声纹特征、共享账号与会话、成员权限、历史、原文、替代链、回收站和恢复记录。</td></tr>
+<tr><td>主SQLite数据库</td><td>个人／共同记忆、档案、声纹特征、共享账号与会话、成员权限、历史、原文、替代链、回收站、恢复记录和导入批次关联。统一诊断在独立文件保存候选／读取／引用编号、模型与处理元数据，正文按当前权限重新读取。</td></tr>
 <tr><td>派生向量SQLite</td><td>向量、资料编号、版本与哈希；不存记忆明文或查询历史，仍属于本机派生数据。</td></tr>
 <tr><td>诊断与反馈SQLite</td><td>本人工具操作诊断；用户明确提交的问答反馈与权限内快照。</td></tr>
 <tr><td>浏览器本地与本机JSON</td><td>按档案保存普通文字聊天历史；本机保存音色与语速偏好。共同空间资料不写入个人聊天缓存。</td></tr>
-</tbody></table><p>使用云端回答模型时，本轮问题与相关资料会发给配置的服务；向量服务目前限定本机。日期时间读取电脑时钟，尚无天气、新闻和通用网页搜索。</p></div></section>
+</tbody></table><p>模型设置已支持保存切换、分层连接检测及预览确认后的本地／云端同题文字对比。云端普通聊天只发送本次输入；共同记忆仅发送当前账号可见且全体成员可见资料，个人与指定成员资料留在本机。向量服务目前限定本机。日期时间读取电脑时钟，尚无天气、新闻和通用网页搜索。</p></div></section>
 
 <section class="section"><h2>后续能力：还没有全部完成</h2><div class="future-grid">
-<div class="box"><span class="badge pending">下一批软件</span><h3>记忆质量与治理</h3><p>个人记忆状态和疑似冲突处理；更多独立真实资料评测；回收站专门备份与清理；云端用量和费用统计。</p></div>
+<div class="box"><span class="badge pending">下一批软件</span><h3>记忆质量与治理</h3><p>个人记忆状态与疑似冲突第一版已接入；更多独立真实资料评测；回收站专门备份与清理；云端用量和费用统计。</p></div>
 <div class="box"><span class="badge future">后续部署</span><h3>多人、多电脑</h3><p>跨设备登录与协作、传输与访问控制、Windows／Linux朗读及部署验收。当前正式服务仅监听本机。</p></div>
 <div class="box"><span class="badge future">后续硬件</span><h3>开发板与实体机器人</h3><p>RK3588／RK182x的Linux、NPU与模型适配；ESP32 Wi-Fi音频；回声与供电；电机协议和执行反馈。当前动作主要是屏幕动画。</p></div>
 </div></section>
@@ -42,11 +42,11 @@
 <li><strong>核对本轮体验：</strong>选对应档案，在“个人记忆 → 查询个人记忆”换几种问法，检查引用、无答案提示及甲乙隔离。把答错的问题和正确依据记下来。</li>
 <li><strong>方便讲话时再配合：</strong>甲、乙及未登记访客交替，测试声纹、唤醒、插话与回声。文字测试不能代替这些验收。</li>
 <li><strong>硬件阶段协调同事：</strong>确认板卡及加速芯片准确型号、系统镜像、驱动和麦克风固件，提供远程调试条件，再逐项适配。</li>
-</ol><p>代码侧建议下一步：个人记忆状态与疑似冲突提示 → 真实资料独立评测 → 回收站专门备份和清理。是否切换云端、开放多电脑或接实体动作，可等这些基础流程稳定后决定。</p></section>
+</ol><p>代码侧下一步：安全配置云端密钥后的真实验收、多题文字对比，音频设备档位与只读自检已接入，真人通路验收另行安排；个人记忆状态已接入，独立资料评测和回收站专门备份继续列入后续。是否切换云端、开放多电脑或接实体动作，可等这些基础流程稳定后决定。</p></section>
 <details class="section tech"><summary>开发成员：代码对应位置</summary><table><tr><th>模块</th><th>文件</th></tr>
 <tr><td>服务与模型路由</td><td><code>server.py</code>、<code>yiban/backends/</code>、<code>yiban/settings.py</code></td></tr>
 <tr><td>个人记忆与检索</td><td><code>yiban/memory/memory_store.py</code>、<code>personal_retrieval.py</code>、<code>retrieval.py</code>、<code>static/personal-retrieval.js</code></td></tr>
-<tr><td>共同记忆与工具</td><td><code>shared_memory.py</code>、<code>read_only_agent.py</code>、<code>memory_agent.py</code>、<code>shared_import.py</code></td></tr>
+<tr><td>共同记忆与工具</td><td><code>shared_memory.py</code>、<code>read_only_agent.py</code>、<code>memory_agent.py</code>、<code>shared_import.py</code>、<code>shared_batches.py</code></td></tr>
 <tr><td>原文与保护</td><td><code>shared_evidence.py</code>、<code>shared_replacement.py</code>、<code>shared_backup.py</code>、<code>shared_recovery.py</code></td></tr>
 <tr><td>语音与会话</td><td><code>yiban/audio/</code>、<code>yiban/turns.py</code>、<code>static/app.js</code>、<code>static/shared-voice.js</code></td></tr>
 <tr><td>诊断与反馈</td><td><code>conversation_diagnostics.py</code>、<code>agent_audit.py</code>、<code>answer_feedback.py</code></td></tr></table></details>

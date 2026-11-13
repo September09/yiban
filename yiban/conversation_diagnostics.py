@@ -5,6 +5,8 @@ from copy import deepcopy
 import threading
 import time
 import uuid
+from urllib.parse import urlsplit
+import urllib.error
 
 STAGES = {'asr', 'speaker', 'routing', 'memory', 'access', 'model_wait', 'model', 'tts', 'draft', 'commit', 'cancel'}
 
@@ -88,7 +90,64 @@ class TraceStore:
             usage=item['usage'];usage['reported_calls']+=1
             usage['input_tokens']+=counts[0];usage['output_tokens']+=counts[1]
 
-    def read(self, identity):
+    def materials(self, identity, sources, kind='searched'):
+        if kind not in ('searched', 'read'):return
+        with self.lock:
+            item = self.items.get(identity)
+            if item is None:return
+            refs = item.setdefault('material_refs', {'searched':[], 'read':[]})
+            if kind == 'searched':item['search_performed'] = True
+            for source in sources[:40]:
+                key, version = source.get('id'), source.get('version')
+                if isinstance(key,str) and 1<=len(key)<=128 and type(version) is int and version>=0:
+                    ref = {'id':key,'version':version}
+                    if ref not in refs[kind] and len(refs[kind])<40:refs[kind].append(ref)
+
+    def model_identity(self, identity, config, vision=False):
+        name = config.get('vision_model' if vision else 'model')
+        if not isinstance(name,str) or not 1<=len(name)<=160 or any(ord(c)<32 for c in name):return
+        backend = config.get('backend')
+        if backend not in ('ollama','openai_compatible'):return
+        route = 'local_service' if urlsplit(config.get('base_url','')).hostname in {'localhost','127.0.0.1','::1'} else 'remote_service'
+        entry = {'model':name,'backend':backend,'route':route}
+        with self.lock:
+            item = self.items.get(identity)
+            if item is not None:
+                models = item.setdefault('models',[])
+                if entry not in models and len(models)<8:models.append(entry)
+
+    def failure(self, identity, error, stage=None):
+        code, http = 'unexpected', None
+        name = type(error).__name__
+        if name in {'Cancelled','GeneratorExit'}:code='cancelled'
+        elif name == 'SharedError':code={401:'permission',403:'permission',409:'stale'}.get(error.status,'invalid_request')
+        elif isinstance(error,(TimeoutError,)):code='timeout'
+        elif isinstance(error,urllib.error.HTTPError) or name=='ModelHTTPError':
+            code='model_http';http=getattr(error,'code',None)
+        elif isinstance(error,(urllib.error.URLError,ConnectionError)):code='model_connection'
+        elif name == 'AgentProtocolError':code='tool_protocol'
+        elif isinstance(error,(ValueError,RuntimeError)) and stage in {'routing','model_wait','model'}:code='model_output'
+        elif isinstance(error,OSError):code='model_connection'
+        else:code='invalid_request' if isinstance(error,ValueError) else 'unexpected'
+        failure={'code':code, 'stage':stage if stage in STAGES else None}
+        if type(http) is int and 100<=http<=599:failure['http_status']=http
+        with self.lock:
+            item=self.items.get(identity)
+            if item is not None and 'failure' not in item:item['failure']=failure
+
+    def absorb(self, identity, trace):
+        # Mirror only public timing/model metadata into a caller's trace capability.
+        with self.lock:
+            item=self.items.get(identity)
+            if item is None:return
+            for step in trace.get('steps',[]):
+                item['sequence']+=1
+                item['steps'].append({**step,'sequence':item['sequence'],'start':self.clock()-step.get('elapsed_ms',0)/1000})
+            item['steps']=item['steps'][-64:]
+            for key in ('models','failure','retrieval','usage'):
+                if key in trace:item[key]=deepcopy(trace[key])
+
+    def read(self, identity, private=False):
         if not self.valid(identity):
             return {'steps': [], 'available': False}
         with self.lock:
@@ -103,7 +162,10 @@ class TraceStore:
             usage=deepcopy(item.get('usage',{'model_calls':0,'reported_calls':0,'input_tokens':0,'output_tokens':0}))
             usage['complete']=usage['model_calls']>0 and usage['reported_calls']==usage['model_calls']
             if not usage['reported_calls']:usage['input_tokens']=usage['output_tokens']=None
-            return {'steps': result, 'available': True, 'usage':usage, **({'retrieval':deepcopy(item['retrieval'])} if 'retrieval' in item else {})}
+            return {'steps': result, 'available': True, 'usage':usage,
+                    **({'models':deepcopy(item['models'])} if 'models' in item else {}),
+                    **({'failure':deepcopy(item['failure'])} if 'failure' in item else {}),
+                    **({'material_refs':deepcopy(item.get('material_refs',{})), 'search_performed':item.get('search_performed',False)} if private else {}), **({'retrieval':deepcopy(item['retrieval'])} if 'retrieval' in item else {})}
 
 
 TRACES = TraceStore()
@@ -119,6 +181,7 @@ def phase(stage):
     except BaseException as error:
         # No exception text: upstream responses may contain private request data.
         status = 'cancelled' if type(error).__name__ in {'Cancelled', 'GeneratorExit'} else 'error'
+        TRACES.failure(identity,error,stage)
         TRACES.end(identity, sequence, status)
         raise
     else:

@@ -36,7 +36,7 @@ class MemoryManagementTests(unittest.TestCase):
         store = MemoryStore(self.path)
         item = store.memories('a')[0]
         self.assertGreater(item.pop('revision'),0)
-        self.assertEqual(item, {'id':'old','content':'旧记忆','updated':'2026-01-01 08:00:00','created':None,'source':'legacy'})
+        self.assertEqual(item, {'id':'old','content':'旧记忆','updated':'2026-01-01 08:00:00','created':None,'source':'legacy','status':'pending','status_reason':'','event_date':''})
         self.assertEqual(store.profile('a')['salutation'], '测试称呼')
         with sqlite3.connect(self.path) as db:
             self.assertEqual(db.execute('SELECT * FROM voiceprints').fetchall(), voice)

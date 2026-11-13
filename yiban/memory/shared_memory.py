@@ -10,6 +10,7 @@ import time
 import uuid
 from datetime import date
 from yiban.memory.memory_review import possible_conflicts
+from yiban.conversation_diagnostics import TRACES, CURRENT
 from yiban.memory.shared_dialogue import SharedDialogue
 
 
@@ -73,6 +74,8 @@ class SharedMemory:
         self.replacements=SharedReplacement(self)
         from yiban.memory.shared_recovery import SharedRecovery
         self.recovery=SharedRecovery(self)
+        from yiban.memory.shared_batches import SharedBatches
+        self.batches=SharedBatches(self)
 
     @staticmethod
     def _text(value, label, maximum, minimum=1):
@@ -459,9 +462,12 @@ class SharedMemory:
             evidence=self.evidence.read(token,{'space_id':guard['space'],'id':source['id'],'expected_version':source['version']})
             if evidence.get('available'):result.update(quotes=evidence['quotes'],content_changed=evidence['content_changed'])
         self.validate_answer(token,guard)
+        TRACES.materials(CURRENT.get(),[source],'read')
         return result
 
     def question_context(self, token, space_id, query, public_only=False, include_outdated=False, cancel=None, conversation=False, conversation_id=None, choice_id=None, search_query=None):
+        from yiban.backends.model_settings import REMOTE_REQUEST
+        public_only = public_only or REMOTE_REQUEST.get()
         query=self._text(query,'问题',2000)
         with self.store.connect() as db:
             db.execute('BEGIN');actor=self._actor(db,token);space=self._member(db,actor['id'],space_id)
@@ -513,6 +519,9 @@ class SharedMemory:
             context+='本题问的是活动日程中的时间，而不是此刻的钟表时间。按问题指定的新旧版本回答，不要附带当前几点或不清楚当前时间的说法。\n'
         model_sources=[{key:value for key,value in item.items() if key not in {'version','created','updated','evidence_source_name'}} for item in chosen]
         context+=json.dumps({'space':space['name'],'kind':space['kind'],'memories':model_sources},ensure_ascii=False)
+        self.validate_answer(token,guard)
+        TRACES.materials(CURRENT.get(),chosen)
+        TRACES.retrieval(CURRENT.get(),retrieval)
         return {'query':query,'context':context,'sources':chosen,'guard':guard,'retrieval':retrieval,'dialogue_plan':plan}
 
     def validate_answer(self, token, guard):

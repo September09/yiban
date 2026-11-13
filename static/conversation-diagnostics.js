@@ -49,6 +49,7 @@ const conversationDiagnostics=(()=>{
       const response=await fetch('/api/diagnostics/trace',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({trace_id:id})});
       if(!response.ok)throw new Error('unavailable');
       const data=await response.json();if(find(id)!==r||r.pollSequence!==sequence)return;
+      if(typeof diagnosticOverview!=='undefined')diagnosticOverview.traceLocal(id,data);
       r.backend=(Array.isArray(data.steps)?data.steps:[]).slice(-64).filter(s=>labels[s.stage]&&['running','done','error','cancelled'].includes(s.status)&&Number.isFinite(s.elapsed_ms)).map(s=>({stage:s.stage,status:s.status,elapsed_ms:Math.max(0,s.elapsed_ms)}));
       r.retrieval=null;if(data.retrieval&&['lexical','hybrid'].includes(data.retrieval.strategy)){const d=data.retrieval;r.retrieval={strategy:d.strategy,fallback:d.fallback===true,reason_code:['relevant_candidates','missing_attribute','no_relevant_memory','embedding_unavailable'].includes(d.reason_code)?d.reason_code:null};for(const k of ['candidate_count','hit_count','cache_hits','elapsed_ms'])if(Number.isInteger(d[k])&&d[k]>=0&&d[k]<=1000000)r.retrieval[k]=d[k];}r.traceAvailable=data.available===true;r.lastPoll=now();render();
     }catch{if(find(id)===r&&r.pollSequence===sequence){r.traceAvailable=false;render();}}finally{clearTimeout(timeout);}

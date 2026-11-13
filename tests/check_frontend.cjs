@@ -16,6 +16,7 @@ const context=vm.createContext({
   window:{matchMedia:()=>({matches:false}),addEventListener(){}},
   navigator:{mediaDevices:{getUserMedia:async()=>{micCalls++;throw new Error('No device in logic test');}}},
   fetch:async(path,options)=>{
+    if(path==='/api/audio/devices')return{ok:true,json:async()=>({available:false,devices:[],message:'模拟平台无系统元数据'})};
     if(path==='/api/diagnostics/trace')return{ok:true,json:async()=>({steps:[],available:true})};
     calls.push({path,data:options?.body?JSON.parse(options.body):null});
     if(path==='/api/status')return{json:async()=>({chat:true,asr:true,wake:true,vision:true})};
@@ -38,6 +39,7 @@ const context=vm.createContext({
   vm.runInContext(fs.readFileSync('static/personal-retrieval.js','utf8'),context);
   vm.runInContext(fs.readFileSync('static/memory-import.js','utf8'),context);
   vm.runInContext(fs.readFileSync('static/memory-review.js','utf8'),context);
+  vm.runInContext(fs.readFileSync('static/personal-state.js','utf8'),context);
   vm.runInContext(fs.readFileSync('static/shared-answer-sources.js','utf8'),context);
   vm.runInContext(fs.readFileSync('static/shared.js','utf8'),context);
   vm.runInContext(fs.readFileSync('static/shared-agent.js','utf8'),context);
@@ -46,10 +48,14 @@ const context=vm.createContext({
   vm.runInContext(fs.readFileSync('static/shared-feedback.js','utf8'),context);
   vm.runInContext(fs.readFileSync('static/shared-backup.js','utf8'),context);
   vm.runInContext(fs.readFileSync('static/shared-recovery.js','utf8'),context);
+  vm.runInContext(fs.readFileSync('static/shared-batches.js','utf8'),context);
   vm.runInContext(fs.readFileSync('static/shared-voice.js','utf8'),context);
   vm.runInContext(fs.readFileSync('static/shared-evidence.js','utf8'),context);
   vm.runInContext(fs.readFileSync('static/material-import.js','utf8'),context);
   vm.runInContext(fs.readFileSync('static/speech-settings.js','utf8'),context);
+  vm.runInContext(fs.readFileSync('static/audio-devices.js','utf8'),context);
+  vm.runInContext(fs.readFileSync('static/diagnostic-overview.js','utf8'),context);
+  vm.runInContext(fs.readFileSync('static/model-settings.js','utf8'),context);
   vm.runInContext(fs.readFileSync('static/workspace.js','utf8'),context);
   await new Promise(r=>setImmediate(r));
   assert.equal(micCalls,0,'page load must not acquire media');
@@ -661,7 +667,7 @@ const context=vm.createContext({
   assert.equal(ids.sharedQuestion.value,'尚未发送的问题');assert.equal(ids.sharedMemoryText.value,'尚未保存的记忆');assert.equal(ids.sharedAgentConsent.checked,true);
   assert.equal(vm.runInContext('sharedAgentDraft.data.token',context),'unsaved');
   assert.equal(ids.workspaceReviewDraft.hidden,false);
-  ids.navDiagnostics.onclick();assert.equal(ids.viewDiagnostics.hidden,false);assert.equal(ids.conversationDiagnosticsPanel.open,true);
+  ids.navDiagnostics.onclick();assert.equal(ids.viewDiagnostics.hidden,false);assert.equal(ids.conversationDiagnosticsPanel.open,false,'voice details stay collapsed below the overview');
   ids.navChat.onclick();assert.equal(ids.conversationDiagnosticsPanel.open,false);
   let prevented=false;ids.navChat.onkeydown({key:'ArrowRight',preventDefault(){prevented=true;}});
   assert.equal(prevented,true);assert.equal(ids.viewPersonal.hidden,false);assert.equal(ids.navPersonal['aria-selected'],'true');assert.equal(ids.navChat.tabIndex,-1);
@@ -822,5 +828,70 @@ const context=vm.createContext({
   vm.runInContext("renderPersonalMemoryContext(personalOrdinaryRow,{profile:{name:'甲'},sources:[],retrieval:{strategy:'lexical',hit_count:0,elapsed_ms:1,fallback:true}})",context);
   assert.equal(ordinaryRow.item.children.length,1);
   assert.match(ordinaryRow.item.children[0].children[0].textContent,/未找到相关长期记忆/);
+  // Batch views preserve the same permission/session boundary and require two confirmations.
+  vm.runInContext("sharedState.token='batch-token';sharedState.account={id:'owner',name:'测试管理员'};sharedState.space={id:'batch-space',name:'批次测试',kind:'team',role:'owner',version:1};sharedState.members=[{id:'owner',name:'测试管理员',role:'owner'}];sharedState.busy=false;sharedState.asking=false;sharedBatchesClear();sharedControls();",context);
+  const batchRecordFixture={id:'m-batch',version:1,content:'虚构活动十点集合',status:'pending',event_date:'2026-11-21',source_name:'通知.txt',source_note:'活动资料',author_name:'测试管理员',audience:['测试管理员'],visibility:'all',edit_policy:'author',state:'active',eligible:true,has_evidence:true,can_read_full:true};
+  const batchFixture={id:'batch-1',name:'<script>只是批次名称</script>',actor_name:'测试管理员',created:'2026-11-13 00:00:00',can_undo:true,eligible_count:1,visible_count:1,active_count:1,trash_count:0};
+  const batchRequests=[];let delayedBatchSource;
+  context.fetch=async(path,options)=>{
+    const data=JSON.parse(options.body);batchRequests.push({path,data});
+    if(path==='/api/shared/batches/list')return{ok:true,json:async()=>({batches:[batchFixture],untracked_count:2})};
+    if(path==='/api/shared/batches/detail')return{ok:true,json:async()=>({batch:batchFixture,items:[batchRecordFixture],events:[]})};
+    if(path==='/api/shared/batches/preview')return{ok:true,json:async()=>({token:'batch-preview',space_id:'batch-space',space_name:'批次测试',actor_name:'测试管理员',batch:batchFixture,reason:data.reason,withdraw:[batchRecordFixture],retained:[]})};
+    if(path==='/api/shared/batches/source')return new Promise(resolve=>{delayedBatchSource=resolve;});
+    if(path==='/api/shared/batches/cancel'||path==='/api/shared/auth/logout')return{ok:true,json:async()=>({cancelled:true})};
+    throw new Error('Unexpected batch request '+path);
+  };
+  await ids.sharedBatchLoad.onclick();assert.match(ids.sharedBatchStatus.textContent,/2 条历史/);
+  assert.match(ids.sharedBatchList.children[0].children[0].textContent,/<script>/,'batch labels are inert text');
+  await vm.runInContext("batchOpen('batch-1')",context);
+  assert.equal(ids.sharedBatchItems.children.length,1);
+  ids.sharedBatchReason.value='错导资料';ids.sharedBatchReason.oninput();await ids.sharedBatchPreview.onclick();
+  assert.equal(ids.sharedBatchConfirm.disabled,true);
+  ids.sharedBatchConsent.checked=true;ids.sharedBatchConsent.onchange();assert.equal(ids.sharedBatchConfirm.disabled,true);
+  await ids.sharedBatchConfirm.onclick();assert.equal(batchRequests.filter(r=>r.path.endsWith('/confirm')).length,0);
+  ids.sharedBatchScope.checked=true;ids.sharedBatchScope.onchange();assert.equal(ids.sharedBatchConfirm.disabled,false);
+  ids.sharedBatchReason.value='修正撤销原因';ids.sharedBatchReason.oninput();assert.equal(ids.sharedBatchConfirm.disabled,true);
+  assert.equal(vm.runInContext('batchState.plan',context),null,'changing reason invalidates the frozen preview');
+  context.batchSourceFixture=batchRecordFixture;
+  const pendingBatchSource=vm.runInContext('batchSource(batchSourceFixture,true)',context);await new Promise(r=>setImmediate(r));
+  vm.runInContext("sharedLock('退出批次测试');",context);
+  delayedBatchSource({ok:true,json:async()=>({available:true,source_name:'迟到原文',captured_content:'私密资料',quotes:[],source_text:'不得在退出后出现的资料'})});
+  await pendingBatchSource;
+  assert.equal(ids.sharedBatchSource.hidden,true);assert.equal(ids.sharedBatchSourceText.textContent,'');
+  assert.equal(ids.sharedBatchItems.children.length,0);assert.equal(vm.runInContext('sharedState.busy',context),false);
+  assert.ok(!JSON.stringify(saved).includes('私密资料'),'batch material is never persisted in localStorage');
+  // Unified diagnostics distinguish searched candidates from validated citations.
+  const overviewText=node=>[node.textContent,...(node.children||[]).map(overviewText)].join('\n');
+  vm.runInContext("sharedState.token='overview-token';sharedState.account={id:'o',name:'诊断用户'};sharedState.space={id:'overview-space',name:'诊断测试',kind:'team',role:'owner',version:1};sharedState.busy=false;sharedState.asking=false;diagnosticOverview.clearShared();diagnosticOverview.clearLocal();",context);
+  const overviewA={id:'oa',version:1,available:true,content:'已引用的北门安排',status:'pending',event_date:'2026-11-21',source_note:'通知A',has_evidence:false};
+  const overviewB={id:'ob',version:1,available:true,content:'没有被引用的接待资料',status:'valid',event_date:'',source_note:'通知B',has_evidence:false};
+  const overviewRow={id:'overview-round',started:1,action:'read',status:'done',reason:'ok',elapsed_ms:2400,search_performed:true,citation_checked:true,citation_status:'model_reported',materials:{searched:[overviewA,overviewB],read:[overviewA],cited:[overviewA]},models:[{model:'test-qwen',backend:'ollama',route:'local_service'}],usage:{model_calls:2,reported_calls:0},steps:[]};
+  context.fetch=async(path)=>({ok:true,json:async()=>path==='/api/shared/diagnostics/overview'?{available:true,records:[overviewRow]}:{}});
+  ids.overviewScope.value='all';await ids.overviewRefresh.onclick();
+  let overviewRendered=overviewText(ids.overviewDetail);
+  assert.match(overviewRendered,/2 条（不等于引用）/);assert.match(overviewRendered,/1 条/);assert.match(overviewRendered,/test-qwen/);assert.match(overviewRendered,/2.40 秒/);
+  const citedOverview=ids.overviewDetail.children.find(c=>c.children?.[0]?.textContent==='实际引用的记忆');
+  assert.match(overviewText(citedOverview),/已引用的北门安排/);assert.ok(!overviewText(citedOverview).includes('没有被引用的接待资料'));
+  vm.runInContext("diagnosticOverview.startLocal('local-round','chat','普通对话问题');diagnosticOverview.sourcesLocal('local-round',{profile:{id:'a'},sources:[{id:'only-candidate',content:'普通聊天候选',status:'recorded'}]},true);diagnosticOverview.finishLocal('local-round');diagnosticOverview.traceLocal('local-round',{available:true,steps:[],models:[],usage:{model_calls:0,reported_calls:0}})",context);
+  ids.overviewScope.value='local';ids.overviewScope.onchange();overviewRendered=overviewText(ids.overviewDetail);
+  assert.match(overviewRendered,/普通聊天未核对引用/);assert.match(overviewRendered,/普通聊天候选/);assert.match(overviewRendered,/本轮未调用模型/);
+  const localCited=ids.overviewDetail.children.find(c=>c.children?.[0]?.textContent==='实际引用的记忆');
+  assert.ok(!overviewText(localCited).includes('普通聊天候选'));
+  vm.runInContext("diagnosticOverview.finishLocal('local-round','cancelled')",context);
+  assert.match(overviewText(ids.overviewDetail),/已完成/,'stopping playback after a text answer does not cancel completed text diagnostics');
+  vm.runInContext("diagnosticOverview.startLocal('failed-round','personal','失败测试');diagnosticOverview.finishLocal('failed-round','failed');diagnosticOverview.traceLocal('failed-round',{available:true,steps:[],models:[{model:'failed-model',route:'remote_service'}],usage:{model_calls:1},failure:{code:'model_http',http_status:429,stage:'model_wait'}})",context);
+  overviewRendered=overviewText(ids.overviewDetail);assert.match(overviewRendered,/HTTP 429/);assert.match(overviewRendered,/failed-model/);
+  vm.runInContext("diagnosticOverview.startLocal('rule-round','chat','今天几号');diagnosticOverview.sourcesLocal('rule-round',{profile:null,sources:[],answer_source_ids:[],source_usage:'program_selected'});diagnosticOverview.finishLocal('rule-round');diagnosticOverview.traceLocal('rule-round',{available:true,steps:[{stage:'routing',status:'done',elapsed_ms:1}],models:[],usage:{model_calls:0}})",context);
+  assert.match(overviewText(ids.overviewDetail),/本轮未执行记忆检索/);assert.match(overviewText(ids.overviewDetail),/0 条/);
+  ids.overviewErrors.checked=true;ids.overviewErrors.onchange();assert.equal(ids.overviewList.children.length,1);ids.overviewErrors.checked=false;
+  vm.runInContext("diagnosticOverview.clearLocal()",context);ids.overviewScope.value='all';
+  let lateOverview;
+  context.fetch=async(path)=>path==='/api/shared/diagnostics/overview'?new Promise(resolve=>{lateOverview=resolve;}):({ok:true,json:async()=>({})});
+  const pendingOverview=ids.overviewRefresh.onclick();await new Promise(r=>setImmediate(r));
+  vm.runInContext("sharedLock('退出诊断测试')",context);
+  lateOverview({ok:true,json:async()=>({available:true,records:[{...overviewRow,materials:{searched:[{...overviewA,content:'退出后不得出现的私密资料'}],read:[],cited:[]}}]})});await pendingOverview;
+  assert.equal(ids.overviewList.children.length,0);assert.ok(!overviewText(ids.overviewDetail).includes('退出后不得出现'));
+  assert.ok(!JSON.stringify(saved).includes('普通聊天候选'),'overview bodies are never persisted in browser storage');
   console.log('Frontend checks passed: permissions, camera, profile isolation, cancellation, PCM and disabled speech.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

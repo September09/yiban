@@ -73,7 +73,7 @@ class ModelClient:
         return has_text and complete
 
     @contextmanager
-    def stream_request(self, path, payload, cancel=None):
+    def stream_request(self, path, payload, cancel=None, method="POST"):
         if cancel is None:
             with self.request(path, payload) as response:
                 yield response
@@ -119,7 +119,7 @@ class ModelClient:
             key = os.environ.get(self.config['api_key_env'])
             if key and self.config['backend'] == 'openai_compatible':
                 headers['Authorization'] = 'Bearer ' + key
-            connection.request('POST', target, json.dumps(payload).encode(), headers)
+            connection.request(method, target, json.dumps(payload).encode() if payload is not None else None, headers)
             response = connection.getresponse()
             # HTTP/1.0 servers detach the socket from the connection at headers.
             stream_socket = getattr(getattr(response.fp, 'raw', None), '_sock', None)
@@ -144,6 +144,8 @@ class ModelClient:
             connection.close()
 
     def chat(self, messages, vision=False, cancel=None, json_schema=None):
+        from yiban.conversation_diagnostics import TRACES, CURRENT
+        TRACES.model_identity(CURRENT.get(),self.config,vision)
         model = self.config["vision_model"] if vision else self.config["model"]
         if not model:
             raise ValueError("当前配置未启用视觉模型。")

@@ -1,4 +1,6 @@
 // Explicit memory edits and opt-in voiceprint enrollment. Audio stays in RAM.
+const personalStatusNames={pending:'待核实',valid:'有效（本人标记）',outdated:'过时'};
+function personalStateText(row){return '状态：'+(personalStatusNames[row.status]||'未记录核实状态')+'；事件日期：'+(row.event_date||'未填写')+(row.status_reason?'；说明：'+row.status_reason:'');}
 let profiles=[], memoryEdit=null, memoryEditRevision=null, personalVersion=0;
 let voiceMatchedProfile='';
 let memoryItems=[], memoryLoaded=false, memoryBusy=false;
@@ -61,6 +63,7 @@ function personalControls(){
   if(typeof personalMemoryControls==='function')personalMemoryControls();
   if(typeof memoryImportControls==='function')memoryImportControls();
   if(typeof memoryReviewControls==='function')memoryReviewControls();
+  if(typeof personalStateControls==='function')personalStateControls();
 }
 
 async function refreshProfiles(){
@@ -78,11 +81,12 @@ function switchProfile(identity,{preserveTrace=false}={}){
   $('workspaceSpeakerResult').hidden=true;
   $('speakerRetry').hidden=true;
   if(identity===activeProfile)return;
+  if(typeof diagnosticOverview!=='undefined')diagnosticOverview.clearLocal();
   if(typeof sharedPersonalChanged==='function')sharedPersonalChanged();
   cancelTurn({preserveTrace});if(typeof personalMemoryCancel==='function')personalMemoryCancel(true);activeProfile=identity;
   messages=identity?readChatHistory(identity):[];
   render();
-  resetMemoryEditor();$('memorySearch').value='';
+  resetMemoryEditor();$('memorySearch').value='';$('memoryStatusFilter').value='all';$('personalIncludeOutdated').checked=false;
   if(typeof resetMemoryImport==='function')resetMemoryImport();
   if(typeof resetMemoryReview==='function'){resetMemoryReview();closeMemoryHistory();}
   $('profileSelect').value=identity;
@@ -129,7 +133,7 @@ $('speakerRetry').onclick=()=>{
 };
 
 function resetMemoryEditor(){
-  memoryEdit=null;memoryEditRevision=null;$('memoryText').value='';$('saveMemory').textContent='保存记忆';
+  memoryEdit=null;memoryEditRevision=null;$('memoryText').value='';$('memoryState').value='pending';$('memoryStateReason').value='';$('memoryEventDate').value='';$('saveMemory').textContent='保存记忆';
 }
 function memoryLocked(){return busy||recording||enrolling||enrollmentSaving||memoryBusy||wakePhase==='command';}
 function memoryTime(value){
@@ -142,17 +146,18 @@ function renderMemories(){
   if(!activeProfile){$('memoryCount').textContent='请先选择用户';return;}
   if(!memoryLoaded){$('memoryCount').textContent='记忆尚未加载';return;}
   const identity=activeProfile,query=$('memorySearch').value.trim().toLocaleLowerCase();
-  const items=memoryItems.filter(item=>item.content.toLocaleLowerCase().includes(query));
-  $('memoryCount').textContent=query?`找到 ${items.length} / ${memoryItems.length} 条`:`已保存 ${memoryItems.length} / 200 条`;
+  const filter=$('memoryStatusFilter').value||'all';
+  const items=memoryItems.filter(item=>item.content.toLocaleLowerCase().includes(query)&&(filter==='all'||item.status===filter));
+  $('memoryCount').textContent=query||filter!=='all'?`找到 ${items.length} / ${memoryItems.length} 条`:`已保存 ${memoryItems.length} / 200 条`;
   const sources={manual:'手动保存',conversation:'对话中的记住指令',legacy:'历史记录（来源未知）'};
   for(const memory of items){
     const row=document.createElement('li'),content=document.createElement('span'),meta=document.createElement('small');
     content.textContent=memory.content;meta.className='memory-meta';
-    meta.textContent=`来源：${sources[memory.source]||sources.legacy}\n首次保存：${memoryTime(memory.created)}\n最近更新：${memoryTime(memory.updated)}（北京时间）`;
+    meta.textContent=personalStateText(memory)+'\n'+`来源：${sources[memory.source]||sources.legacy}\n首次保存：${memoryTime(memory.created)}\n最近更新：${memoryTime(memory.updated)}（北京时间）`;
     const edit=document.createElement('button');edit.className='text-button';edit.textContent='编辑';edit.onclick=()=>{
       if(memoryLocked()||identity!==activeProfile)return;
       if(typeof resetMemoryReview==='function')resetMemoryReview();
-      memoryEdit=memory.id;memoryEditRevision=memory.revision;$('memoryText').value=memory.content;$('saveMemory').textContent='更新记忆';$('memoryText').focus();
+      memoryEdit=memory.id;memoryEditRevision=memory.revision;$('memoryText').value=memory.content;$('memoryState').value=memory.status||'pending';$('memoryStateReason').value=memory.status_reason||'';$('memoryEventDate').value=memory.event_date||'';$('saveMemory').textContent='更新记忆';$('memoryText').focus();
     };
     const remove=document.createElement('button');remove.className='text-button';remove.textContent='删除';remove.onclick=async()=>{
       if(memoryLocked()||identity!==activeProfile||!window.confirm('删除这条长期记忆？'))return;
@@ -173,13 +178,17 @@ function renderMemories(){
   if(!items.length){const row=document.createElement('li');row.textContent=memoryItems.length?'没有匹配的记忆，试试其他关键词。':'还没有保存的记忆。可以在上方添加，或在聊天中说“记住：……”。';$('memoryList').append(row);}
 }
 async function refreshMemories(){
+  if(typeof diagnosticOverview!=='undefined')diagnosticOverview.clearLocal();
   const version=++personalVersion,identity=activeProfile;
+  if(typeof personalConflictClear==='function')personalConflictClear();
+  if(typeof personalMemoryCancel==='function')personalMemoryCancel();
   memoryItems=[];memoryLoaded=false;renderMemories();personalControls();if(!identity)return;
   $('memoryCount').textContent='正在加载记忆…';
   try{
     const data=await(await api('/api/memory/list',{profile_id:identity})).json();
     if(version!==personalVersion||identity!==activeProfile)return;
     memoryItems=data.memories;memoryLoaded=true;
+    if(typeof personalConflictRender==='function')personalConflictRender(data.conflicts);
     if(memoryEdit&&!memoryItems.some(item=>item.id===memoryEdit))resetMemoryEditor();
     renderMemories();personalControls();
   }catch(error){if(version===personalVersion){$('memoryCount').textContent='加载失败，请重新选择用户重试';notice(error.message);}}
@@ -252,7 +261,7 @@ $('saveMemory').onclick=async()=>{
   if(!activeProfile||memoryLocked())return;
   const identity=activeProfile,edited=!!memoryEdit;memoryBusy=true;personalControls();
   try{
-    const result=await(await api('/api/memory/save',{profile_id:identity,content:$('memoryText').value,id:memoryEdit,expected_revision:memoryEditRevision})).json();
+    const result=await(await api('/api/memory/save',{profile_id:identity,content:$('memoryText').value,id:memoryEdit,expected_revision:memoryEditRevision,status:$('memoryState').value,status_reason:$('memoryStateReason').value,event_date:$('memoryEventDate').value})).json();
     if(identity!==activeProfile)return;
     if(result.review){showMemoryReview(result.review);return;}
     if(typeof resetMemoryReview==='function')resetMemoryReview();

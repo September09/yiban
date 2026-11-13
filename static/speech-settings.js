@@ -30,7 +30,7 @@ async function loadSpeechSettings(){
 function stopSpeechPreview(resume=true,message='已停止试听，未更改保存的设置。'){
   const p=speechPrefs.preview;if(!p)return;
   speechPrefs.epoch++;speechPrefs.preview=null;p.controller.abort();clearTimeout(p.timeout);
-  if(p.audio){p.audio.onended=null;p.audio.onerror=null;p.audio.pause();}
+  if(p.audio){p.audio.onended=null;p.audio.onerror=null;if(typeof audioDevices!=='undefined')audioDevices.releaseOutput(p.audio);p.audio.pause();}
   if(p.url)URL.revokeObjectURL(p.url);
   api('/api/turn/cancel',{turn_id:p.id}).catch(()=>{});
   $('speechSettingsStatus').textContent=message;speechSettingsControls();
@@ -49,8 +49,9 @@ async function previewSpeech(){
     p.url=URL.createObjectURL(blob);p.audio=new Audio(p.url);
     p.audio.onended=()=>{if(epoch===speechPrefs.epoch)stopSpeechPreview(true,'试听结束。满意后请点击「保存声音设置」。');};
     p.audio.onerror=()=>{if(epoch===speechPrefs.epoch)stopSpeechPreview(true,'试听播放失败，请检查当前输出设备。');};
-    await p.audio.play();if(epoch===speechPrefs.epoch)$('speechSettingsStatus').textContent='正在试听…没有提高系统音量。';
-  }catch(error){if(epoch===speechPrefs.epoch)stopSpeechPreview(true,'试听失败：'+error.message);}
+    if(typeof audioDevices!=='undefined')await audioDevices.routeOutput(p.audio);if(epoch!==speechPrefs.epoch)return;
+    await p.audio.play();if(epoch===speechPrefs.epoch&&typeof audioDevices!=='undefined')audioDevices.playbackStarted(p.audio);if(epoch===speechPrefs.epoch)$('speechSettingsStatus').textContent='正在试听…没有提高系统音量。';
+  }catch(error){if(epoch===speechPrefs.epoch&&p.audio&&typeof audioDevices!=='undefined')audioDevices.failed('output',error);if(epoch===speechPrefs.epoch)stopSpeechPreview(true,'试听失败：'+error.message);}
 }
 async function saveSpeechSettings(){
   if(speechSettingsBlocked()||speechPreviewActive()||speechPrefs.loading||speechPrefs.saving||!speechPrefs.data?.available)return;

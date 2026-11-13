@@ -227,19 +227,23 @@ class SharedImport:
                 if warnings:conflicts.append({'content':payload['content'],'matches':warnings})
                 audience=sorted(roster.values()) if payload['visibility']=='all' else sorted({roster[x] for x in set(payload['viewers'])|{actor['id'],space['owner']}})
                 evidence=self.shared.evidence.resolve(token,space['id'],item.get('evidence_ref'),payload['content']) if keep else None
-                planned.append({'payload':payload,'audience':audience,'evidence':evidence})
+                provenance=evidence or (self.shared.evidence.resolve(token,space['id'],item['evidence_ref'],payload['content']) if item.get('evidence_ref') else None)
+                planned.append({'payload':payload,'audience':audience,'evidence':evidence,'source_name':provenance['source_name'] if provenance else ''})
             if not planned:raise SharedError('全部内容都与当前可见记忆或本批内容重复，没有需要新增的记忆。')
             total=db.execute('SELECT COUNT(*) FROM shared_memories WHERE space=?',(space['id'],)).fetchone()[0]
             if total+len(planned)>200:raise SharedError('导入后会超过空间 200 条上限，请减少条数或整理已有记忆。')
+        batch_name=self.shared._text(data.get('batch_name') or '资料导入', '批次名称', 160)
+        mode=data.get('mode','manual')
+        if mode not in ('paragraphs','ai','manual'):raise SharedError('整理方式无效。')
         review=secrets.token_urlsafe(32);now=time.monotonic()
         plan={'actor':actor['id'],'session':self.shared._token_hash(token),'space':space['id'],'version':space['version'],
-              'items':copy.deepcopy(planned),'conflicts':bool(conflicts),'expires':now+600}
+              'items':copy.deepcopy(planned),'conflicts':bool(conflicts),'expires':now+600, 'batch_name':batch_name, 'mode':mode}
         with self.lock:
             self.plans={key:value for key,value in self.plans.items() if value['expires']>now}
             if len(self.plans)>=64:self.plans.pop(next(iter(self.plans)))
             self.plans[review]=plan
         return {'token':review,'items':planned,'skipped':skipped,'conflicts':conflicts,'space_name':space['name'],
-                'actor_name':actor['name'],'expires_in_seconds':600}
+                'actor_name':actor['name'],'expires_in_seconds':600,'batch_name':batch_name}
 
     def confirm(self, token, data):
         if data.get('confirmed') is not True:raise SharedError('请核对内容、归属、可见范围，再明确确认导入。')
@@ -260,6 +264,7 @@ class SharedImport:
                 if space['version']!=plan['version']:raise SharedError('空间内容或成员已变化，请重新预览。',409)
                 if db.execute('SELECT COUNT(*) FROM shared_memories WHERE space=?',(space['id'],)).fetchone()[0]+len(plan['items'])>200:
                     raise SharedError('空间记忆已达上限。')
+                batch_id=self.shared.batches.create(db,space['id'],actor['id'],plan['batch_name'],plan['mode'])
                 for item in plan['items']:
                     p=self.shared._payload(db,actor,space,item['payload'],None)
                     identity=uuid.uuid4().hex
@@ -267,12 +272,13 @@ class SharedImport:
                         (identity,space['id'],actor['id'],actor['id'],p['content'],p['visibility'],p['edit_policy'],p['event_date'],p['source_note'],p['status'],p['status_reason']))
                     db.executemany('INSERT INTO shared_audience VALUES (?,?)',[(identity,x) for x in p['viewers']])
                     self.shared.evidence.save(db,identity,item['evidence'])
+                    self.shared.batches.attach(db,batch_id,identity,item['source_name'])
                     after=self.shared._record(db,identity)
                     db.execute('INSERT INTO shared_history(memory,actor,before_json,after_json) VALUES (?,?,NULL,?)',
                         (identity,actor['id'],json.dumps(after,ensure_ascii=False)))
                 db.execute('UPDATE shared_spaces SET version=version+1 WHERE id=?',(space['id'],))
             self.plans.pop(key,None)
-        return {'imported':len(plan['items']),'saved':True}
+        return {'imported':len(plan['items']),'saved':True,'batch_id':batch_id,'batch_name':plan['batch_name']}
 
     def discard(self, token, data):
         self.access(token,data.get('space_id'))

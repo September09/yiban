@@ -186,11 +186,29 @@ class SharedBackup:
                 if current in seen:
                     raise SharedError('新旧安排关联形成循环。')
                 seen.add(current); current = successors[current]
+        batches, batch_ids, assigned = [], set(), set()
+        for batch in self.rows({'batches':document.get('batches', [])}, 'batches', 200):
+            identity = self.text(batch.get('id'), '批次编号', 128)
+            actor = batch.get('actor'); mode = batch.get('mode')
+            if identity in batch_ids or not isinstance(actor,str) or actor not in accounts or mode not in ('paragraphs','ai','manual'):
+                raise SharedError('导入批次编号、账号或整理方式无效。')
+            batch_ids.add(identity); items = []
+            for item in self.rows(batch, 'items', 40):
+                memory = item.get('memory'); version = item.get('initial_version')
+                if not isinstance(memory,str) or memory not in memories or memory in assigned or memories[memory]['author']!=actor:
+                    raise SharedError('批次记忆关联或原导入账号无效。')
+                if type(version) is not int or not 1<=version<=memories[memory]['version']:
+                    raise SharedError('批次初始版本无效。')
+                assigned.add(memory)
+                items.append({'memory':memory,'initial_version':version,'source_name':self.text(item.get('source_name'),'来源名称',160,True)})
+            if not items:raise SharedError('备份批次不能没有在库记忆。')
+            batches.append({'id':identity,'actor':actor,'name':self.text(batch.get('name'),'批次名称',160),
+                            'mode':mode,'created':self.timestamp(batch.get('created')),'items':items})
         return {'format': FORMAT, 'version': 1, 'exported_at': self.timestamp(document.get('exported_at')),
                 'space': space, 'accounts': list(accounts.values()),
                 'members': [{'account': key, 'role': role} for key, role in members.items()],
                 'memories': list(memories.values()), 'history': history,
-                'sources': list(sources.values()), 'evidence': list(evidence.values()), 'replacements': replacements}
+                'sources': list(sources.values()), 'evidence': list(evidence.values()), 'replacements': replacements, 'batches':batches}
 
     def export(self, token, data):
         if data.get('confirmed') is not True:
@@ -214,17 +232,22 @@ class SharedBackup:
             needed = {space['owner']} | {x['account'] for x in members}
             for record in memories + [item for h in history for item in (h['before'], h['after']) if item]:
                 needed.update((record['author'], record['editor'])); needed.update(record.get('viewers', []))
+            batches = []
+            for row in db.execute('SELECT * FROM shared_import_batches WHERE space=? ORDER BY created,id', (space['id'],)).fetchall():
+                items = [dict(r) for r in db.execute('SELECT i.memory,i.initial_version,i.source_name FROM shared_import_batch_items i JOIN shared_memories m ON m.id=i.memory WHERE i.batch=? ORDER BY i.rowid', (row['id'],))]
+                if items:batches.append({**dict(row),'items':items})
+            needed.update(b['actor'] for b in batches)
             needed.update(h['actor'] for h in history); needed.update(e['actor'] for e in replacements)
             accounts = [dict(row) for row in db.execute('SELECT id,name FROM shared_accounts ORDER BY id') if row['id'] in needed]
             document = {'format': FORMAT, 'version': 1, 'exported_at': datetime.now(timezone.utc).isoformat(),
                         'space': dict(space), 'accounts': accounts, 'members': members,
                         'memories': memories, 'history': history, 'sources': list(sources.values()),
-                        'evidence': evidence, 'replacements': replacements}
+                        'evidence': evidence, 'replacements': replacements, 'batches':batches}
         return {'document': self.validate(document)}
 
     @staticmethod
     def counts(document):
-        return {key: len(document[key]) for key in ('memories', 'history', 'sources', 'evidence', 'replacements', 'members')}
+        return {key: len(document[key]) for key in ('memories', 'history', 'sources', 'evidence', 'replacements', 'members', 'batches')}
 
     def inspect(self, token, data):
         actor = self.shared.me(token)['account']
@@ -258,7 +281,7 @@ class SharedBackup:
         with self.shared.store.connect() as db:
             db.execute('BEGIN'); actor = self.shared._actor(db, token)
             mapping = self.resolve_accounts(db, actor, document, data.get('mapping'))
-            canonical = {key: value for key, value in document.items() if key != 'exported_at'}
+            canonical = {key: value for key, value in document.items() if key != 'exported_at' and (key != 'batches' or value)}
             signature = self.digest({'document': canonical, 'mapping': mapping, 'name': name})
             duplicate = db.execute('SELECT r.space,s.name FROM shared_restores r JOIN shared_spaces s ON r.space=s.id WHERE r.actor=? AND r.signature=? AND s.owner=?',
                                    (actor['id'], signature, actor['id'])).fetchone()
@@ -339,6 +362,11 @@ class SharedBackup:
                            (memory_ids[item['memory']], source['name'], source['text'], source['hash'], self.encode(item['quotes']), item['captured_content'], item['created']))
             db.executemany('INSERT INTO shared_replacements VALUES (?,?,?,?)',
                            [(memory_ids[e['old_id']], memory_ids[e['new_id']], accounts[e['actor']]['id'], e['created']) for e in document['replacements']])
+            for batch in document['batches']:
+                batch_id = s.batches.create(db,space,accounts[batch['actor']]['id'],batch['name'],batch['mode'])
+                db.execute('UPDATE shared_import_batches SET created=? WHERE id=?',(batch['created'],batch_id))
+                for item in batch['items']:
+                    s.batches.attach(db,batch_id,memory_ids[item['memory']],item['source_name'],item['initial_version'])
             db.execute('INSERT INTO shared_restores(id,actor,space,signature,plan_hash,session_hash,source_name,account_mapping) VALUES (?,?,?,?,?,?,?,?)',
                        (uuid.uuid4().hex, actor['id'], space, plan['signature'], plan_hash, plan['session'], document['space']['name'], self.encode(plan['mapping'])))
             self.plans.pop(key, None)

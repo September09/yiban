@@ -1,15 +1,17 @@
 // Display-only navigation. Switching pages never submits, confirms or resets a draft.
-const workspacePages={chat:['navChat','viewChat'],personal:['navPersonal','viewPersonal'],shared:['navShared','viewShared'],speech:['navSpeech','viewSpeech'],diagnostics:['navDiagnostics','viewDiagnostics']};
+const workspacePages={chat:['navChat','viewChat'],personal:['navPersonal','viewPersonal'],shared:['navShared','viewShared'],speech:['navSpeech','viewSpeech'],models:['navModels','viewModels'],diagnostics:['navDiagnostics','viewDiagnostics']};
 const sharedPages={question:['navSharedQuestion','sharedPageQuestion'],library:['navSharedLibrary','sharedPageLibrary'],import:['navSharedImport','sharedPageImport'],backup:['navSharedBackup','sharedPageBackup'],members:['navSharedMembers','sharedPageMembers']};
 let workspacePage='chat',sharedPage='question',workspaceReturn='chat';
 function setWorkspaceTabs(pages,selected){
   for(const [key,[button,panel]] of Object.entries(pages)){$(button).setAttribute('aria-selected',String(key===selected));$(button).tabIndex=key===selected?0:-1;$(panel).hidden=key!==selected;}
 }
 function showWorkspacePage(key){
-  if(!workspacePages[key])return;workspacePage=key;setWorkspaceTabs(workspacePages,key);
+  if(!workspacePages[key])return;if(workspacePage==='models'&&key!=='models'&&typeof modelSettingsUI!=='undefined')modelSettingsUI.leave();workspacePage=key;setWorkspaceTabs(workspacePages,key);
   $('speechSettingsPanel').open=key==='speech';
-  $('conversationDiagnosticsPanel').open=key==='diagnostics';$('speakerDiagnosticsPanel').open=key==='diagnostics';
-  if(key==='diagnostics'&&typeof conversationDiagnostics!=='undefined')conversationDiagnostics.render();
+  if(key!=='diagnostics'){$('conversationDiagnosticsPanel').open=false;$('speakerDiagnosticsPanel').open=false;}
+  if(key==='diagnostics'){if(typeof conversationDiagnostics!=='undefined')conversationDiagnostics.render();if(typeof diagnosticOverview!=='undefined')diagnosticOverview.load();}
+  if(key==='speech'&&typeof audioDevices!=='undefined')audioDevices.refresh();
+  if(key==='models'&&typeof modelSettingsUI!=='undefined')modelSettingsUI.load();
   workspaceActivity();
 }
 function showSharedPage(key){if(!sharedPages[key])return;sharedPage=key;setWorkspaceTabs(sharedPages,key);workspaceActivity();}
@@ -48,6 +50,7 @@ function bindWorkspaceTabs(pages,select){
 }
 bindWorkspaceTabs(workspacePages,showWorkspacePage);bindWorkspaceTabs(sharedPages,showSharedPage);
 $('workspaceReturnChat').onclick=()=>{showWorkspacePage(workspaceReturn);if(workspaceReturn==='shared')showSharedPage('question');};
+$('sharedOpenOverview').onclick=()=>showWorkspacePage('diagnostics');
 $('workspaceProfile').onclick=()=>showWorkspacePage('personal');
 $('workspaceSharedVoice').onclick=()=>{
   showWorkspacePage('shared');

@@ -24,7 +24,7 @@ function materialReset(){
   materialDiscardDrafts();$('materialKeepEvidence').checked=false;
   materialStop();materialInvalidate();materialState.sources=[];materialState.candidates=[];
   $('materialSources').replaceChildren();$('materialCandidates').replaceChildren();$('materialAudience').replaceChildren();
-  $('materialFiles').value='';$('materialMode').value='paragraphs';$('materialVisibility').value='selected';$('materialPolicy').value='author';
+  $('materialBatchName').value='';$('materialFiles').value='';$('materialMode').value='paragraphs';$('materialVisibility').value='selected';$('materialPolicy').value='author';
   $('materialRemoteConsent').checked=false;$('materialModelInfo').textContent='选择 AI 时会检查当前模型。';
   materialMessage('');materialControls();
 }
@@ -155,9 +155,9 @@ $('materialPreview').onclick=()=>materialRun(async request=>{
   const viewers=[...$('materialAudience').querySelectorAll('input:checked')].filter(x=>x.dataset.implicit!=='true').map(x=>x.value);
   const items=materialState.candidates.filter(c=>c.selected).map(c=>({content:c.content,event_date:c.event_date,source_note:c.source_note,status:c.status||'pending',status_reason:c.status_reason||'',evidence_ref:c.evidence_ref,
     visibility:$('materialVisibility').value,edit_policy:$('materialPolicy').value,viewers}));
-  const plan=await request('preview',{items,keep_evidence:$('materialKeepEvidence').checked});materialState.plan=plan;
+  const plan=await request('preview',{items,keep_evidence:$('materialKeepEvidence').checked,batch_name:$('materialBatchName').value,mode:$('materialMode').value});materialState.plan=plan;
   $('materialReview').hidden=false;$('materialConflictLabel').hidden=!plan.conflicts.length;
-  $('materialReviewSummary').textContent='归属：「'+plan.space_name+'」；导入者：'+plan.actor_name+'。将新增 '+plan.items.length+' 条，跳过 '+plan.skipped+' 条重复内容。预览 10 分钟内有效。';
+  $('materialReviewSummary').textContent='批次：'+plan.batch_name+'；归属：「'+plan.space_name+'」；导入者：'+plan.actor_name+'。将新增 '+plan.items.length+' 条，跳过 '+plan.skipped+' 条重复内容。预览 10 分钟内有效。';
   for(const item of plan.items){
     const p=item.payload,row=document.createElement('li');
     row.textContent=p.content+'\n可见：'+(p.visibility==='all'?'全体成员（含未来成员）；当前：':'')+item.audience.join('、')+
@@ -179,8 +179,9 @@ $('materialConfirm').onclick=()=>materialRun(async request=>{
   const result=await request('confirm',{token:plan.token,confirmed:true,acknowledge_conflicts:$('materialConflictConsent').checked});
   materialDiscardDrafts();materialState.plan=null;materialState.sources=[];materialState.candidates=[];
   materialInvalidate();materialRenderSources();materialRenderCandidates();
-  await sharedRefresh();materialMessage('成功导入 '+result.imported+' 条共同记忆，已保存来源和修改历史。可在下方列表查看，也可通过共同记忆语音查询。');
+  await sharedRefresh();$('materialBatchName').value='';materialMessage('成功导入 '+result.imported+' 条共同记忆；批次「'+result.batch_name+'」。可在上方刷新导入批次，查看本批记忆、来源和撤销预览。');
 });
+$('materialBatchName').oninput=()=>{materialInvalidate();materialControls();};
 $('materialBack').onclick=()=>{materialInvalidate();materialControls();};
 $('materialConsent').onchange=materialControls;$('materialConflictConsent').onchange=materialControls;
 $('materialStop').onclick=()=>{materialStop();sharedControls();materialMessage('已停止。当前读取／整理结果不会自动导入。');};
