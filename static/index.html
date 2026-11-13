@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>小伴 · 本地语音助手</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/workspace.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>小伴 · 本地语音助手</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/workspace.css"><link rel="stylesheet" href="/branding.css"></head>
 <body>
-<header><a class="brand" href="/">小伴<span>COMPANION</span></a><span class="privacy" id="modelPrivacy"><i></i> 按需使用麦克风与摄像头</span></header>
+<header><a class="brand" href="/"><span id="assistantBrandName">小伴</span><span class="brand-caption">COMPANION</span></a><span class="privacy" id="modelPrivacy"><i></i> 按需使用麦克风与摄像头</span></header>
 <div class="workspace-shell">
 <div id="workspaceTabs" class="workspace-tabs" role="tablist" aria-label="主要功能">
 <button id="navChat" type="button" role="tab" aria-controls="viewChat" aria-selected="true" tabindex="0">陪伴对话</button>
@@ -19,7 +19,7 @@
     <p id="workspaceSpeakerResult" class="feature-help" role="status" hidden></p>
     <button id="speakerRetry" class="secondary-button" type="button" hidden>重新识别声音</button>
     <p class="intro">聊个想法，问个问题，<br>或者把今天的故事说给我听。</p>
-    <div class="robot-scene" aria-hidden="true"><div class="halo"></div><div class="robot" id="robot"><div class="antenna"></div><div class="face"><span></span><span></span><b></b></div><div class="cheek left"></div><div class="cheek right"></div></div><div class="shadow"></div></div>
+    <div class="robot-scene" aria-hidden="true"><div class="halo"></div><div class="robot" id="robot"><img id="ipAvatar" alt="IP形象" hidden><div class="antenna"></div><div class="face"><span></span><span></span><b></b></div><div class="cheek left"></div><div class="cheek right"></div></div><div class="shadow"></div></div>
     <div class="state" id="state" role="status">正在连接本地模型…</div>
     <div class="wave" id="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <button class="mic" id="mic" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2M12 19v3M8 22h8"/></svg><span>点击说话</span></button>
@@ -40,7 +40,7 @@
 
   </section>
   <section class="conversation" aria-label="对话">
-    <div class="conversation-header"><div><h2>和小伴聊聊</h2><p id="connection">模型准备中</p></div><button class="text-button" id="clear">新对话</button></div>
+    <div class="conversation-header"><div><h2 id="conversationTitle">和小伴聊聊</h2><p id="connection">模型准备中</p></div><button class="text-button" id="clear">新对话</button></div>
     <button id="workspaceSharedVoice" class="text-button" type="button">普通对话 · 设置共同记忆语音</button>
     <div id="messages" class="messages" role="log" aria-live="polite"></div>
 
@@ -354,7 +354,21 @@
 </section>
 </details>
 </section>
-<section id="viewSpeech" class="workspace-panel" role="tabpanel" aria-labelledby="navSpeech" tabindex="0" hidden><div class="page-heading"><h1>声音设置</h1><p>查看输入输出档位和设备状态，或调整回答音色与语速。只读自检不录音、不播放。</p></div><section class="personal-card shared-card" id="audioDevicesPanel" aria-label="音频设备与只读自检">
+<section id="viewSpeech" class="workspace-panel" role="tabpanel" aria-labelledby="navSpeech" tabindex="0" hidden><div class="page-heading"><h1>声音设置</h1><p>查看输入输出档位和设备状态，或调整回答音色与语速。只读自检不录音、不播放。</p></div><section class="personal-card shared-card" id="ipSettingsPanel" aria-label="IP形象与主题">
+<h2>IP形象与主题</h2><p class="feature-help">统一设置名称、形象和配色。未填写名称时显示“小伴”；未上传形象时保留默认机器人。此设置供本机所有页面使用，不改变用户档案或团队权限。</p>
+<div class="ip-grid">
+<div><label for="ipPreset">选择IP预设</label><select id="ipPreset"><option value="default">小伴 · 默认绿色</option><option value="aifeng">爱凤同学 · 紫金色</option><option value="custom">自定义IP</option></select></div>
+<div><label for="ipName">展示名称（可留空）</label><input id="ipName" maxlength="32" placeholder="留空默认小伴"></div>
+<div><label for="ipAvatarChoice">陪伴形象</label><select id="ipAvatarChoice"><option value="default">默认机器人</option><option value="aifeng">爱凤 · 内置简化形象</option><option value="custom">上传的PNG形象</option></select></div>
+<div><label for="ipWakeWord">实际唤醒词</label><select id="ipWakeWord"><option value="你好小伴">你好小伴</option><option value="爱凤同学">爱凤同学</option></select></div>
+<div><label for="ipPrimary">主题主色</label><input type="color" id="ipPrimary" value="#356b56"></div>
+<div><label for="ipAccent">形象点缀色</label><input type="color" id="ipAccent" value="#97b48b"></div>
+</div><label for="ipLogo">上传自己的IP形象（PNG）</label><input id="ipLogo" type="file" accept="image/png"><p class="feature-help">建议透明底PNG，不超过1.5 MB、边长不超过4096像素。上传形象会做轻微漂浮与对话呼吸动效；名称可自由填写，唤醒词目前只支持上面两套。</p>
+<div class="personal-row"><button id="ipPreview" class="secondary-button" disabled>预览外观</button><button id="ipSave" class="secondary-button" disabled>保存并生效</button><button id="ipReload" class="text-button">取消预览／重新加载</button><button id="ipClearLogo" class="text-button" disabled>移除上传形象</button></div>
+<p id="ipStatus" role="status">正在读取IP设置…</p><p id="ipLockHint" class="feature-help" hidden>正在对话、播放或录音。请先结束，并关闭语音唤醒，再切换IP。</p>
+<p class="feature-help">预览不会更换实际唤醒词，保存后下次开启唤醒生效。不录音、不播放，也不调整当前低音量。所有页面刷新后使用同一份设置。</p>
+</section>
+<section class="personal-card shared-card" id="audioDevicesPanel" aria-label="音频设备与只读自检">
 <h2>音频设备档位与自检</h2><p class="feature-help">准备选择 → 核对输入输出 → 应用并保存。设置只影响本浏览器，不改系统默认设备或音量。自检不会录音、播放或申请麦克风权限。</p>
 <p id="audioApplied"></p><label for="audioProfile">准备使用的档位</label><select id="audioProfile"><option value="system">沿用系统默认（原有通路）</option><option value="builtin">电脑内置麦克风＋内置扬声器</option><option value="respeaker">ReSpeaker 麦克风＋ReSpeaker 输出</option><option value="mixed">ReSpeaker 麦克风＋电脑内置扬声器</option></select>
 <div class="personal-row"><div><label for="audioInput">具体输入</label><select id="audioInput"><option value="">随系统默认</option></select></div><div><label for="audioOutput">具体输出</label><select id="audioOutput"><option value="">随系统默认</option></select></div></div>
@@ -419,6 +433,7 @@
 
 <footer>MAC 体验版 <span>·</span> 唤醒开启时监听，允许插话时回答期间也会监听 <span>·</span> 记忆与声纹特征存于本机 <span>·</span> 保持页面打开、电脑不休眠</footer>
 <script src="/conversation-diagnostics.js"></script>
+<script src="/branding.js"></script>
 <script src="/app.js"></script>
 <script src="/personal.js"></script>
 <script src="/personal-retrieval.js"></script>

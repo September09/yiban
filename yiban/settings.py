@@ -6,9 +6,12 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from yiban.memory.retrieval import DEFAULT_CONFIG as RETRIEVAL_DEFAULTS, validate_config as validate_retrieval
 
+from yiban.appearance import DEFAULT_CONFIG as APPEARANCE_DEFAULTS, normalize as normalize_appearance
+
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULTS = {
     "port": 8765,
+    "appearance": copy.deepcopy(APPEARANCE_DEFAULTS),
     "retrieval": copy.deepcopy(RETRIEVAL_DEFAULTS),
     "llm": {"backend": "ollama", "base_url": "http://127.0.0.1:11434",
             "model": "qwen2.5:3b", "vision_model": "qwen2.5vl:3b",
@@ -96,4 +99,5 @@ def load_settings(path=None):
         if type(result["speaker"][key]) not in {int, float} or not 0 <= result["speaker"][key] <= 1:
             raise ValueError(f"speaker.{key} 必须在 0–1 之间。")
     result["retrieval"] = validate_retrieval(result["retrieval"])
+    result["appearance"] = normalize_appearance(result["appearance"])
     return result

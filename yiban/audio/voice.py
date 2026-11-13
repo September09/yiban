@@ -12,9 +12,15 @@ import numpy as np
 import sherpa_onnx
 
 from yiban.settings import ROOT
+from yiban.appearance import WAKE_PHONEMES
 KWS_DIR = ROOT / "models/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01"
 RATE = 16000
 WAKE_WORD = "你好小伴"
+
+
+def strip_wake_prefix(text, wake_word=WAKE_WORD):
+    phrase = r"(?:你好[，\s]*小[伴半办]|小[伴半办])" if wake_word == WAKE_WORD else re.escape(wake_word)
+    return re.sub(r"^[\s，。！？、]*" + phrase + r"[，。！？、\s]*", "", text).strip()
 
 
 def available():
@@ -32,7 +38,8 @@ def pcm_wav(samples):
 
 
 class VoiceSession:
-    def __init__(self, spotter, mode):
+    def __init__(self, spotter, mode, wake_word=WAKE_WORD):
+        self.wake_word = wake_word
         config = sherpa_onnx.VadModelConfig()
         config.silero_vad.model = str(ROOT / "models/silero_vad.onnx")
         config.silero_vad.min_silence_duration = 0.9
@@ -74,7 +81,7 @@ class VoiceSession:
                     # Preserve the current chunk so a prompt directly following
                     # the wake word is not lost. Strip the wake phrase after ASR.
                     self.frames.append(samples)
-                    return {"event": "wake", "keyword": WAKE_WORD}
+                    return {"event": "wake", "keyword": self.wake_word}
             if self.duration > 60:
                 self.reset()
             return {"event": "waiting"}
@@ -106,7 +113,7 @@ class VoiceSession:
             result = transcribe(pcm_wav(audio)) if had_speech else ""
             extra = result if isinstance(result, dict) else {}
             text = result.get('text', '') if isinstance(result, dict) else result
-            text = re.sub(r"^[\s，。！？、]*(?:你好[，\s]*小[伴半办]|小[伴半办])[，。！？、\s]*", "", text).strip()
+            text = strip_wake_prefix(text, self.wake_word)
             return {**extra, "event": "utterance", "text": text}
         if self.duration >= 8 and not self.speech:
             duration = round(self.duration, 3)
@@ -120,7 +127,19 @@ class VoiceManager:
     def __init__(self):
         self.lock = threading.RLock()
         self.spotter = None
+        self.wake_word = WAKE_WORD
         self.sessions = {}
+
+    def configure(self, wake_word):
+        if wake_word not in WAKE_PHONEMES:
+            raise ValueError('不支持此唤醒词。')
+        with self.lock:
+            self.expire()
+            if self.sessions:
+                raise ValueError('请先关闭各页面的语音唤醒和录音，再更换IP设置。')
+            if self.wake_word != wake_word:
+                self.wake_word = wake_word
+                self.spotter = None
 
     def start(self, mode="wake", identify_speaker=False):
         if mode not in {"wake", "command", "interrupt"}:
@@ -135,12 +154,12 @@ class VoiceManager:
                     encoder=str(KWS_DIR / "encoder-epoch-12-avg-2-chunk-16-left-64.onnx"),
                     decoder=str(KWS_DIR / "decoder-epoch-12-avg-2-chunk-16-left-64.onnx"),
                     joiner=str(KWS_DIR / "joiner-epoch-12-avg-2-chunk-16-left-64.onnx"),
-                    keywords_file=str(ROOT / "config/keywords.txt"), num_threads=2,
+                    keywords_file=str(ROOT / ("config/keywords-aifeng.txt" if self.wake_word == "爱凤同学" else "config/keywords.txt")), num_threads=2,
                     keywords_threshold=0.3, keywords_score=1.5)
             session_id = uuid.uuid4().hex
-            self.sessions[session_id] = VoiceSession(self.spotter, mode)
+            self.sessions[session_id] = VoiceSession(self.spotter, mode, self.wake_word)
             self.sessions[session_id].identify_speaker = identify_speaker is True
-            return {"session": session_id, "keyword": WAKE_WORD, "sample_rate": RATE}
+            return {"session": session_id, "keyword": self.wake_word, "sample_rate": RATE}
 
     def expire(self):
         now = time.monotonic()

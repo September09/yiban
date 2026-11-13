@@ -11,12 +11,13 @@ ACTIONS = {
 }
 
 
-def action_for_text(text):
+def action_for_text(text, assistant_name=None):
     text = re.sub(r"[\s，。！？!?,.]", "", text)
     if any(word in text for word in ("不要", "别", "不许", "不能", "停止", "解释", "为什么", "什么意思", "如果", "怎么")):
         return None
     # Only short direct commands trigger motion; discussing actions does not.
-    text = re.sub(r"^(?:小伴|你好小伴)?(?:请你|请|给我|帮我|你)?", "", text)
+    names = sorted({"你好小伴", "小伴", "爱凤同学", assistant_name or "小伴"}, key=len, reverse=True)
+    text = re.sub(r"^(?:" + "|".join(re.escape(name) for name in names) + r")?(?:请你|请|给我|帮我|你)?", "", text)
     for action, pattern in (
         ("nod", r"点(?:点)?头(?:一下|两下|给我看|吧)?"),
         ("shake", r"摇(?:摇)?头(?:一下|两下|给我看|吧)?"),

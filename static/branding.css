@@ -1,0 +1,17 @@
+/* Shared color roles are supplied by the IP palette; warnings retain their meaning. */
+.brand #assistantBrandName{font:inherit;letter-spacing:inherit;color:inherit;display:inline}
+.brand .brand-caption{font-size:10px;letter-spacing:2px}
+.ip-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 22px}
+.ip-grid>div{min-width:0}.ip-grid label{display:block;margin:12px 0 6px}
+.ip-grid input[type=color]{height:44px;padding:4px;cursor:pointer}
+#ipStatus,#ipLockHint{line-height:1.8;overflow-wrap:anywhere}
+.robot.has-ip{background:transparent;box-shadow:none;border-radius:0}
+.robot.has-ip>:not(#ipAvatar){display:none}
+#ipAvatar{width:190px;height:190px;object-fit:contain;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);filter:drop-shadow(0 10px 12px color-mix(in srgb,var(--ip-accent,#97b48b) 25%,transparent))}
+.listening .robot.has-ip #ipAvatar,.speaking .robot.has-ip #ipAvatar{animation:ip-breathe 1.3s ease-in-out infinite alternate}
+.robot.has-ip.happy #ipAvatar{animation:ip-breathe .5s ease-in-out infinite alternate}
+.halo{background:radial-gradient(circle,color-mix(in srgb,var(--ip-accent,#97b48b) 22%,transparent),transparent 70%)}
+.memory-state-valid{background:#e0efdf;color:#315b35}
+@keyframes ip-breathe{to{transform:translate(-50%,-53%) scale(1.035)}}
+@media(max-width:760px){.ip-grid{grid-template-columns:1fr}.brand .brand-caption{display:none}}
+@media(prefers-reduced-motion:reduce){#ipAvatar{animation:none!important}}

@@ -16,5 +16,13 @@
     "strategy": "hybrid",
     "model": "qwen3-embedding:0.6b",
     "min_similarity": 0.45
+  },
+  "appearance": {
+    "preset": "aifeng",
+    "name": "爱凤同学",
+    "primary": "#71529d",
+    "accent": "#d9a441",
+    "avatar": "aifeng",
+    "wake_word": "爱凤同学"
   }
 }

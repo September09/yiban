@@ -1,4 +1,6 @@
 """Loopback HTTP application; platform-specific work lives in backends/."""
+from contextvars import ContextVar
+from contextlib import nullcontext
 import base64
 import json
 import re
@@ -10,6 +12,7 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from zoneinfo import ZoneInfo
 from urllib.parse import urlsplit
+from yiban.appearance import Appearance, strip_name_prefix
 from yiban.actions import action_for_text
 from yiban.settings import ROOT, load_settings
 from yiban.backends import build_services
@@ -36,11 +39,14 @@ from yiban.audio.diagnostics import audio_metadata, log_audio_diagnostic
 from yiban.conversation_diagnostics import TRACES, CURRENT, measured, model_events
 
 SETTINGS = load_settings()
+APPEARANCE = Appearance(SETTINGS["appearance"], Path(SETTINGS["memory"]["database"]).parent / "appearance.json")
+PERSONA = ContextVar("ip_persona", default=None)
 if SETTINGS["audio"]["wake_enabled"]:
-    from yiban.audio.voice import manager as voice_manager, available as voice_available, WAKE_WORD
+    from yiban.audio.voice import manager as voice_manager, available as voice_available
+    voice_manager.configure(APPEARANCE.snapshot()["wake_word"])
 else:
     voice_manager = None
-    WAKE_WORD = "你好小伴"
+
 
 SERVICES = build_services(SETTINGS)
 MODEL_SETTINGS = ModelSettings(SETTINGS["llm"], Path(SETTINGS["memory"]["database"]).parent / "model-settings.json")
@@ -65,7 +71,11 @@ PORT = SETTINGS["port"]
 MODEL = SETTINGS["llm"]["model"]
 VISION_MODEL = SETTINGS["llm"]["vision_model"]
 
-SYSTEM = "你叫小伴，是中文语音助手。用自然、友好的中文交流，通常用2到4句话简洁回答，不用Markdown格式。你没有联网、实际机器人或操作电脑的能力。界面支持固定屏幕动作：点头、摇头、向左看、向右看、开心、回正；只有系统提供动作结果时才能说已完成。图片仅在用户本次提供时可见，不能持续观察摄像头，不要猜测没有提供的画面。不知道的事情请坦诚说明。"
+SYSTEM = "是中文语音助手。用自然、友好的中文交流，通常用2到4句话简洁回答，不用Markdown格式。你没有联网、实际机器人或操作电脑的能力。界面支持固定屏幕动作：点头、摇头、向左看、向右看、开心、回正；只有系统提供动作结果时才能说已完成。图片仅在用户本次提供时可见，不能持续观察摄像头，不要猜测没有提供的画面。不知道的事情请坦诚说明。"
+
+
+def system_prompt():
+    return "你叫" + (PERSONA.get() or APPEARANCE.snapshot()["name"]) + "，" + SYSTEM
 
 
 def current_time_context():
@@ -130,7 +140,7 @@ def shared_answer(token, data, public_only=False):
         TRACES.materials(CURRENT.get(),context['sources'],'read')
         answer, completed = '', False
         events = model_events(SERVICES.models.chat([
-            {'role':'system','content':SYSTEM + current_time_context() + context['context'] + REFERENCE_INSTRUCTION},
+            {'role':'system','content':system_prompt() + current_time_context() + context['context'] + REFERENCE_INSTRUCTION},
             {'role':'user','content':answer_question(context['query'])}], cancel=cancel,json_schema=ANSWER_SCHEMA))
         try:
             for event in events:
@@ -220,6 +230,13 @@ class Handler(BaseHTTPRequestHandler):
     def get_request(self):
         if not self.local_request():
             return
+        if self.path == "/api/appearance":
+            self.json_response(APPEARANCE.describe())
+            return
+        if urlsplit(self.path).path == "/api/appearance/avatar":
+            asset = APPEARANCE.asset()
+            self.send_bytes(200 if asset else 404, asset or b"", "image/png")
+            return
         if self.path == "/api/audio/devices":
             self.json_response({**AUDIO_DEVICES.describe(), "services":{"asr":SERVICES.asr.available(),"tts":SERVICES.tts.available(),"wake":SETTINGS["audio"]["wake_enabled"] and voice_available()}})
             return
@@ -234,10 +251,11 @@ class Handler(BaseHTTPRequestHandler):
             return
         if self.path == "/api/status":
             active_llm = MODEL_SETTINGS.config
+            active_ip = APPEARANCE.snapshot()
             status = {"chat": False, "vision": False, "model": active_llm["model"], "vision_model": active_llm["vision_model"],
                       "asr": SERVICES.asr.available(),
                       "wake": SETTINGS["audio"]["wake_enabled"] and voice_available(),
-                      "tts": SERVICES.tts.available(), "wake_word": WAKE_WORD, "version": 28,
+                      "tts": SERVICES.tts.available(), "wake_word": active_ip["wake_word"], "appearance": active_ip, "version": 29,
                       "retrieval": {"enabled": RETRIEVER is not None, "strategy": SETTINGS["retrieval"]["strategy"], "model": SETTINGS["retrieval"]["model"]},
                       "remote_model": urlsplit(active_llm['base_url']).hostname not in {'localhost', '127.0.0.1', '::1'},
                       "backends": {**{key: SETTINGS[key]["backend"] for key in ("asr", "tts", "actions")}, "llm":active_llm["backend"]},
@@ -248,7 +266,7 @@ class Handler(BaseHTTPRequestHandler):
                 pass
             self.json_response(status)
             return
-        files = {"/personal-state.js": ("personal-state.js", "text/javascript; charset=utf-8"),"/audio-devices.js": ("audio-devices.js", "text/javascript; charset=utf-8"),"/model-settings.js": ("model-settings.js", "text/javascript; charset=utf-8"),"/workspace.js": ("workspace.js", "text/javascript; charset=utf-8"),
+        files = {"/branding.js": ("branding.js", "text/javascript; charset=utf-8"), "/branding.css": ("branding.css", "text/css; charset=utf-8"), "/aifeng.svg": ("aifeng.svg", "image/svg+xml"),"/personal-state.js": ("personal-state.js", "text/javascript; charset=utf-8"),"/audio-devices.js": ("audio-devices.js", "text/javascript; charset=utf-8"),"/model-settings.js": ("model-settings.js", "text/javascript; charset=utf-8"),"/workspace.js": ("workspace.js", "text/javascript; charset=utf-8"),
                  "/workspace.css": ("workspace.css", "text/css; charset=utf-8"),
                  "/": ("index.html", "text/html; charset=utf-8"),
                  "/speech-settings.js": ("speech-settings.js", "text/javascript; charset=utf-8"),
@@ -341,6 +359,7 @@ class Handler(BaseHTTPRequestHandler):
         streaming = False
         trace_token = CURRENT.set(TRACES.begin(self.headers.get('X-Conversation-Trace')))
         model_binding = MODEL_SETTINGS.bind()
+        persona_binding = PERSONA.set(APPEARANCE.snapshot()["name"])
         try:
             length = int(self.headers.get("Content-Length", "0"))
             maximum = 32_000_000 if self.path in {'/api/shared/backup/inspect', '/api/shared/backup/preview'} else 8_000_000
@@ -349,7 +368,17 @@ class Handler(BaseHTTPRequestHandler):
             raw = self.rfile.read(length)
             if self.path.startswith("/api/listen/") and voice_manager is None:
                 raise ValueError("当前配置未开启语音监听。")
-            if self.path.startswith('/api/models/'):
+            if self.path == '/api/appearance/save':
+                # Share the voice lock so no session can start between checking and saving.
+                with voice_manager.lock if voice_manager else nullcontext():
+                    if voice_manager:
+                        voice_manager.expire()
+                        if voice_manager.sessions:
+                            raise ValueError('请先关闭各页面的语音唤醒和录音，再更换IP设置。')
+                    result = APPEARANCE.save(json.loads(raw))
+                    if voice_manager: voice_manager.configure(result['current']['wake_word'])
+                self.json_response(result)
+            elif self.path.startswith('/api/models/'):
                 data = json.loads(raw)
                 if not isinstance(data,dict):raise ValueError('请求格式不正确。')
                 cancel = TURNS.get(data.get('turn_id'))
@@ -465,19 +494,19 @@ class Handler(BaseHTTPRequestHandler):
                     memory_review, reply = reply['review'], reply['reply']
                     memory_changed = False
                 if reply is None and not picture:
-                    reply = clock_reply(clean[-1]["content"])
+                    reply = clock_reply(strip_name_prefix(clean[-1]["content"], PERSONA.get()))
                 if reply is None and not picture:
-                    reply = STORE.identity_reply(profile, clean[-1]["content"])
+                    reply = STORE.identity_reply(profile, strip_name_prefix(clean[-1]["content"], PERSONA.get()))
                 if reply is not None:
                     self.send_bytes(200, (json.dumps({"message": {"role": "assistant", "content": reply}, "memory_changed": memory_changed, "memory_review": memory_review, "reply_mode": "memory_command" if memory_changed or memory_review else "rule", "done": True}, ensure_ascii=False) + "\n").encode(), "application/x-ndjson; charset=utf-8")
                     return
-                personal = measured('memory', PERSONAL_MEMORY.search, profile, clean[-1]['content'][:1200], cancel, not bool(picture) and not bool(action_for_text(clean[-1]['content'])))
+                personal = measured('memory', PERSONAL_MEMORY.search, profile, clean[-1]['content'][:1200], cancel, not bool(picture) and not bool(action_for_text(clean[-1]['content'], PERSONA.get())))
                 TRACES.retrieval(CURRENT.get(), personal['retrieval'])
                 if personal.get('conflicts') and re.search(r'我|个人|记忆|偏好|喜欢|住哪|居住',clean[-1]['content']):
                     cancel.check();result=PERSONAL_MEMORY.conflict_answer(personal);PERSONAL_MEMORY.validate(personal)
                     self.send_bytes(200,(json.dumps({'message':{'role':'assistant','content':result['answer']},'personal_memory':result,'reply_mode':'personal_conflict','done':True},ensure_ascii=False)+'\n').encode(),'application/x-ndjson; charset=utf-8')
                     return
-                system = SYSTEM + current_time_context() + personal['context']
+                system = system_prompt() + current_time_context() + personal['context']
                 if picture:
                     if not isinstance(picture, str) or len(picture) > 3_000_000:
                         raise ValueError("图片过大，请重新拍照。")
@@ -490,7 +519,7 @@ class Handler(BaseHTTPRequestHandler):
                     system += "本次用户提供了一张照片，请结合照片回答。只描述看得清的内容；模糊时说明不确定。"
                 else:
                     system += "本次没有提供图片；若用户要求看东西，请让用户先打开摄像头并拍照。"
-                action = action_for_text(clean[-1]["content"]) if not picture else None
+                action = action_for_text(clean[-1]["content"], PERSONA.get()) if not picture else None
                 if action:
                     event = SERVICES.actions.execute(action)
                     self.send_bytes(200, (json.dumps({"message": {"role": "assistant", "content": event["reply"]},
@@ -559,10 +588,11 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self.json_response({"error": message,**({"diagnostic":error.agent_diagnostic} if hasattr(error,"agent_diagnostic") else {})}, 400)
         finally:
+            PERSONA.reset(persona_binding)
             MODEL_SETTINGS.unbind(model_binding)
             CURRENT.reset(trace_token)
 
 
 if __name__ == "__main__":
-    print(f"小伴已启动：http://127.0.0.1:{PORT}", flush=True)
+    print(f"{APPEARANCE.snapshot()['name']}已启动：http://127.0.0.1:{PORT}", flush=True)
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()

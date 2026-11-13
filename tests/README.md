@@ -62,3 +62,6 @@
 
 - `test_personal_state.py`：个人状态／日期、有限冲突规则、成对确认及回滚、迁移、状态过滤与版本、导入导出、HTTP隔离（虚构临时库）。
 - `node tests/check_personal_state.cjs`：文字预览／确认、草稿失效和档案切换的迟到结果保护，无录音或播放。
+
+- `test_appearance.py`：IP配置、留空／损坏回退、PNG限制、原子保存／版本冲突、HTTP同源与活动语音保护、真实KWS词表兼容；不采集或播放声音。
+- `node tests/check_branding.cjs`：预览与保存分离、名称与主题同步、缺少／失败形象回退、录音期间禁用和迟到状态保护；不访问媒体、不改变音量。
