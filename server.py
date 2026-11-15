@@ -4,7 +4,9 @@ from contextlib import nullcontext
 import base64
 import json
 import re
+import threading
 import time
+import traceback
 import uuid
 from pathlib import Path
 import urllib.error
@@ -46,6 +48,19 @@ if SETTINGS["audio"]["wake_enabled"]:
     voice_manager.configure(APPEARANCE.snapshot()["wake_word"])
 else:
     voice_manager = None
+
+
+def shared_request_summary(data):
+    """共同记忆请求的关键字段摘要；只记长度，不记正文。"""
+    if not isinstance(data, dict):
+        return {"body": type(data).__name__}
+    summary = {key: data.get(key) for key in
+               ("space_id", "id", "version", "status", "visibility", "edit_policy", "event_date")}
+    content, reason, viewers = data.get("content"), data.get("status_reason"), data.get("viewers")
+    summary["content_len"] = len(content) if isinstance(content, str) else None
+    summary["status_reason_len"] = len(reason) if isinstance(reason, str) else None
+    summary["viewers"] = len(viewers) if isinstance(viewers, list) else viewers
+    return summary
 
 
 SERVICES = build_services(SETTINGS)
@@ -135,7 +150,8 @@ def shared_answer(token, data, public_only=False):
     if context.get('clarification'):
         answer=context['clarification']
     elif not context['sources']:
-        answer = '当前可见范围内没有适用于本次问答的记忆。可检查记忆状态；回顾旧安排时，请明确要求查询过时记忆。'
+        answer = ('当前可见范围内没有适用于本次问答的记忆。如果内容设为「指定成员」可见，需要作者把你加入名单；'
+                  '共同记忆语音的公开朗读模式也只使用「全体成员」可见的记忆。可检查记忆状态；回顾旧安排时，请明确要求查询过时记忆。')
     else:
         TRACES.materials(CURRENT.get(),context['sources'],'read')
         answer, completed = '', False
@@ -401,6 +417,8 @@ class Handler(BaseHTTPRequestHandler):
                 auth = self.headers.get('Authorization', '')
                 token = auth[7:] if auth.startswith('Bearer ') else None
                 data = json.loads(raw)
+                # 出错时把关键字段（不含正文）打进日志，便于定位“点了没反应”的请求。
+                self.shared_request = data
                 feedback_guard = None
                 if self.path in {'/api/shared/ask', '/api/shared/agent/ask', '/api/shared/agent/memory/ask'}:
                     if not isinstance(data, dict):raise SharedError('请求格式不正确。')
@@ -506,7 +524,24 @@ class Handler(BaseHTTPRequestHandler):
                     cancel.check();result=PERSONAL_MEMORY.conflict_answer(personal);PERSONAL_MEMORY.validate(personal)
                     self.send_bytes(200,(json.dumps({'message':{'role':'assistant','content':result['answer']},'personal_memory':result,'reply_mode':'personal_conflict','done':True},ensure_ascii=False)+'\n').encode(),'application/x-ndjson; charset=utf-8')
                     return
-                system = system_prompt() + current_time_context() + personal['context']
+                # 陪伴对话按需接入共同记忆：必须显式带上当前登录空间账号的令牌，作用域仍由服务端重新校验。
+                shared_context = None
+                shared_token, shared_space = data.get('shared_token'), data.get('shared_space_id')
+                if shared_token or shared_space:
+                    if (not isinstance(shared_token, str) or not isinstance(shared_space, str)
+                            or not 0 < len(shared_token) <= 200 or not 0 < len(shared_space) <= 64):
+                        raise ValueError('共同记忆参数无效，请刷新页面后重试。')
+                    question = clean[-1]['content'][:1200]
+                    if question.strip():
+                        try:
+                            shared_context = measured('memory', SHARED.question_context, shared_token, shared_space,
+                                question, public_only=REMOTE_REQUEST.get(), cancel=cancel)
+                        except SharedError as error:
+                            raise ValueError(f'共同记忆读取失败：{error}请回到「共同记忆」重新登录空间账号。') from None
+                # 顺序有讲究：固定说明在前、随轮次变化的资料和时钟在后，模型服务才能复用上一轮的提示前缀。
+                system = (system_prompt() + personal['context']
+                          + PERSONAL_MEMORY.scope_note(profile, shared_context)
+                          + (SHARED.chat_block(shared_context) if shared_context else ''))
                 if picture:
                     if not isinstance(picture, str) or len(picture) > 3_000_000:
                         raise ValueError("图片过大，请重新拍照。")
@@ -519,6 +554,8 @@ class Handler(BaseHTTPRequestHandler):
                     system += "本次用户提供了一张照片，请结合照片回答。只描述看得清的内容；模糊时说明不确定。"
                 else:
                     system += "本次没有提供图片；若用户要求看东西，请让用户先打开摄像头并拍照。"
+                # 时钟带秒，放在最末位：前面那段尽量逐轮不变，才能命中模型的前缀缓存。
+                system += current_time_context()
                 action = action_for_text(clean[-1]["content"], PERSONA.get()) if not picture else None
                 if action:
                     event = SERVICES.actions.execute(action)
@@ -527,16 +564,16 @@ class Handler(BaseHTTPRequestHandler):
                     return
                 events = model_events(SERVICES.models.chat([{"role": "system", "content": system}] + clean, vision=bool(picture), cancel=cancel))
                 try:
+                    first = next(events)  # Fail before sending HTTP 200 when the backend rejects the request.
+                    # 校验放在第一个片段到达时、写任何内容之前：既保证不用过期的个人记忆作答，
+                    # 也不必等整段回答生成完再显示（以前整段缓冲会白等一整次生成时间）。
                     if personal['sources']:
-                        buffered = []
-                        for event in events:
-                            cancel.check()
-                            buffered.append(event)
                         PERSONAL_MEMORY.validate(personal)
                         cancel.check()
-                        events = iter(buffered)
-                    first = next(events)  # Fail before sending HTTP 200 when the backend rejects the request.
                     first = {**first, 'personal_memory': PERSONAL_MEMORY.public(personal)}
+                    if shared_context:
+                        first['shared_memory'] = {'space': shared_context['space_name'], 'space_id': shared_space,
+                                                  'count': len(shared_context['sources']), 'public_only': bool(REMOTE_REQUEST.get())}
                     self.send_response(200)
                     self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
                     self.send_header("Cache-Control", "no-store")
@@ -572,6 +609,10 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self.json_response({"error": "Not found"}, 404)
         except SharedError as error:
+            # 页面上的提示可能被滚动位置挡住，日志里也留一份，方便排查“点了没反应”。
+            if self.path.startswith('/api/shared/'):
+                print(f'[shared-error] {self.path} -> {error.status}: {error} | '
+                      f'{shared_request_summary(getattr(self, "shared_request", None))}', flush=True)
             self.json_response({"error":str(error),**({"diagnostic":error.agent_diagnostic} if hasattr(error,"agent_diagnostic") else {})}, error.status)
         except (BrokenPipeError, ConnectionResetError):
             pass
@@ -579,6 +620,8 @@ class Handler(BaseHTTPRequestHandler):
             message = "本轮已打断。" if isinstance(error, Cancelled) else str(error)
             if isinstance(error, urllib.error.URLError):
                 message = "配置的模型服务暂时不可用，请检查服务地址、模型和运行日志。"
+            if self.path.startswith('/api/shared/') and not isinstance(error, (Cancelled, urllib.error.URLError)):
+                traceback.print_exc()
             if streaming:
                 try:
                     self.wfile.write((json.dumps({"error": message}) + "\n").encode())
@@ -593,6 +636,22 @@ class Handler(BaseHTTPRequestHandler):
             CURRENT.reset(trace_token)
 
 
+def warm_models():
+    """Load local speech models in the background; the first turn should not pay for it."""
+    try:
+        warm = getattr(SERVICES.asr, "warm", None)
+        if callable(warm):
+            warm()
+    except Exception:
+        pass
+    try:
+        if voice_manager is not None:
+            voice_manager.warm()
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
+    threading.Thread(target=warm_models, daemon=True).start()
     print(f"{APPEARANCE.snapshot()['name']}已启动：http://127.0.0.1:{PORT}", flush=True)
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()

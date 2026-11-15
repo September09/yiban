@@ -19,6 +19,10 @@ from yiban.turns import Cancellation
 
 from yiban.settings import ROOT
 SUFFIXES = {'.txt','.md','.csv','.json','.docx','.pdf','.png','.jpg','.jpeg'}
+# 大文件支持：读取后自动按行分块，前端按每批 30000 字分轮整理。
+MAX_TOTAL_CHARS = 200_000
+PART_CHARS = 12_000
+MAX_CANDIDATES = 200
 
 class SharedImport:
     def __init__(self, shared, models):
@@ -51,6 +55,8 @@ class SharedImport:
         self.access(token,data.get('space_id'))
         return {'local_ocr':sys.platform=='darwin','model':self.models.config['model'],
                 'remote':self.remote(self.models.config),'max_bytes':4_000_000,'max_chars':30000,
+                'auto_split':True,'part_chars':PART_CHARS,'max_total_chars':MAX_TOTAL_CHARS,
+                'max_candidates':MAX_CANDIDATES,
                 'formats':sorted(SUFFIXES)}
 
     @staticmethod
@@ -88,6 +94,20 @@ class SharedImport:
                 temporary.replace(binary)
         return binary
 
+    @staticmethod
+    def split_parts(name, text, limit=PART_CHARS):
+        """把超长原文切成 ≤limit 字的块：优先在换行处断开，拼接结果与原文完全一致。"""
+        if len(text)<=limit: return [{'name':name,'text':text}]
+        base=name if len(name)<=120 else name[:120]
+        chunks=[];start=0
+        while len(text)-start>limit:
+            cut=text.rfind('\n',start+1,start+limit)
+            cut=cut+1 if cut>start else start+limit
+            chunks.append(text[start:cut]);start=cut
+        chunks.append(text[start:])
+        total=len(chunks)
+        return [{'name':f'{base}（第 {i+1}/{total} 部分）','text':chunk} for i,chunk in enumerate(chunks)]
+
     def read(self, token, data, cancel=None):
         cancel = cancel or Cancellation()
         _,space = self.access(token,data.get('space_id'))
@@ -121,7 +141,15 @@ class SharedImport:
                     if any(not p['text'].strip() for p in pages):warnings.append('部分页面没有识别出文字，请补充后再整理。')
                     if not any(p['text'].strip() for p in pages):raise SharedError('没有识别到文字，请上传更清晰的图片或手动输入。')
                     result={'text':text,'warnings':warnings}
-                if len(result['text'])>30000:raise SharedError('文字超过 30000 字，请拆分后上传；本次没有截断。')
+                # 超过单批 30000 字不再拒绝：按行边界自动分块，前端逐块整理。
+                if len(result['text'])>MAX_TOTAL_CHARS:
+                    raise SharedError(f'原文约 {len(result["text"])} 字，超过单份 {MAX_TOTAL_CHARS} 字上限，请拆分后上传；本次没有截断。')
+                parts=self.split_parts(name,result['text'])
+                if len(parts)>1:
+                    result['parts']=parts;result.pop('text',None)
+                    total=sum(len(p['text']) for p in parts)
+                    result['warnings'].append(f'原文共 {total} 字，已自动分成 {len(parts)} 块（每块最多 {PART_CHARS} 字）；生成候选时会自动分批整理，请逐块核对原文。')
+                result['total_chars']=len(result['text']) if 'text' in result else sum(len(p['text']) for p in result.get('parts',[{'text':''}]))
                 if suffix=='.pdf':result['warnings'].append('PDF 主要读取文字；复杂表格、嵌入图片和排版可能遗漏，请对照原件核对。')
                 result['name']=name
                 cancel.check();self.guard(token,space)
@@ -152,7 +180,7 @@ class SharedImport:
                     for offset in range(0,len(paragraph),1000):
                         excerpt=paragraph[offset:offset+1000]
                         candidates.append({'content':excerpt,'evidence':excerpt,'source_name':source['name'],'event_date':'','_source':source_index,'_ranges':[(start+offset,start+offset+len(excerpt))]})
-            if len(candidates)>40:raise SharedError('按段落超过 40 条，请删减原文或分批整理。')
+            if len(candidates)>MAX_CANDIDATES:raise SharedError(f'候选记忆超过 {MAX_CANDIDATES} 条，请先导入已生成的部分，或减少资料。')
         else:
             if self.remote(self.models.config) and data.get('allow_remote') is not True:
                 raise SharedError('当前是远端模型，请先明确同意发送本批原文。')
@@ -199,7 +227,7 @@ class SharedImport:
                                 raise SharedError('模型引用了无效原文编号，请重试或改用按段落整理。')
                             evidence='\n'.join(passages[i-1] for i in sorted(set(indices)))
                             candidates.append({'content':content,'evidence':evidence,'source_name':source['name'],'event_date':'','_source':source_index,'_ranges':[positions[i-1] for i in sorted(set(indices))]})
-                        if len(candidates)>40:raise SharedError('候选记忆超过 40 条，请分批整理。')
+                        if len(candidates)>MAX_CANDIDATES:raise SharedError(f'候选记忆超过 {MAX_CANDIDATES} 条，请先导入已生成的部分，或减少资料。')
             finally:self.jobs.release()
         cancel.check();self.guard(token,space)
         self.shared.evidence.stage(token,space['id'],normalized,candidates)
@@ -211,7 +239,7 @@ class SharedImport:
             actor=self.shared._actor(db,token);space=self.shared._member(db,actor['id'],data.get('space_id'))
             if space['role']=='reader':raise SharedError('只读成员不能导入。',403)
             items=data.get('items')
-            if not isinstance(items,list) or not 1<=len(items)<=40:raise SharedError('请选择 1–40 条候选记忆。')
+            if not isinstance(items,list) or not 1<=len(items)<=MAX_CANDIDATES:raise SharedError(f'请选择 1–{MAX_CANDIDATES} 条候选记忆。')
             keep=data.get('keep_evidence',False)
             if type(keep) is not bool:raise SharedError('请选择是否保留原文依据。')
             visible=self.shared._items(db,actor,space)
@@ -228,7 +256,7 @@ class SharedImport:
                 audience=sorted(roster.values()) if payload['visibility']=='all' else sorted({roster[x] for x in set(payload['viewers'])|{actor['id'],space['owner']}})
                 evidence=self.shared.evidence.resolve(token,space['id'],item.get('evidence_ref'),payload['content']) if keep else None
                 provenance=evidence or (self.shared.evidence.resolve(token,space['id'],item['evidence_ref'],payload['content']) if item.get('evidence_ref') else None)
-                planned.append({'payload':payload,'audience':audience,'evidence':evidence,'source_name':provenance['source_name'] if provenance else ''})
+                planned.append({'payload':payload,'audience':audience,'only_author':payload['visibility']=='selected' and not payload['viewers'],'evidence':evidence,'source_name':provenance['source_name'] if provenance else ''})
             if not planned:raise SharedError('全部内容都与当前可见记忆或本批内容重复，没有需要新增的记忆。')
             total=db.execute('SELECT COUNT(*) FROM shared_memories WHERE space=?',(space['id'],)).fetchone()[0]
             if total+len(planned)>200:raise SharedError('导入后会超过空间 200 条上限，请减少条数或整理已有记忆。')

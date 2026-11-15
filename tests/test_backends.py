@@ -163,6 +163,11 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(self.http.request_path, "/api/chat")
         self.assertEqual(self.http.request_body["keep_alive"], "15m")
         self.assertEqual(self.http.request_body["options"]["num_ctx"], 4096)
+        # 语音助手默认不让 qwen3 先写思考链：首字从十几秒降到零点几秒。
+        self.assertIs(self.http.request_body["think"], False)
+        thinking = dict(config, enable_thinking=True)
+        list(ModelClient(thinking).chat([{"role": "user", "content": "hello"}]))
+        self.assertIs(self.http.request_body["think"], True)
 
     def test_disabled_features_fail_explicitly(self):
         services = build_services(self.config)

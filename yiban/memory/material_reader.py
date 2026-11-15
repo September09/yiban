@@ -45,7 +45,8 @@ def read_file(path, suffix):
         if suffix == '.csv':
             text = '\n'.join(' | '.join(row) for row in csv.reader(io.StringIO(text)))
     if not text.strip(): raise ValueError('没有读取到文字，请粘贴文字或上传清晰截图。')
-    if len(text) > 30000: raise ValueError('文字超过 30000 字，请拆分资料；本次没有截断导入。')
+    # 大文件不再在这里拒绝：读取器只负责完整提取，分块交给 shared_import.read。
+    if len(text) > 200_000: raise ValueError('文字超过 200000 字，请拆分资料；本次没有截断。')
     return {'text':text.strip(),'warnings':warnings}
 
 if __name__ == '__main__':

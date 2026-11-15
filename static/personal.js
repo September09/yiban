@@ -50,14 +50,16 @@ const enrollmentPrompts=[
 function personalControls(){
   const locked=busy||recording||enrolling||enrollmentSaving||wakePhase==='command';
   $('createProfile').disabled=locked;$('profileName').disabled=locked;
-  for(const id of ['saveMemory','deleteProfile','deleteVoice','saveSalutation','profileSalutation'])$(id).disabled=!activeProfile||locked||memoryBusy;
+  for(const id of ['deleteProfile','deleteVoice','saveSalutation','profileSalutation'])$(id).disabled=!activeProfile||locked||memoryBusy;
+  // 保存类按钮始终可点：条件不满足时给出具体原因，而不是让用户点了没有任何反应。
+  $('saveMemory').disabled=memoryBusy;
   $('profileSelect').disabled=locked||memoryBusy;
   $('cancelMemoryEdit').disabled=locked||memoryBusy;
   $('memorySearch').disabled=!activeProfile||!memoryLoaded;
   $('exportMemories').disabled=!activeProfile||!memoryLoaded||locked||memoryBusy;
   $('memoryText').disabled=!activeProfile||locked||memoryBusy;
-  $('recordVoice').disabled=!activeProfile||!speakerReady||enrollmentSaving||(!enrollmentMic&&(locked||enrollmentSamples.length>=3||!$('voiceConsent').checked));
-  $('saveVoice').disabled=!activeProfile||enrollmentSamples.length!==3||enrollmentSaving||!!enrollmentMic||!$('voiceConsent').checked;
+  $('recordVoice').disabled=!speakerReady||enrollmentSaving;
+  $('saveVoice').disabled=enrollmentSaving||!!enrollmentMic;
   $('voiceConsent').disabled=enrollmentSaving||!!enrollmentMic;
   $('cancelEnroll').disabled=enrollmentSaving;
   if(typeof personalMemoryControls==='function')personalMemoryControls();
@@ -102,6 +104,10 @@ function applySpeaker(result){
   if(!identity){
     const reason=result.diagnostics?.code==='low_score'?'声纹相似度未达标':(result.reason||'未确认说话人');
     $('workspaceSpeakerResult').textContent='本轮按访客处理：'+reason+'。';
+    $('workspaceSpeakerResult').hidden=false;
+  }else{
+    // 匹配成功也要说出来，否则用户无法确认这一轮到底用了谁的档案。
+    $('workspaceSpeakerResult').textContent=`本轮声音匹配：${result.name}，已按该档案读取个人记忆。若不是你本人，可在上方手动切换。`;
     $('workspaceSpeakerResult').hidden=false;
   }
   $('speakerStatus').textContent=identity?'本轮声音匹配：'+result.name+'（可在上方更正）':'本轮按访客处理：'+(result.reason||'未确认说话人');
@@ -226,7 +232,9 @@ async function cancelEnrollment(){
 
 async function recordEnrollment(){
   if(enrollmentMic){await finishEnrollment();return;}
-  if(!activeProfile||!$('voiceConsent').checked||enrollmentSamples.length>=3)return;
+  if(!activeProfile){notice('请先选择用户档案，再录入声纹。');return;}
+  if(!$('voiceConsent').checked){notice('请先勾选「我本人同意在这台电脑保存声纹特征」，再开始录音。');return;}
+  if(enrollmentSamples.length>=3){notice('三段已经录满，点击「保存声纹」即可。');return;}
   cancelTurn();enrolling=true;controls();await pauseWake();
   const version=++enrollmentVersion,mic=new Microphone();enrollmentMic=mic;enrollmentFrames=[];let count=0;
   try{
@@ -258,14 +266,18 @@ $('saveSalutation').onclick=async()=>{
   catch(error){notice(error.message);}
 };
 $('saveMemory').onclick=async()=>{
-  if(!activeProfile||memoryLocked())return;
-  const identity=activeProfile,edited=!!memoryEdit;memoryBusy=true;personalControls();
+  if(!activeProfile){notice('请先在上方选择或创建用户档案，再保存记忆。');return;}
+  if(memoryLocked()){notice(enrolling?'正在录入声纹，请等录入结束后再保存记忆。':'正在对话或收音，请等这一轮结束后再保存记忆。');return;}
+  if(!$('memoryText').value.trim()){notice('请先写下要记住的内容，再点「保存记忆」。');return;}
+  const identity=activeProfile,edited=!!memoryEdit,state=$('memoryState').value;memoryBusy=true;personalControls();
   try{
     const result=await(await api('/api/memory/save',{profile_id:identity,content:$('memoryText').value,id:memoryEdit,expected_revision:memoryEditRevision,status:$('memoryState').value,status_reason:$('memoryStateReason').value,event_date:$('memoryEventDate').value})).json();
     if(identity!==activeProfile)return;
     if(result.review){showMemoryReview(result.review);return;}
     if(typeof resetMemoryReview==='function')resetMemoryReview();
-    resetMemoryEditor();await refreshMemories();notice(edited?'记忆已更新。':'记忆已保存（相同内容只保留一条）。');
+    resetMemoryEditor();await refreshMemories();
+    const label=personalStatusNames[state]||'待核实';
+    notice(edited?`记忆已更新（状态：${label}），可在下方列表查看。`:`记忆已保存（状态：${label}），可在下方列表查看。`);
   }catch(error){if(identity===activeProfile)notice(error.message);}
   finally{memoryBusy=false;personalControls();}
 };
@@ -276,12 +288,33 @@ $('deleteProfile').onclick=async()=>{
 };
 $('recordVoice').onclick=recordEnrollment;$('cancelEnroll').onclick=()=>cancelEnrollment();$('voiceConsent').onchange=personalControls;
 $('saveVoice').onclick=async()=>{
-  if(enrollmentSamples.length!==3||!$('voiceConsent').checked)return;
+  if(enrollmentSaving||enrollmentMic)return;
+  if(!activeProfile){notice('请先选择用户档案，再保存声纹。');return;}
+  if(!$('voiceConsent').checked){notice('请先勾选「我本人同意在这台电脑保存声纹特征」，再保存声纹。');return;}
+  if(enrollmentSamples.length!==3){notice(`还需要录制 ${3-enrollmentSamples.length} 段语音，才能保存声纹。`);return;}
+  const identity=activeProfile,name=profiles.find(p=>p.id===identity)?.name||'当前用户';
   enrollmentSaving=true;enrolling=true;controls();
-  try{await api('/api/speaker/enroll',{profile_id:activeProfile,consent:true,recordings:enrollmentSamples});enrollmentSamples=[];$('speakerStatus').textContent='声纹已保存，可开启自动识别。';await refreshProfiles();}
-  catch(error){notice(error.message);}
+  try{
+    await api('/api/speaker/enroll',{profile_id:identity,consent:true,recordings:enrollmentSamples});
+    enrollmentSamples=[];
+    $('speakerStatus').textContent=`声纹已保存：${name}。勾选「用声纹自动识别本轮说话的人」后，用麦克风说话即可验证。`;
+    await refreshProfiles();
+    notice(`声纹已保存（${name}）：三段录音已合并为特征，原始录音未落盘。勾选「用声纹自动识别」后说一句话验证。`);
+  }
+  catch(error){notice('声纹未保存：'+error.message);}
   finally{enrollmentSaving=false;enrolling=false;updateEnrollment();controls();}
 };
 $('deleteVoice').onclick=async()=>{if(!activeProfile||!window.confirm('删除当前用户的声纹特征？'))return;try{await api('/api/speaker/delete',{profile_id:activeProfile});await cancelEnrollment();await refreshProfiles();$('speakerStatus').textContent='声纹已删除。';}catch(error){notice(error.message);}};
-$('speakerAuto').onchange=async()=>{await pauseWake();if($('speakerAuto').checked)switchProfile('');$('speakerStatus').textContent=$('speakerAuto').checked?'下次说话时匹配；不确定时按访客处理。':'已关闭声纹识别，可手动选择用户。';$('speakerRetry').hidden=true;controls();resumeWake();};
+$('speakerAuto').onchange=async()=>{
+  await pauseWake();
+  const unsaved=enrollmentSamples.length;
+  if($('speakerAuto').checked)switchProfile('');
+  $('speakerStatus').textContent=$('speakerAuto').checked?'下次说话时匹配；不确定时按访客处理。':'已关闭声纹识别，可手动选择用户。';
+  $('speakerRetry').hidden=true;controls();resumeWake();
+  if($('speakerAuto').checked){
+    const enrolled=profiles.some(profile=>profile.enrolled);
+    notice(!enrolled?'已开启声纹自动识别，但本机还没有保存过声纹：请先在下方录入三段语音并保存声纹。':
+      `已开启声纹自动识别：当前先按访客，用麦克风说话后自动匹配。${unsaved?`（已清空未保存的 ${unsaved} 段录音）`:''}文字输入不参与声纹识别。`);
+  }else notice('已关闭声纹自动识别，可在上方手动选择用户。');
+};
 refreshProfiles().catch(error=>notice(error.message));updateEnrollment();

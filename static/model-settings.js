@@ -20,7 +20,7 @@ const modelSettingsUI=(()=>{
     const cfg=settings.profiles[$('modelsProfile').value];
     $('modelsBackend').value=cfg.backend;$('modelsURL').value=cfg.base_url;$('modelsName').value=cfg.model;
     $('modelsVision').value=cfg.vision_model;$('modelsKeyEnv').value=cfg.api_key_env;
-    $('modelsThinking').value=cfg.thinking_type==='disabled'?'zhipu':cfg.enable_thinking===false?'bailian':cfg.thinking_type||cfg.enable_thinking!==null&&cfg.enable_thinking!==undefined?'keep':'none';
+    $('modelsThinking').value=cfg.thinking_type==='disabled'?'zhipu':cfg.enable_thinking===false?(cfg.backend==='ollama'?'ollama':'bailian'):cfg.thinking_type||cfg.enable_thinking!==null&&cfg.enable_thinking!==undefined?'keep':'none';
     $('modelsKeyInfo').textContent=cfg.key_available?'服务进程已读取此环境变量；是否有效需检测实际回复。':'服务进程尚未读取此环境变量。本机 Ollama 通常无需密钥；云端需配置后重启助手。';
     $('modelsActiveSelect').value=settings.active;
     $('modelsActive').textContent='当前：'+names[settings.active]+' · '+settings.profiles[settings.active].model+'。云端发送目标：'+settings.profiles.cloud.base_url+(settings.warning?'；'+settings.warning:'');
@@ -53,7 +53,7 @@ const modelSettingsUI=(()=>{
   $('modelsSave').onclick=async()=>{
     const profile=$('modelsProfile').value,cfg={...settings.profiles[profile]};delete cfg.key_available;
     Object.assign(cfg,{backend:$('modelsBackend').value,base_url:$('modelsURL').value.trim(),model:$('modelsName').value.trim(),vision_model:$('modelsVision').value.trim(),api_key_env:$('modelsKeyEnv').value.trim()});
-    const thinking=$('modelsThinking').value;if(thinking!=='keep'){cfg.enable_thinking=thinking==='bailian'?false:null;cfg.thinking_type=thinking==='zhipu'?'disabled':null;}if(cfg.backend==='ollama'||cfg.vision_model)cfg.status_check='models';
+    const thinking=$('modelsThinking').value;if(thinking!=='keep'){cfg.enable_thinking=thinking==='bailian'||thinking==='ollama'?false:null;cfg.thinking_type=thinking==='zhipu'?'disabled':null;}if(cfg.backend==='ollama'||cfg.vision_model)cfg.status_check='models';
     const result=await work('modelsMessage',(id,signal)=>api('save',{profile,config:cfg,active:$('modelsActiveSelect').value,revision:settings.revision,allow_remote:$('modelsRemoteConsent').checked},signal));
     if(result){settings=result;clear();fill();$('modelsRemoteConsent').checked=false;$('modelsMessage').textContent='已保存。新请求使用新设置，正在进行的对话保持原模型。';if(typeof status==='function')status();}
   };

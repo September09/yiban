@@ -1,5 +1,5 @@
 // Batch data and confirmation tokens remain in memory; no audio is acquired here.
-const batchState={generation:0,running:false,batches:[],detail:null,plan:null};
+const batchState={generation:0,running:false,batches:[],detail:null,plan:null,loadedSpace:null,stale:true,loading:false,untracked:null};
 function batchMessage(text){$('sharedBatchStatus').textContent=text;}
 function batchDiscardPlan(){
   const key=batchState.plan?.token,auth=sharedState.token;batchState.plan=null;
@@ -9,10 +9,11 @@ function batchDiscardPlan(){
 }
 function sharedBatchesClear(){
   batchDiscardPlan();batchState.generation++;batchState.running=false;batchState.batches=[];batchState.detail=null;
+  batchState.loadedSpace=null;batchState.stale=true;batchState.untracked=null;
   for(const id of ['sharedBatchList','sharedBatchItems','sharedBatchEvents'])$(id).replaceChildren();
   $('sharedBatchDetail').hidden=true;$('sharedBatchInfo').textContent='';$('sharedBatchReason').value='';
   $('sharedBatchSearch').value='';$('sharedBatchSource').hidden=true;$('sharedBatchSourceText').textContent='';
-  batchMessage('选择空间后，点击刷新批次。旧资料没有可靠的批次关联，不会自动拼成历史批次。');
+  batchMessage('选择空间后会自动读取导入批次。旧资料没有可靠的批次关联，不会自动拼成历史批次。');
 }
 function batchLocked(){return sharedState.busy||sharedState.asking||batchState.running||(typeof sharedVoiceActive==='function'&&sharedVoiceActive());}
 function sharedBatchesControls(){
@@ -44,7 +45,7 @@ function batchRenderList(){
     button.className='secondary-button';button.textContent='查看本批记忆与来源';button.onclick=()=>batchOpen(item.id);
     row.append(info,button);$('sharedBatchList').append(row);
   }
-  if(!items.length){const row=document.createElement('li');row.textContent=query?'没有匹配的批次。':'当前没有可见的导入批次。';$('sharedBatchList').append(row);}
+  if(!items.length){const row=document.createElement('li');row.textContent=query?'没有匹配的批次。':batchState.loadedSpace?'当前空间还没有导入批次；导入确认后会自动出现在这里。':'尚未读取批次，打开本页会自动读取。';$('sharedBatchList').append(row);}
 }
 function batchRecord(row,item,label=''){
   const p=document.createElement('p');p.textContent=label+(item.content||'记录已不在当前库中')+
@@ -76,12 +77,42 @@ function batchSource(item,full){return batchRun(async(request,current)=>{
     '导入时记忆：'+result.captured_content+'\n'+result.quotes.map(q=>q.location+'：'+q.text).join('\n')+
     (result.source_text!==undefined?'\n\n完整文字快照：\n'+result.source_text:'')+'\n原文可能含识别或人工修订；引文相符不代表事实已经核实。':result.message;
 });}
-$('sharedBatchLoad').onclick=()=>batchRun(async(request,current)=>{
+// 只读列表：不占用 sharedState.busy，可以在打开页面时自动加载。
+async function batchLoad(quiet=false){
+  if(!sharedState.token||!sharedState.space){if(!quiet)batchMessage('请先登录空间账号并选择空间。');return null;}
+  if(batchState.loading)return null;
+  const epoch=sharedState.epoch,token=sharedState.token,space=sharedState.space.id;
+  batchState.loading=true;
+  try{
+    const result=await sharedApi('/batches/list',{space_id:space});
+    if(epoch!==sharedState.epoch||token!==sharedState.token||space!==sharedState.space?.id)return null;
+    batchState.batches=result.batches;batchState.untracked=result.untracked_count;
+    batchState.loadedSpace=space;batchState.stale=false;batchRenderList();
+    const note=result.untracked_count?'另有 '+result.untracked_count+' 条历史／手动记忆没有可靠批次关联，继续在记忆库管理。':'';
+    if(!quiet)batchMessage('已加载 '+result.batches.length+' 个可见批次。'+note);
+    else batchMessage((result.batches.length?'已显示 '+result.batches.length+' 个导入批次。':'当前空间还没有导入批次；导入确认后会自动出现在这里。')+note);
+    return result;
+  }catch(error){
+    if(!quiet)batchMessage(error.message);
+    return null;
+  }finally{batchState.loading=false;if(typeof sharedBatchesControls==='function')sharedBatchesControls();}
+}
+// 版本变化（别人写入、自己刚导入）时不要把列表清空，标记为过期并在需要时重新读取。
+function batchStale(){
+  batchState.stale=true;
+  if(typeof sharedPage!=='undefined'&&sharedPage==='import')sharedBatchesAutoLoad();
+}
+function sharedBatchesAutoLoad(){
+  if(!sharedState.token||!sharedState.space){batchMessage('登录空间账号并选择空间后，这里会自动显示已导入的批次。');return null;}
+  if(batchState.loading)return null;
+  if(batchState.loadedSpace===sharedState.space.id&&!batchState.stale)return null;
+  return batchLoad(true);
+}
+$('sharedBatchLoad').onclick=()=>{
+  if(batchState.loading)return;
   batchDiscardPlan();batchState.detail=null;$('sharedBatchDetail').hidden=true;$('sharedBatchSource').hidden=true;$('sharedBatchSourceText').textContent='';
-  const result=await request('list');if(!current())return;
-  batchState.batches=result.batches;batchRenderList();
-  batchMessage('已加载 '+result.batches.length+' 个可见批次。'+(result.untracked_count?'另有 '+result.untracked_count+' 条历史／手动记忆没有可靠批次关联，继续在记忆库管理。':''));
-});
+  batchState.stale=true;return batchLoad(false);
+};
 $('sharedBatchPreview').onclick=()=>batchRun(async(request,current)=>{
   if(!batchState.detail)return;batchDiscardPlan();
   const plan=await request('preview',{batch_id:batchState.detail.batch.id,reason:$('sharedBatchReason').value});if(!current())return;

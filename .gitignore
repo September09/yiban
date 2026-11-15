@@ -18,3 +18,8 @@ Thumbs.db
 *.db-*
 .aws/
 .ssh/
+
+# 本地开发环境与工作数据，不入库
+.idea/
+.workbuddy/
+25A/

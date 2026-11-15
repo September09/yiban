@@ -16,6 +16,8 @@ main{align-items:start}.companion{padding-top:20px}.robot-scene{perspective:500p
 .shared-voice-banner{background:var(--ip-tone-e7efdf,#e7efdf);border-radius:12px;padding:10px 14px;margin:8px 0}.shared-voice-banner p{font-size:12px;line-height:1.7;margin:6px 0}.shared-voice-setup{border-bottom:1px solid var(--line);padding:8px 0 16px}
 
 .material-panel{margin:24px 0;padding:18px;border:1px solid var(--ip-tone-ccd8c9,#ccd8c9);border-radius:14px}.material-panel summary{cursor:pointer;font-weight:600}.material-panel fieldset{border:0;margin:0;padding:12px 0}.material-card{padding:14px;margin:12px 0;background:var(--ip-tone-f4f6ef,#f4f6ef);border-radius:12px}.material-card textarea,.material-card input:not([type=checkbox]){display:block;width:100%;box-sizing:border-box;margin:8px 0}.material-evidence,#materialReviewItems li{white-space:pre-wrap;overflow-wrap:anywhere}.material-panel label{display:block;margin:10px 0}.material-panel input[type=checkbox]{width:auto;margin-right:8px}
+/* 导入失败提示必须贴着按钮显示：表单很长，底部的一行字用户看不到。 */
+.material-notice{margin:10px 0;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}.material-notice:empty{display:none}.material-notice-error{padding:10px 12px;border-left:3px solid #a85c49;border-radius:8px;background:rgba(168,92,73,.09);color:#8c3f28;font-weight:600}.material-persist-hint{padding:8px 10px;border-left:3px solid var(--ip-tone-d9a441,#d9a441);border-radius:8px;background:var(--ip-tone-fbf6ea,#fbf6ea)}
 
 .memory-state{display:inline-block;padding:3px 8px;border-radius:6px;font-size:13px;margin:0 8px 8px 0}
 .memory-state-pending{background:#fff0ce;color:#7b5400}.memory-state-valid{background:var(--ip-tone-e0efdf,#e0efdf);color:var(--ip-tone-315b35,#315b35)}.memory-state-outdated{background:#eee;color:#666}
@@ -39,3 +41,4 @@ main{align-items:start}.companion{padding-top:20px}.robot-scene{perspective:500p
 .agent-audit-row { border-top: 1px solid var(--border, var(--ip-tone-dce5d4,#dce5d4)); padding: 12px 0; overflow-wrap: anywhere; }
 .agent-audit-row summary { cursor: pointer; line-height: 1.6; }
 .agent-audit-row li { margin: 6px 0; }
+.audience-warning{padding:8px 10px;border-left:3px solid var(--ip-tone-d9a441,#d9a441);border-radius:8px;background:var(--ip-tone-fbf6ea,#fbf6ea);color:#7a5a12;font-weight:600}

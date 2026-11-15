@@ -43,6 +43,24 @@ class PersonalMemory:
             raise PersonalMemoryChanged('档案或个人记忆已变化，请重新查询。')
 
     @staticmethod
+    def scope_note(identity, shared=None):
+        """Guest turns must not silently look like “no such memory” when the fact is in a team space."""
+        if identity:
+            if shared:
+                return (f'\n本轮还带入了空间「{shared.get("space_name") or "共同记忆"}」的成员共同记忆，来自当前登录的空间账号；'
+                        '空间账号不等于个人档案身份，不要把两者混为一个人。团队／家庭事实以共同记忆资料为准，'
+                        '个人偏好仍以个人记忆为准；资料里没有的不要编造。\n')
+            return ''
+        if shared:
+            return (f'\n当前没有选择个人档案，但本轮带入了空间「{shared.get("space_name") or "共同记忆"}」的成员共同记忆，'
+                    '来自当前登录的空间账号。回答团队资料时以这些资料为准并说明来源；不要用团队资料推测个人偏好，'
+                    '也不要因为资料里没有就否认存在，资料里没有的说没有查到。\n')
+        return ('\n当前身份是访客：本轮没有选择个人档案，因此没有任何个人记忆可用；这个对话也不读取家庭或团队共同记忆。'
+                '若用户问班级口号、团队安排、家庭事项等可能保存在共同记忆里的内容，请直接说明：主对话不接入共同记忆，'
+                '需要打开页面的「共同记忆」，用空间账号登录并选择对应空间后再提问。'
+                '不要猜测或编造，也不要说“没有这条记忆”。\n')
+
+    @staticmethod
     def context(profile, sources):
         if not profile:return ''
         return ('\n下面JSON的user和preferred_address由当前档案提供，档案选择不等同于身份认证。'

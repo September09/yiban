@@ -4,7 +4,8 @@
     "base_url": "http://127.0.0.1:11434",
     "model": "qwen2.5:3b",
     "vision_model": "qwen2.5vl:3b",
-    "manage_local_ollama": true
+    "manage_local_ollama": true,
+    "enable_thinking": false
   },
   "tts": {
     "backend": "macos",

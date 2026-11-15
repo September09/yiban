@@ -76,6 +76,86 @@ async function monitorInterrupt(){
   if(!wakeEnabled||!$('bargeIn').checked||enrolling||wakeListener)return;
   await resumeWake('interrupt');
 }
+// 回答还在生成时就按句合成播放：第一句一到就开口，不必等全文结束。
+function openReplySpeech(version,traceId){
+  const queue=[];let cursor=0,remaining=0,running=false,closed=false,prepared=false,cancelled=false,failed=false,settled=false,finish=null;
+  const done=new Promise(resolve=>{finish=resolve;});
+  const alive=()=>version===turnVersion&&!cancelled&&!failed;
+  // 队列收尾时当场结束本轮诊断，和原来整段朗读的时序保持一致。
+  function settle(){
+    if(settled)return;settled=true;
+    const ok=alive();if(finish){finish(ok);finish=null;}
+    conversationDiagnostics.finish(traceId,ok?'done':'error',ok?undefined:'tts');
+  }
+  async function prepare(){
+    if(!(wakeEnabled&&$('bargeIn').checked&&wakeListener?.mode==='interrupt'))await pauseWake();
+    await monitorInterrupt();
+  }
+  async function synth(text){
+    const controller=new AbortController();ttsAbort=controller;
+    if(!audio)conversationDiagnostics.stage(traceId,'tts');
+    const res=await api('/api/speak',{text,turn_id:turnId||newTurnId()},'application/json',controller.signal,conversationDiagnostics.headers(traceId));
+    return res.blob();
+  }
+  async function play(blob){
+    if(!alive())return;
+    stopAudio();speaking=true;audioUrl=URL.createObjectURL(blob);audio=new Audio(audioUrl);const player=audio;
+    // 只有被「再听一遍」、打断或外部暂停抢走播放器时才算取消；本轮自己收尾不算。
+    let releasing=false;
+    player.onpause=()=>{if(!releasing&&player===audio&&!player.ended)cancelled=true;};
+    const routed=typeof audioDevices!=='undefined'?audioDevices.routeOutput(player):null;if(routed)await routed;
+    if(!alive()||player!==audio)return;
+    conversationDiagnostics.stage(traceId,'playback');
+    await player.play();
+    await new Promise(resolve=>{
+      // 最后一段播完就在同一个回调里收尾，避免多等几个微任务才结束本轮。
+      player.onended=()=>{if(closed&&remaining<=1)settle();resolve();};
+      player.onerror=()=>{failed=true;if(closed&&remaining<=1)settle();resolve();};
+    });
+    releasing=true;
+    if(player===audio)stopAudio();
+  }
+  async function pump(){
+    if(running)return;running=true;speaking=true;
+    try{
+      if(!prepared){prepared=true;await prepare();}
+      state('正在说给你听…','speaking');
+      let pending=null;
+      // 合成失败要落到值上再判断，预取的那一句失败时也不能留下未处理的异常。
+      const request=text=>synth(text).then(blob=>({blob}),error=>({error}));
+      while(alive()){
+        if(!pending){if(!queue.length)break;pending=request(queue.shift());}
+        const current=pending;pending=null;
+        // 当前句播放时就开始合成下一句，句间不留合成空档。
+        const ahead=queue.length?request(queue.shift()):null;
+        const result=await current;if(!alive())break;
+        if(result.error)throw result.error;
+        await play(result.blob);pending=ahead;remaining--;
+      }
+    }catch(error){if(error.name!=='AbortError'){failed=true;notice('声音未播放：'+(error.name==='NotAllowedError'?'浏览器拦截了自动播放，先点一下页面任意位置即可':'')+error.message);}}
+    running=false;speaking=false;
+    // 合成或播放失败时队列里可能还剩着句子，也要收尾，否则这一轮永远结束不了、麦克风不会恢复。
+    if(closed&&(remaining<=0||!alive()))settle();
+  }
+  function enqueue(text){const clean=(text||'').trim();if(!clean||!alive())return;queue.push(clean);remaining++;pump();}
+  return {
+    feed(answer){
+      if(closed||!alive())return;
+      const rest=answer.slice(cursor);
+      const sentence=rest.match(/[\s\S]*[。！？!?；;\n]/);
+      if(!sentence||sentence[0].replace(/\s/g,'').length<6)return;
+      cursor+=sentence[0].length;enqueue(sentence[0]);
+    },
+    async end(answer){
+      if(!closed&&alive()){const rest=answer.slice(cursor);cursor=answer.length;enqueue(rest);}
+      closed=true;
+      // 队列已经播完或中途失败就立刻收尾；还剩句子但播放循环没在跑时补启动一次。
+      if(!running){if(remaining<=0||!alive())settle();else pump();}
+      return done;
+    }
+  };
+}
+
 async function speak(text,{onComplete=null,onFailure=null,traceId=null}={}){
   if(typeof stopSpeechPreview==='function')stopSpeechPreview(false);
   if(!ttsReady){conversationDiagnostics.finish(traceId,'done','unavailable');notice('当前未启用语音播放，可以继续文字对话。');return;}
@@ -144,14 +224,19 @@ async function send(text,{image=null,source='text',traceId=null}={}){
   cancelTurn({preserveTrace:true});conversationDiagnostics.stage(traceId,'request');const version=turnVersion,id=newTurnId();turnId=id;const controller=new AbortController();chatAbort=controller;
   busy=true;if(typeof diagnosticOverview!=='undefined')diagnosticOverview.startLocal(traceId,'chat',text);controls();await pauseWake();if(version!==turnVersion)return;notice();$('input').value='';$('suggestions').hidden=true;
   messages.push({role:'user',content:text});addMessage('user',text,image);persist();
+  // 只打字时没有音频，声纹不会参与；不说明的话很容易误以为识别失效。
+  if(source==='text'&&$('speakerAuto').checked&&!activeProfile)notice('文字消息不带声音，本轮按访客回答。想按声音识别，请用麦克风说话，或在上方手动选择用户。');
   const row=addMessage('assistant','');activeRow=row;state(image?'让我仔细看看…':'让我想一想…','thinking');
   const greeting=typeof voiceGreeting==='function'?voiceGreeting(source):null;
+  const speech=ttsReady&&$('autoplay').checked?openReplySpeech(version,traceId):null;
   let answer='',completed=false;const started=performance.now();
   try{
-    await monitorInterrupt();if(version!==turnVersion)return;
+    // 插话监听与请求并行启动；以前要等麦克风重建完才发问题，白等几百毫秒。
+    void monitorInterrupt();
     if(typeof speakerDiagnostic==='function')speakerDiagnostic('问题已提交',{'输入方式':source==='text'?'文字':source==='wake'?'语音唤醒 / 插话':'点击录音','当前档案':activeProfile?'已选择或匹配用户':'访客'});
-    const res=await api('/api/chat',{messages:messages.slice(-16),profile_id:activeProfile,turn_id:id,...(image?{image}:{})},'application/json',controller.signal,conversationDiagnostics.headers(traceId));const reader=res.body.getReader(),decoder=new TextDecoder();let pending='';
-    function consume(line){if(version!==turnVersion||!line.trim())return;const data=JSON.parse(line);if(data.reply_mode==='rule'&&typeof diagnosticOverview!=='undefined')diagnosticOverview.sourcesLocal(traceId,{profile:null,sources:[],answer_source_ids:[],source_usage:'program_selected'});if(data.error)throw new Error(data.error);if(data.memory_changed&&typeof refreshMemories==='function')refreshMemories();if(data.memory_review&&typeof showMemoryReview==='function')showMemoryReview(data.memory_review);if(data.action)animateAction(data.action);if(data.personal_memory){if(typeof diagnosticOverview!=='undefined')diagnosticOverview.sourcesLocal(traceId,data.personal_memory,data.reply_mode!=='personal_conflict');if(typeof renderPersonalMemoryContext==='function')renderPersonalMemoryContext(row,data.personal_memory);}const piece=data.message?.content||'';if(piece&&!answer&&greeting){answer=greeting.text;markVoiceGreeting(greeting);}answer+=piece;row.bubble.textContent=answer||'…';if(data.done)completed=true;scroll();}
+    const sharedScope=typeof sharedChatScope==='function'?sharedChatScope():null;
+    const res=await api('/api/chat',{messages:messages.slice(-16),profile_id:activeProfile,turn_id:id,...(sharedScope||{}),...(image?{image}:{})},'application/json',controller.signal,conversationDiagnostics.headers(traceId));const reader=res.body.getReader(),decoder=new TextDecoder();let pending='';
+    function consume(line){if(version!==turnVersion||!line.trim())return;const data=JSON.parse(line);if(data.reply_mode==='rule'&&typeof diagnosticOverview!=='undefined')diagnosticOverview.sourcesLocal(traceId,{profile:null,sources:[],answer_source_ids:[],source_usage:'program_selected'});if(data.error)throw new Error(data.error);if(data.memory_changed&&typeof refreshMemories==='function')refreshMemories();if(data.memory_review&&typeof showMemoryReview==='function')showMemoryReview(data.memory_review);if(data.action)animateAction(data.action);if(data.personal_memory){if(typeof diagnosticOverview!=='undefined')diagnosticOverview.sourcesLocal(traceId,data.personal_memory,data.reply_mode!=='personal_conflict');if(typeof renderPersonalMemoryContext==='function')renderPersonalMemoryContext(row,data.personal_memory);}if(data.shared_memory){const shared=data.shared_memory;notice(shared.count?`本轮带上共同记忆 ${shared.count} 条（空间：${shared.space}${shared.public_only?'；云端模型，仅全体成员可见':''}）。`:`本轮在空间「${shared.space}」里没有找到与问题相关的可见记忆。`);}const piece=data.message?.content||'';if(piece&&!answer&&greeting){answer=greeting.text;markVoiceGreeting(greeting);}answer+=piece;row.bubble.textContent=answer||'…';if(speech)speech.feed(answer);if(data.done)completed=true;scroll();}
     while(true){const{value,done}=await reader.read();if(version!==turnVersion){await reader.cancel();return;}if(done)break;pending+=decoder.decode(value,{stream:true});const lines=pending.split('\n');pending=lines.pop();for(const line of lines)consume(line);}
     pending+=decoder.decode();if(pending.trim())consume(pending);if(!completed||!answer.trim())throw new Error('回答中断了，请再试一次。');
     if(version!==turnVersion)return;activeRow=null;
@@ -160,7 +245,11 @@ async function send(text,{image=null,source='text',traceId=null}={}){
   }catch(error){if(version===turnVersion&&error.name!=='AbortError'){if(typeof diagnosticOverview!=='undefined')diagnosticOverview.finishLocal(traceId,'failed');conversationDiagnostics.finish(traceId,'error','request');row.bubble.textContent=answer?answer+'\n（回答中断）':'暂时没能回答，请再试一次。';notice(error.message);}}
   finally{if(typeof diagnosticOverview!=='undefined'&&version===turnVersion&&completed)diagnosticOverview.finishLocal(traceId);conversationDiagnostics.refresh(traceId);if(version===turnVersion){busy=false;activeRow=null;chatAbort=null;controls();idle();}}
   if(version!==turnVersion)return;
-  if(completed&&answer&&ttsReady&&$('autoplay').checked)await speak(answer,{traceId});else{conversationDiagnostics.finish(traceId,'done',ttsReady?'muted':'unavailable');returnToWake();}
+  if(completed&&answer&&speech){
+    await speech.end(answer);
+    if(version===turnVersion)await returnToWake();
+  }else if(completed&&answer&&ttsReady&&$('autoplay').checked)await speak(answer,{traceId});
+  else{conversationDiagnostics.finish(traceId,'done',ttsReady?'muted':'unavailable');returnToWake();}
 }
 function pcm16(samples){const buffer=new ArrayBuffer(samples.length*2),view=new DataView(buffer);samples.forEach((v,i)=>{v=Math.max(-1,Math.min(1,v));view.setInt16(i*2,v<0?v*32768:v*32767,true);});return new Uint8Array(buffer);}
 function encodeWav(chunks,rate){

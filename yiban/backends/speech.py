@@ -18,9 +18,22 @@ class SenseVoiceASR:
     def available(self):
         return all((self.model_dir / name).exists() for name in ("model.int8.onnx", "tokens.txt"))
 
+    def recognizer_instance(self):
+        import sherpa_onnx
+        if self.recognizer is None:
+            self.recognizer = sherpa_onnx.OfflineRecognizer.from_sense_voice(
+                model=str(self.model_dir / "model.int8.onnx"),
+                tokens=str(self.model_dir / "tokens.txt"), num_threads=4,
+                use_itn=True, language="auto", provider="cpu")
+        return self.recognizer
+
+    def warm(self):
+        """Load the model before the first utterance so turn one is not slower."""
+        with self.lock:
+            return self.recognizer_instance()
+
     def transcribe(self, raw):
         import numpy as np
-        import sherpa_onnx
         with wave.open(io.BytesIO(raw)) as wav:
             if wav.getnchannels() != 1 or wav.getsampwidth() != 2:
                 raise ValueError("请使用单声道 16 位 WAV 音频。")
@@ -33,14 +46,10 @@ class SenseVoiceASR:
         if float(np.max(np.abs(samples))) < 0.002:
             return ""
         with self.lock:
-            if self.recognizer is None:
-                self.recognizer = sherpa_onnx.OfflineRecognizer.from_sense_voice(
-                    model=str(self.model_dir / "model.int8.onnx"),
-                    tokens=str(self.model_dir / "tokens.txt"), num_threads=4,
-                    use_itn=True, language="auto", provider="cpu")
-            stream = self.recognizer.create_stream()
+            recognizer = self.recognizer_instance()
+            stream = recognizer.create_stream()
             stream.accept_waveform(rate, samples)
-            self.recognizer.decode_stream(stream)
+            recognizer.decode_stream(stream)
             return stream.result.text.strip()
 
 

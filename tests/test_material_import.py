@@ -165,7 +165,30 @@ class MaterialTests(unittest.TestCase):
     def test_truncated_ai_response_and_capacity_rejected(self):
         def events(*args,**kwargs):yield {'message':{'content':'[]'},'done':True,'done_reason':'length'}
         with patch('yiban.memory.shared_import.ModelClient.chat',events):self.fail(400,self.organize,mode='ai')
-        self.fail(400,self.material.preview,self.token('editor'),self.batch(*[str(i) for i in range(41)]))
+        self.fail(400,self.material.preview,self.token('editor'),self.batch(*[str(i) for i in range(201)]))
+        self.assertEqual(self.count(),0)
+
+    def test_large_text_auto_split_and_200_item_preview(self):
+        # 读取超 30000 字的文件不再报错：按行边界自动分块，每块 ≤12000 字且内容完整。
+        text='\n'.join(f'第{i}条记录：活动在公园集合。' for i in range(2000))
+        self.assertGreater(len(text),30000)
+        result=self.read('chat.txt',text.encode())
+        parts=result['parts']
+        self.assertGreater(len(parts),1)
+        self.assertTrue(all(len(p['text'])<=12000 for p in parts))
+        self.assertEqual(sum(len(p['text']) for p in parts),len(text))
+        self.assertTrue(all(p['name'].startswith('chat.txt（第 ') for p in parts))
+        self.assertNotIn('text',result)
+        # 单行超长时硬切，块大小仍有界；分块后每块可作为普通资料整理。
+        block=self.material.split_parts('long.txt','甲'*25000)
+        self.assertTrue(all(len(p['text'])<=12000 for p in block))
+        organized=self.material.organize(self.token('editor'),{'space_id':self.space,'sources':parts[:2]})
+        self.assertTrue(organized['candidates'])
+        # 单份 200000 字上限仍然拒绝，且不截断。
+        self.fail(400,self.read,'huge.txt',('长'*200_001).encode())
+        # 预览上限从 40 提升到 200：200 条可预览，201 条拒绝；预览仍不写库。
+        plan=self.material.preview(self.token('editor'),self.batch(*[f'唯一内容第{i}条' for i in range(200)]))
+        self.assertEqual(len(plan['items']),200)
         self.assertEqual(self.count(),0)
 
 class MaterialHTTPTests(unittest.TestCase):

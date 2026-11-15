@@ -42,6 +42,9 @@
   <section class="conversation" aria-label="对话">
     <div class="conversation-header"><div><h2 id="conversationTitle">和小伴聊聊</h2><p id="connection">模型准备中</p></div><button class="text-button" id="clear">新对话</button></div>
     <button id="workspaceSharedVoice" class="text-button" type="button">普通对话 · 设置共同记忆语音</button>
+    <label class="feature-option" id="chatSharedMemoryRow"><input type="checkbox" id="chatSharedMemory" disabled aria-describedby="chatSharedMemoryHint"> 带上当前空间共同记忆</label>
+    <p class="feature-help" id="chatSharedMemoryHint">未登录空间账号：陪伴对话只读个人记忆。要带团队资料，请先到「共同记忆」登录空间账号并选择空间。</p>
+    <button id="chatSharedMemoryGo" class="text-button" type="button" hidden>去登录空间账号</button>
     <div id="messages" class="messages" role="log" aria-live="polite"></div>
 
     <section id="sharedVoiceBanner" class="shared-voice-banner" aria-label="共同记忆语音状态" hidden>
@@ -60,6 +63,7 @@
       <summary>用户与记忆</summary>
       <label for="profileSelect">当前用户</label>
       <select id="profileSelect"><option value="">访客 · 不读取个人记忆</option></select>
+      <p class="feature-help">访客不读取任何个人记忆。主对话只使用当前个人档案的记忆，默认<strong>不读取家庭／团队共同记忆</strong>；登录空间账号并选择空间后，可在对话页勾选「带上当前空间共同记忆」，只带入该账号可见的那部分。</p>
       <div class="personal-row"><input id="profileName" maxlength="40" placeholder="新用户名称" aria-label="新用户名称"><button id="createProfile" class="secondary-button">创建</button></div>
       <label for="profileSalutation">首次问候称呼</label>
       <div class="personal-row"><input id="profileSalutation" maxlength="40" placeholder="例如：王先生、李女士、小王" aria-label="首次问候称呼"><button id="saveSalutation" class="secondary-button">保存称呼</button></div>
@@ -206,9 +210,12 @@
         <label for="sharedSourceNote">来源说明（可选）</label><input id="sharedSourceNote" maxlength="200" placeholder="例如：家庭讨论、周一例会">
         <label for="sharedVisibility">谁可以看到</label><select id="sharedVisibility"><option value="selected">指定成员（作者和管理员始终可见）</option><option value="all">全体成员（含以后加入的成员）</option></select>
         <div id="sharedAudience" class="shared-audience"></div>
+        <p id="sharedAudienceHint" class="feature-help" role="status"></p>
         <label for="sharedEditPolicy">谁可以修改正文</label><select id="sharedEditPolicy"><option value="author">仅作者和管理员</option><option value="editors">允许可见的编辑成员修改</option></select>
         <p class="feature-help">修改可见范围、删除记忆仅作者（须有编辑角色）或管理员可操作；历史仅作者和管理员可查看。只读角色不会因是作者而获得写入权限。</p>
-        <div class="personal-row"><button id="sharedPreview" class="secondary-button">预览发布范围与内容</button><button id="sharedCancelEdit" class="text-button">取消编辑</button></div>
+        <div class="personal-row"><button id="sharedPreview" class="secondary-button">保存并预览</button><button id="sharedCancelEdit" class="text-button">取消编辑</button></div>
+        <p id="sharedSaveHint" class="feature-help" role="status"></p>
+        <p id="sharedEditorStatus" class="feature-help" role="alert" hidden></p>
         <section id="sharedReviewPanel" class="memory-review" aria-label="共同记忆发布确认" hidden>
           <h3>发布前核对</h3><p id="sharedReviewSummary"></p><div id="sharedReviewContent"></div>
           <label id="sharedConflictLabel" class="feature-option" hidden><input id="sharedConflictConsent" type="checkbox"> 我已核对可能冲突的内容，仍确认本次发布</label>
@@ -254,7 +261,8 @@
         <label for="materialBatchName">本次导入批次名称</label><input id="materialBatchName" maxlength="160" placeholder="例如：十一月活动纪要 · 第一批">
         <label for="materialFiles">读取文件（可多选）</label>
         <input id="materialFiles" type="file" multiple accept=".txt,.md,.csv,.json,.docx,.pdf,.png,.jpg,.jpeg">
-        <p class="feature-help">支持文字、聊天导出 JSON／CSV、Word DOCX、PDF、PNG／JPG。每份最多 4 MB、PDF 最多 20 页，每批最多 10 份／30000 字。图片和扫描页目前在 Mac 本机识别；模糊长图请分段上传。微信原始数据库、旧版 DOC、音视频请先转为以上格式。</p>
+        <p class="feature-help">支持文字、聊天导出 JSON／CSV、Word DOCX、PDF、PNG／JPG。每份最多 4 MB、PDF 最多 20 页；单份文字最长 20 万字，超过 30000 字会自动按行分块，整理时按每批 30000 字自动分批进行，一次最多导入 200 条（也是每个空间的记忆上限）。图片和扫描页目前在 Mac 本机识别；模糊长图请分段上传。微信原始数据库、旧版 DOC、PPT／PPTX、音视频请先转为以上格式（PPTX 可在「文件 → 导出」存为 PDF）。</p>
+        <p class="feature-help material-persist-hint">读取的原文和候选只暂存在当前页面内存里：刷新页面、退出账号或切换空间都会清空，只有最后点「确认导入」才写入共同记忆。已导入的批次请在上方「资料来源与导入批次」查看。</p>
         <button id="materialAddText" type="button" class="secondary-button">添加一份粘贴文字</button>
         <h3>2 · 核对读取的原文</h3>
         <div id="materialSources"></div>
@@ -271,10 +279,13 @@
         <label for="materialVisibility">本批记忆谁可以看到</label>
         <select id="materialVisibility"><option value="selected">指定成员（作者和管理员始终可见）</option><option value="all">全体成员（含以后加入的成员）</option></select>
         <div id="materialAudience" class="shared-audience"></div>
+        <p id="materialAudienceHint" class="feature-help" role="status"></p>
         <label for="materialPolicy">本批记忆谁可以修改</label>
         <select id="materialPolicy"><option value="author">仅作者和管理员</option><option value="editors">可见的编辑成员</option></select>
         <button id="materialPreview" type="button" class="secondary-button">查看最终导入预览</button>
+        <p id="materialStepHint" class="feature-help"></p>
       </fieldset>
+      <p id="materialStatus" class="material-notice" role="status" aria-live="polite"></p>
       <button id="materialStop" type="button" class="text-button" hidden>停止读取／整理</button>
       <button id="materialClear" type="button" class="text-button">清空本批资料</button>
       <section id="materialReview" hidden aria-label="导入最终确认">
@@ -285,8 +296,8 @@
         <label id="materialConflictLabel" hidden><input id="materialConflictConsent" type="checkbox">我已核对可能冲突的内容，仍要新增这些记忆</label>
         <button id="materialConfirm" type="button" class="primary-button">确认导入</button>
         <button id="materialBack" type="button" class="text-button">返回修改</button>
+        <p id="materialConfirmStatus" class="material-notice" role="alert" aria-live="assertive" hidden></p>
       </section>
-      <p id="materialStatus" role="status" aria-live="polite"></p>
     </details>
 </section>
 <section id="sharedPageBackup" class="workspace-panel" role="tabpanel" aria-labelledby="navSharedBackup" tabindex="0" hidden>
@@ -333,8 +344,9 @@
   <button id="sharedBackupCancel" class="text-button">取消恢复</button>
   <p class="feature-help">仅支持忆伴共同记忆 v1 JSON：最多24 MB、200条记忆、100个关联账号、10000条历史。超限会提示，不会截断。账号口令、登录凭证、声纹、个人记忆和回答反馈不包含在内。预览10分钟有效，确认前不会创建空间。请只恢复可信来源的文件。</p>
 </section>
-<section id="sharedPageMembers" class="workspace-panel" role="tabpanel" aria-labelledby="navSharedMembers" tabindex="0" hidden><div class="pane-heading"><h2>空间与成员</h2><p>管理空间、成员角色和共享语音设置。</p></div><details><summary>创建家庭或团队空间</summary><label for="sharedSpaceKind">空间类型</label><select id="sharedSpaceKind"><option value="family">家庭</option><option value="team">团队</option></select><label for="sharedSpaceName">空间名称</label><input id="sharedSpaceName" maxlength="60" placeholder="例如：我们的家庭、产品团队"><button id="sharedCreateSpace" class="secondary-button">创建空间</button></details><details open id="sharedMembersPanel"><summary>成员与角色</summary><ul id="sharedMemberList" class="memory-list"></ul>
-          <div id="sharedMemberAdmin" hidden><label for="sharedMemberName">成员的空间账号名称</label><input id="sharedMemberName" maxlength="40" placeholder="成员需先注册账号"><label for="sharedMemberRole">成员角色</label><select id="sharedMemberRole"><option value="reader">只读成员</option><option value="editor">编辑成员</option></select><button id="sharedSetMember" class="secondary-button">添加或更新成员角色</button><p class="feature-help">管理员可管理所有共同记忆。只读成员仅能查看；编辑成员按每条记忆的修改权限操作。</p></div>
+<section id="sharedPageMembers" class="workspace-panel" role="tabpanel" aria-labelledby="navSharedMembers" tabindex="0" hidden><div class="pane-heading"><h2>空间与成员</h2><p>管理空间、成员角色和共享语音设置。</p></div><details><summary>创建家庭或团队空间</summary><label for="sharedSpaceKind">空间类型</label><select id="sharedSpaceKind"><option value="family">家庭</option><option value="team">团队</option></select><label for="sharedSpaceName">空间名称</label><input id="sharedSpaceName" maxlength="60" placeholder="例如：我们的家庭、产品团队"><button id="sharedCreateSpace" class="secondary-button">创建空间</button></details><details open id="sharedMembersPanel"><summary>成员与角色</summary><p id="sharedMemberHint" class="feature-help" role="status"></p><ul id="sharedMemberList" class="memory-list"></ul>
+          <div id="sharedMemberAdmin" hidden><label for="sharedMemberName">成员的空间账号名称</label><input id="sharedMemberName" maxlength="40" placeholder="成员需先注册账号"><label for="sharedMemberRole">成员角色</label><select id="sharedMemberRole"><option value="reader">只读成员</option><option value="editor">编辑成员</option></select><button id="sharedSetMember" class="secondary-button">添加或更新成员角色</button><p id="sharedMemberStatus" class="material-notice" role="alert" aria-live="assertive"></p><p class="feature-help">管理员可管理所有共同记忆。只读成员仅能查看；编辑成员按每条记忆的修改权限操作。添加成功后，还要在记忆的「谁可以看到」里勾选该成员，否则他看不到「指定成员」的记忆。</p>
+          <details id="sharedMemberRegisterBox"><summary>对方还没有账号？在这里为他注册</summary><p class="feature-help">注册只会创建一个新账号，不会切换你当前的登录。请让对方自己输入口令（10–128 个字符），注册成功后把账号名称告诉他，再在上面的输入框里选择角色并添加。</p><label for="sharedNewMemberName">新成员的空间账号名称</label><input id="sharedNewMemberName" maxlength="40" autocomplete="off" placeholder="例如：张宁宁"><label for="sharedNewMemberPassword">新成员的口令（由对方输入）</label><input id="sharedNewMemberPassword" type="password" minlength="10" maxlength="128" autocomplete="new-password" placeholder="10–128 个字符"><button id="sharedRegisterMember" class="secondary-button">注册这个账号</button><p id="sharedRegisterMemberStatus" class="material-notice" role="status" aria-live="polite"></p></details></div>
         </details><details><summary>修改空间账号口令</summary><label for="sharedOldPassword">原口令</label><input id="sharedOldPassword" type="password" maxlength="128" autocomplete="current-password"><label for="sharedNewPassword">新口令</label><input id="sharedNewPassword" type="password" minlength="10" maxlength="128" autocomplete="new-password"><button id="sharedChangePassword" class="secondary-button">修改口令并退出所有会话</button></details><details id="sharedVoiceSetup" class="shared-voice-disclosure"><summary>共同记忆语音设置</summary>
 <section class="shared-voice-setup" aria-label="共同记忆语音设置">
       <h3>语音交互设置</h3>
@@ -396,7 +408,7 @@
 <div class="personal-row"><label>编辑档位<select id="modelsProfile"><option value="local">本机模型</option><option value="cloud">云端模型</option></select></label><label>接口类型<select id="modelsBackend"><option value="ollama">Ollama</option><option value="openai_compatible">OpenAI 兼容</option></select></label></div>
 <label>服务地址<input id="modelsURL" maxlength="500" autocomplete="off" placeholder="http://127.0.0.1:11434"></label>
 <div class="personal-row"><label>文字模型名称<input id="modelsName" maxlength="160" autocomplete="off"></label><label>视觉模型（可留空）<input id="modelsVision" maxlength="160" autocomplete="off"></label></div>
-<label>服务商思考参数<select id="modelsThinking"><option value="none">标准兼容接口（不额外传思考参数）</option><option value="zhipu">智谱：关闭思考</option><option value="bailian">百炼：关闭思考</option><option value="keep">保留启动配置的思考参数</option></select></label>
+<label>服务商思考参数<select id="modelsThinking"><option value="none">标准兼容接口（不额外传思考参数）</option><option value="ollama">Ollama：关闭思考（语音推荐）</option><option value="zhipu">智谱：关闭思考</option><option value="bailian">百炼：关闭思考</option><option value="keep">保留启动配置的思考参数</option></select></label>
 <label>密钥环境变量名<input id="modelsKeyEnv" maxlength="80" autocomplete="off" placeholder="ZHIPU_API_KEY"></label><p id="modelsKeyInfo" class="feature-help"></p>
 <label>保存后的使用档位<select id="modelsActiveSelect"><option value="local">本机</option><option value="cloud">云端</option></select></label>
 <label class="feature-option"><input type="checkbox" id="modelsRemoteConsent">我确认将云端档位的新问题及允许的资料发送到所配置服务；检测仅发送固定短句</label>
