@@ -153,6 +153,9 @@ class ModelClient:
             payload = {"model": model, "messages": messages, "stream": True, "keep_alive": "15m",
                        "options": {"num_ctx": 4096, "num_predict": self.config["max_tokens"],
                                    "temperature": self.config["temperature"]}}
+            # qwen3 等混合推理模型默认先写思考链，语音场景会让首字等到十几秒。
+            # 未显式开启时按关闭处理；不支持思考的模型收到 false 也不会报错。
+            payload["think"] = self.config.get("enable_thinking") is True
             if json_schema is not None:
                 payload["format"] = json_schema
             with self.stream_request("/api/chat", payload, cancel) as response:

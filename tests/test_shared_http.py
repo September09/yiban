@@ -67,3 +67,26 @@ class SharedHTTPTests(unittest.TestCase):
             status,result=self.post('/ask',{'space_id':space,'query':'成员可见的内容'},reader)
         self.assertEqual(status,403);self.assertNotIn('不应送达',json.dumps(result,ensure_ascii=False))
         self.assertNotIn('sources',result)
+
+    def test_companion_chat_carries_compact_shared_block_last(self):
+        owner,reader,space,_=self.setup_space('companion')
+        seen=[]
+        def chat(messages,**kwargs):
+            seen.extend(messages)
+            yield {'message':{'content':'来自空间「HTTP 测试」：成员可见的公开内容'},'done':True}
+        with patch.object(self.app.SERVICES.models,'chat',side_effect=chat):
+            request=urllib.request.Request(f'http://127.0.0.1:{self.http.server_port}/api/chat',
+                data=json.dumps({'messages':[{'role':'user','content':'成员可见的内容是什么'}],
+                                 'shared_token':reader,'shared_space_id':space}).encode(),
+                headers={'Content-Type':'application/json'})
+            with urllib.request.urlopen(request,timeout=5) as response:
+                first=json.loads(response.read().splitlines()[0])
+        self.assertEqual(first['shared_memory']['count'],1)
+        prompt=json.dumps(seen,ensure_ascii=False)
+        self.assertIn('成员可见的公开内容',prompt)      # 只带入可见范围之内的资料
+        self.assertNotIn('秘密',prompt)
+        self.assertEqual(len(seen),2);self.assertEqual(seen[1]['role'],'user')
+        system=seen[0]['content']
+        # 带秒的时钟必须排在资料之后：否则每一轮的前缀都不同，模型无法复用已算好的历史提示
+        self.assertLess(system.index('成员可见的公开内容'),system.index('本轮电脑时钟'))
+        self.assertLess(len(system),1200,'陪伴对话的资料块要压缩，不能整段塞进提示词')

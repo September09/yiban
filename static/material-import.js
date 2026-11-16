@@ -1,11 +1,22 @@
 // Material drafts never enter personal conversation history or browser storage.
 const materialState={sources:[],candidates:[],plan:null,generation:0,controller:null,turn:null,running:false};
-function materialMessage(text){$('materialStatus').textContent=text;}
+// 表单很长，提示必须同时出现在按钮旁（#materialStatus / #materialConfirmStatus），否则用户会以为“点了没反应”。
+function materialMessage(text,error=false){
+  const node=$('materialStatus');
+  if(node){node.textContent=text||'';if(node.classList&&node.classList.toggle)node.classList.toggle('material-notice-error',!!error&&!!text);}
+  const extra=$('materialConfirmStatus');
+  if(extra){
+    extra.textContent=text||'';extra.hidden=!text||$('materialReview').hidden;
+    if(extra.classList&&extra.classList.toggle)extra.classList.toggle('material-notice-error',!!error&&!!text);
+  }
+  const target=error&&!$('materialReview').hidden?extra:node;
+  if(text&&error&&target&&typeof target.scrollIntoView==='function')target.scrollIntoView({block:'nearest'});
+}
 function materialInvalidate(){
   const old=materialState.plan;materialState.plan=null;
   if(old&&sharedState.token&&sharedState.space)sharedApi('/import/discard',{space_id:sharedState.space.id,token:old.token}).catch(()=>{});
   $('materialReview').hidden=true;$('materialReviewItems').replaceChildren();$('materialReviewSummary').textContent='';
-  $('materialConsent').checked=false;$('materialConflictConsent').checked=false;
+  $('materialConsent').checked=false;$('materialConflictConsent').checked=false;$('materialConfirmStatus').hidden=true;
 }
 function materialStop(){
   materialState.generation++;
@@ -37,6 +48,30 @@ function materialControls(){
   $('materialConfirm').disabled=locked||!materialState.plan||!$('materialConsent').checked||(!!materialState.plan?.conflicts.length&&!$('materialConflictConsent').checked);
   $('materialConsent').disabled=locked;$('materialConflictConsent').disabled=locked;$('materialBack').disabled=locked;
   $('materialOrganize').disabled=!materialState.sources.length;$('materialPreview').disabled=!materialState.candidates.some(x=>x.selected);
+  // 按钮为什么点不了，要在按钮上方直接写清楚，不能只靠禁用状态。
+  const selected=materialState.candidates.filter(x=>x.selected).length;let hint='';
+  if(!space)hint='请先登录空间账号并选择空间。';
+  else if(space.role==='reader')hint='当前是只读成员，不能导入资料。';
+  else if(!materialState.sources.length)hint='先添加或读取至少一份资料。';
+  else if(!selected)hint='点「生成候选记忆」，再勾选要导入的条目。';
+  else if(!materialState.plan)hint='已勾选 '+selected+' 条：点「查看最终导入预览」核对后再确认导入。';
+  else if(!$('materialConsent').checked)hint='预览已生成：勾选下方「我已核对…」再点「确认导入」。';
+  else if(materialState.plan.conflicts.length&&!$('materialConflictConsent').checked)hint='本批有疑似冲突：请同时勾选冲突确认项。';
+  else hint='可以点「确认导入」写入共同记忆。';
+  $('materialStepHint').textContent=hint;
+}
+function materialAudienceHint(){
+  const node=$('materialAudienceHint');if(!node)return;
+  let hint;
+  if($('materialVisibility').value==='all')hint='本批记忆全体成员可见，包括以后加入的成员。';
+  else {
+    const chosen=[...$('materialAudience').querySelectorAll('input')].filter(box=>box.checked&&box.dataset.implicit!=='true').length;
+    hint=chosen?('本批已选 '+chosen+' 位成员可见；作者和管理员始终可见。')
+      :sharedState.members.length>1
+        ?'注意：当前选了 0 位成员，导入后只有你（作者）和空间管理员能看到，其他成员在记忆库和问答里都读不到。要让全班都能问，请改选「全体成员」。'
+        :'注意：当前空间只有你一位成员，「指定成员」等于只有你自己能看到。要让以后加入的成员也能看到，请改选「全体成员」。';
+  }
+  node.textContent=hint;node.classList.toggle('audience-warning',hint.startsWith('注意：'));
 }
 function materialAudience(){
   const chosen=new Set([...$('materialAudience').querySelectorAll('input:checked')].map(x=>x.value));
@@ -46,13 +81,16 @@ function materialAudience(){
     box.type='checkbox';box.value=member.id;
     const implicit=member.role==='owner'||member.id===sharedState.account?.id;
     box.checked=implicit||chosen.has(member.id);box.disabled=implicit;box.dataset.implicit=implicit?'true':'false';
-    span.textContent=member.name+(implicit?'（始终可见）':'');box.onchange=()=>{materialInvalidate();materialControls();};
+    span.textContent=member.name+(implicit?'（始终可见）':'');box.onchange=()=>{materialInvalidate();materialAudienceHint();materialControls();};
     label.append(box,span);$('materialAudience').append(label);
   }
+  materialAudienceHint();
 }
 function materialPermissionsChanged(){
+  const hadPlan=!!materialState.plan;
   materialStop();materialInvalidate();
-  if(sharedState.space?.role==='reader'){materialReset();materialMessage('当前为只读成员，未导入的资料已清空。');}
+  if(sharedState.space?.role==='reader'){materialReset();materialMessage('当前为只读成员，未导入的资料已清空。',true);}
+  else if(hadPlan)materialMessage('空间内容或权限已更新，之前的导入预览已失效：请重新点「查看最终导入预览」再确认导入。本批资料仍在页面上。',true);
   materialAudience();materialControls();
 }
 async function materialRun(work){
@@ -67,8 +105,11 @@ async function materialRun(work){
     return result;
   };
   try{await work(request,active);}
-  catch(error){if(active())materialMessage(error.name==='AbortError'?'已停止，未完成的处理结果已丢弃。':error.message);}
-  finally{if(active()){materialState.running=false;sharedState.busy=false;materialState.controller=null;materialState.turn=null;sharedControls();}}
+  catch(error){if(active())materialMessage(error.name==='AbortError'?'已停止，未完成的处理结果已丢弃。':error.message,error.name!=='AbortError');}
+  finally{
+    materialState.running=false;materialState.controller=null;materialState.turn=null;
+    if(active()){sharedState.busy=false;sharedControls();}
+  }
 }
 function materialSourcesChanged(){
   materialDiscardDrafts();materialInvalidate();materialState.candidates=[];$('materialCandidates').replaceChildren();materialControls();
@@ -111,28 +152,46 @@ function materialRenderCandidates(){
   materialControls();
 }
 $('materialAddText').onclick=()=>{
-  if(materialState.sources.length>=10){materialMessage('每批最多 10 份资料。');return;}
+  if(materialState.sources.length>=60){materialMessage('本批最多 60 份资料（含大文件自动分块）。',true);return;}
   materialState.sources.push({name:'粘贴资料 '+(materialState.sources.length+1),text:'',warnings:[]});
   materialSourcesChanged();materialRenderSources();
 };
 $('materialFiles').onchange=()=>materialRun(async(request,active)=>{
   const files=Array.from($('materialFiles').files||[]);$('materialFiles').value='';
-  if(files.length+materialState.sources.length>10)throw new Error('每批最多 10 份资料，请减少文件数量。');
+  if(files.length+materialState.sources.length>60)throw new Error('本批最多 60 份资料（含大文件自动分块），请减少文件数量。');
   materialSourcesChanged();
   for(const file of files){
     materialMessage('正在读取「'+file.name+'」…首次图片识别可能需要稍等。');
-    if(file.size>4_000_000)throw new Error(file.name+' 超过 4 MB。此前成功读取的资料已保留。');
+    if(file.size>4_000_000)throw new Error(file.name+' 超过 4 MB：请在「预览」里导出更小的 PDF／图片，或直接把文字粘贴进来。此前成功读取的资料已保留。');
     const encoded=await new Promise((resolve,reject)=>{
       const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(new Error('文件读取失败。'));reader.readAsDataURL(file);
     });
     if(!active())return;
     const result=await request('read',{name:file.name,base64:encoded});
-    if(materialState.sources.reduce((n,s)=>n+s.text.length,0)+result.text.length>30000)throw new Error('本批原文超过 30000 字；这份未加入，请分批处理。');
-    materialState.sources.push(result);materialRenderSources();
+    // 大文件由服务端按行边界自动分块；每块都是一份普通资料，整理时会自动分批。
+    if(result.parts&&result.parts.length>1){
+      for(const part of result.parts)materialState.sources.push({name:part.name,text:part.text,warnings:[]});
+      materialRenderSources();
+      materialMessage('「'+file.name+'」共 '+result.total_chars+' 字，已自动分成 '+result.parts.length+' 块（每块最多 12000 字）。整理时会按每批 30000 字自动分批，请逐块核对原文。');
+    }else{
+      materialState.sources.push(result);materialRenderSources();
+      materialMessage('读取完成。请对照原件核对原文，再生成候选记忆。');
+    }
   }
-  materialMessage('读取完成。请对照原件核对原文，再生成候选记忆。');materialControls();
+  materialControls();
 });
 $('materialMode').onchange=()=>{materialInvalidate();$('materialRemoteConsent').checked=false;materialControls();};
+// 大文件已按块加入列表：这里按「每批 ≤10 份且合计 ≤30000 字」分轮，交给 organize 逐轮执行。
+function materialOrganizeRounds(sources){
+  const rounds=[];let batch=[],size=0;
+  for(const source of sources){
+    if(source.text.length>30000)throw new Error('「'+source.name+'」超过 30000 字：请删除后重新读取（会自动分块），或手动拆分。');
+    if(batch.length&&(batch.length>=10||size+source.text.length>30000)){rounds.push(batch);batch=[];size=0;}
+    batch.push(source);size+=source.text.length;
+  }
+  if(batch.length)rounds.push(batch);
+  return rounds;
+}
 $('materialOrganize').onclick=()=>materialRun(async request=>{
   materialInvalidate();
   const mode=$('materialMode').value;
@@ -141,11 +200,34 @@ $('materialOrganize').onclick=()=>materialRun(async request=>{
     $('materialModelInfo').textContent='当前整理模型：'+info.model+'（'+(info.remote?'远端服务，原文会发送到该服务':'本机服务')+'）。';
     if(info.remote&&!$('materialRemoteConsent').checked)throw new Error('请先勾选同意发送原文到远端模型，再点击生成。');
   }
-  materialMessage(mode==='ai'?'AI 正在逐段整理，长资料可能需要几分钟…':'正在按原文段落生成…');
-  const result=await request('organize',{mode,sources:materialState.sources.map(({name,text})=>({name,text})),allow_remote:$('materialRemoteConsent').checked});
+  const rounds=materialOrganizeRounds(materialState.sources);
   materialDiscardDrafts();
-  materialState.candidates=result.candidates.map(c=>({...c,selected:true,status:'pending',status_reason:'',source_note:'资料导入 · '+c.source_name}));
-  materialRenderCandidates();materialAudience();materialMessage(result.candidates.length?result.notice:'没有提炼到候选事实，请检查原文或改用按段落整理。');
+  const collected=[];let truncated=false;
+  materialState.candidates=collected;
+  for(let i=0;i<rounds.length;i++){
+    materialMessage(rounds.length>1
+      ?`正在整理第 ${i+1}/${rounds.length} 批（每批最多 30000 字）…${mode==='ai'?'长资料可能需要几分钟，可随时点「停止读取／整理」。':''}`
+      :(mode==='ai'?'AI 正在逐段整理，长资料可能需要几分钟…':'正在按原文段落生成…'));
+    try{
+      const result=await request('organize',{mode,sources:rounds[i].map(({name,text})=>({name,text})),allow_remote:$('materialRemoteConsent').checked});
+      for(const candidate of result.candidates){
+        if(collected.length>=200){truncated=true;break;}
+        collected.push({...candidate,selected:true,status:'pending',status_reason:'',source_note:'资料导入 · '+candidate.source_name});
+      }
+    }catch(error){
+      // 中途某批失败：已生成的候选保留下来，仍然可以勾选导入，不必从头再来。
+      materialRenderCandidates();materialAudience();
+      if(collected.length){materialMessage('第 '+(i+1)+' 批整理失败：'+error.message+' 已生成的 '+collected.length+' 条仍可勾选导入；其余资料仍在列表，可稍后重试。',true);}
+      else materialMessage(error.name==='AbortError'?'已停止，未完成的处理结果已丢弃。':error.message,error.name!=='AbortError');
+      return;
+    }
+    if(truncated)break;
+  }
+  materialRenderCandidates();materialAudience();
+  if(!collected.length){materialMessage('没有提炼到候选事实，请检查原文或改用按段落整理。',true);return;}
+  materialMessage(truncated
+    ?'候选已达 200 条上限：本批只保留前 200 条，剩余资料未整理。建议先核对导入这 200 条；导入成功后本页资料会清空，请再重新读取剩余部分整理。'
+    :'已生成 '+collected.length+' 条候选'+(rounds.length>1?'（'+rounds.length+' 批资料全部整理完成）':'')+'。请逐条核对原文摘录，再勾选要导入的条目。');
 });
 $('materialVisibility').onchange=()=>{materialInvalidate();materialAudience();materialControls();};
 $('materialKeepEvidence').onchange=()=>{materialInvalidate();materialControls();};
@@ -160,7 +242,8 @@ $('materialPreview').onclick=()=>materialRun(async request=>{
   $('materialReviewSummary').textContent='批次：'+plan.batch_name+'；归属：「'+plan.space_name+'」；导入者：'+plan.actor_name+'。将新增 '+plan.items.length+' 条，跳过 '+plan.skipped+' 条重复内容。预览 10 分钟内有效。';
   for(const item of plan.items){
     const p=item.payload,row=document.createElement('li');
-    row.textContent=p.content+'\n可见：'+(p.visibility==='all'?'全体成员（含未来成员）；当前：':'')+item.audience.join('、')+
+    const none=item.payload.visibility==='selected'&&!(item.payload.viewers||[]).length;
+    row.textContent=p.content+'\n可见：'+(p.visibility==='all'?'全体成员（含未来成员）；当前：':'')+item.audience.join('、')+(none?'（未选择其他成员：导入后只有作者和管理员能看到）':'')+
       '\n修改权限：'+(p.edit_policy==='author'?'作者和管理员':'可见的编辑成员')+'\n日期：'+(p.event_date||'未指定')+'\n来源：'+(p.source_note||'未指定');
     row.textContent+='\n状态：'+sharedStatusNames[p.status]+' · '+(p.status_reason||'未填写说明');
     row.textContent+=item.evidence?'\n保留完整文字：仅作者和管理员可见。以下摘录随记忆可见范围开放：\n'+item.evidence.quotes.map(q=>q.location+'：'+q.text).join('\n'):'\n不保留原文依据。';
@@ -173,13 +256,21 @@ $('materialPreview').onclick=()=>materialRun(async request=>{
 });
 $('materialConfirm').onclick=()=>materialRun(async request=>{
   const plan=materialState.plan;
-  if(!plan||!$('materialConsent').checked||(plan.conflicts.length&&!$('materialConflictConsent').checked))return;
+  if(!plan){materialMessage('还没有可导入的预览：请先点「查看最终导入预览」核对内容。',true);return;}
+  if(!$('materialConsent').checked||(plan.conflicts.length&&!$('materialConflictConsent').checked)){materialMessage('请先勾选下方的确认项，再点「确认导入」。',true);return;}
   // A confirmation already accepted by the server cannot be undone by cancelling the response.
   $('materialStop').hidden=true;
   const result=await request('confirm',{token:plan.token,confirmed:true,acknowledge_conflicts:$('materialConflictConsent').checked});
   materialDiscardDrafts();materialState.plan=null;materialState.sources=[];materialState.candidates=[];
   materialInvalidate();materialRenderSources();materialRenderCandidates();
-  await sharedRefresh();$('materialBatchName').value='';materialMessage('成功导入 '+result.imported+' 条共同记忆；批次「'+result.batch_name+'」。可在上方刷新导入批次，查看本批记忆、来源和撤销预览。');
+  await sharedRefresh();$('materialBatchName').value='';
+  materialMessage('成功导入 '+result.imported+' 条共同记忆；批次「'+result.batch_name+'」。本批已列在上方「资料来源与导入批次」，可直接查看本批记忆、来源和撤销预览。');
+  // 导入成功后批次列表要自动刷新并展开本批，用户才能马上确认“资料确实在”。
+  if(typeof batchState!=='undefined')batchState.stale=true;
+  setTimeout(()=>{
+    if(typeof sharedBatchesAutoLoad==='function')sharedBatchesAutoLoad();
+    if(result.batch_id&&typeof batchOpen==='function')batchOpen(result.batch_id);
+  },0);
 });
 $('materialBatchName').oninput=()=>{materialInvalidate();materialControls();};
 $('materialBack').onclick=()=>{materialInvalidate();materialControls();};

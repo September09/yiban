@@ -15,6 +15,14 @@ def main():
     checks = [
         ("后端测试", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"]),
         ("前端逻辑测试", [node, "tests/check_frontend.cjs"]),
+        ("流式朗读测试", [node, "tests/check_stream_speech.cjs"]),
+        ("个人记忆保存反馈测试", [node, "tests/check_personal_save.cjs"]),
+        ("共同记忆编辑保存测试", [node, "tests/check_shared_edit.cjs"]),
+        ("资料导入批次测试", [node, "tests/check_import_batches.cjs"]),
+        ("可见范围提示测试", [node, "tests/check_shared_audience.cjs"]),
+        ("空间成员添加测试", [node, "tests/check_shared_members.cjs"]),
+        ("陪伴对话共同记忆测试", [node, "tests/check_shared_chat.cjs"]),
+        ("大文件分轮整理测试", [node, "tests/check_material_rounds.cjs"]),
     ]
     failed = []
     for name, command in checks:

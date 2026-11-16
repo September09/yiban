@@ -53,6 +53,22 @@ class PersonalRetrievalTests(unittest.TestCase):
         result=self.service.answer(self.a,'我用什么运动来解压？')
         self.assertEqual(result['sources'],[]);self.assertIn('没有找到',result['answer']);self.assertEqual(self.model.seen,[])
 
+    def test_guest_scope_note_points_to_shared_memory_instead_of_denying_it(self):
+        note=self.service.scope_note(None)
+        self.assertIn('共同记忆',note);self.assertIn('访客',note)
+        self.assertIn('不要说',note)  # 不许把"团队里没有"说成"没有这条记忆"
+        self.assertEqual(self.service.scope_note(self.a),'')
+
+    def test_scope_note_describes_attached_shared_space(self):
+        guest=self.service.scope_note(None,{'space_name':'25A班'})
+        self.assertIn('25A班',guest)
+        self.assertIn('空间账号',guest)
+        self.assertNotIn('不读取家庭或团队共同记忆',guest)
+        member=self.service.scope_note(self.a,{'space_name':'25A班'})
+        self.assertIn('25A班',member)
+        self.assertIn('不等于个人档案身份',member)
+        self.assertEqual(self.service.scope_note(self.a,None),'')
+
     def test_unavailable_embeddings_fall_back_with_threshold_and_explicit_metadata(self):
         with patch.object(self.provider,'embed',side_effect=RetrievalUnavailable('secret upstream')):
             match=self.service.search(self.a,'我喜欢低糖燕麦拿铁吗？')

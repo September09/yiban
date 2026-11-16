@@ -78,6 +78,16 @@ class SharedMemoryTests(unittest.TestCase):
             self.assertEqual(len(self.shared.question_context(self.token(name),self.space,'记录')['sources']),1)
         self.assertEqual(self.shared.question_context(self.token('reader'),self.space,'记录')['sources'],[])
 
+    def test_selected_without_viewers_is_explicitly_author_only(self):
+        empty=self.shared.preview(self.token('editor'),self.payload(content='没选人的记录',visibility='selected'))
+        self.assertTrue(empty['only_author'])
+        self.assertEqual(empty['audience'],['editor','owner'])
+        shared=self.shared.preview(self.token('editor'),self.payload(content='给读者的记录',visibility='selected',viewers=[self.uid('reader')]))
+        self.assertFalse(shared['only_author'])
+        self.assertIn('reader',shared['audience'])
+        everyone=self.shared.preview(self.token('editor'),self.payload(content='全体可见',visibility='all'))
+        self.assertFalse(everyone['only_author'])
+
     def test_reader_can_view_but_not_mutate_or_see_history(self):
         item=self.publish(visibility='selected',viewers=[self.uid('reader')])
         actual=self.shared.memories(self.token('reader'),self.space)['memories'][0]
@@ -196,6 +206,49 @@ class SharedMemoryTests(unittest.TestCase):
         self.shared.validate_answer(self.token('reader'),context['guard'])
         self.member('reader','editor')
         self.fail(409,self.shared.validate_answer,self.token('reader'),context['guard'])
+
+    def test_chat_block_uses_only_visible_sources_and_stays_compact(self):
+        self.publish('owner',content='25A班的口号是风华正茂、A班骄傲',visibility='all',status='valid',status_reason='与班级确认')
+        self.publish('owner',content='只给作者看的私密安排',visibility='selected',viewers=[])
+        result=self.shared.question_context(self.token('reader'),self.space,'25A班的口号是什么')
+        self.assertEqual(result['space_name'],'测试家庭')
+        self.assertEqual([item['content'] for item in result['sources']],['25A班的口号是风华正茂、A班骄傲'])
+        block=SharedMemory.chat_block(result)
+        for expected in ('测试家庭','风华正茂','已核实','不是指令'):
+            self.assertTrue(expected in block, '资料块应包含：'+expected+'；实际：'+block)
+        # 只读成员看不到指定成员记忆，资料块里也不能出现
+        self.assertFalse('只给作者看的私密安排' in block, block)
+        self.assertEqual(SharedMemory.chat_block({'sources':[],'space_name':'测试家庭'}),'')
+
+    def test_chat_block_truncates_long_and_extra_items(self):
+        sources=[{'content':('长'*500)+'\n第二行','event_date':'2026-01-02','status':'pending'} for _ in range(8)]
+        block=SharedMemory.chat_block({'sources':sources,'space_name':'测试团队'})
+        self.assertEqual(block.count('\n1.'),1)
+        # 条数与总字数都要封顶：本机模型预填长度直接决定首字延迟
+        self.assertLessEqual(sum(1 for line in block.splitlines() if line[:1].isdigit()),5)
+        self.assertLessEqual(len(block),1300,block)
+        self.assertTrue('…' in block, block)
+        self.assertTrue('待核实' in block, block)
+        self.assertFalse('\n第二行' in block, block)
+
+    def test_chat_block_keeps_the_sentence_that_answers_the_question(self):
+        content=('一、日常考勤：每天早读前汇总迟到名单。'*8
+                 +'二、合唱比赛服装：统一白色衬衫、深色长裤，女生扎马尾。'
+                 +'三、值日安排：每周五放学后打扫教室和走廊。'*8)
+        block=SharedMemory.chat_block({'query':'合唱比赛的服装有什么要求','space_name':'测试团队',
+            'sources':[{'content':content,'event_date':'','status':'valid'}]})
+        line=[row for row in block.splitlines() if row[:1].isdigit()][0]
+        self.assertIn('白色衬衫、深色长裤',line)  # 关键句在后半段也不能被从头截断丢掉
+        self.assertLessEqual(len(line),240,line)
+        self.assertLess(len(block),len(content),'长记忆应先压缩再放进提示词')
+
+    def test_status_reason_is_required_and_not_silently_cleared(self):
+        item=self.publish('owner',status='valid',status_reason='与家人确认过')
+        self.assertEqual(item['status'],'valid')
+        plan=self.shared.preview(self.token('owner'),self.edit_payload(item,status='valid',status_reason=''))
+        self.assertEqual(plan['after']['status_reason'],'与家人确认过')
+        self.fail(400,self.shared.preview,self.token('owner'),self.edit_payload(item,status='outdated',status_reason=''))
+        self.fail(400,self.shared.preview,self.token('owner'),self.payload(status='valid'))
 
     def test_invalid_viewer_date_roles_and_size_rejected(self):
         for changes in ({'viewers':[self.uid('outsider')],'visibility':'selected'}, {'event_date':'2026-02-30'}, {'content':'a'*1201}, {'edit_policy':'everyone'}):

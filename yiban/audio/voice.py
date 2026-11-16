@@ -42,7 +42,7 @@ class VoiceSession:
         self.wake_word = wake_word
         config = sherpa_onnx.VadModelConfig()
         config.silero_vad.model = str(ROOT / "models/silero_vad.onnx")
-        config.silero_vad.min_silence_duration = 0.9
+        config.silero_vad.min_silence_duration = 0.6
         config.silero_vad.min_speech_duration = 0.2
         config.silero_vad.max_speech_duration = 29
         config.sample_rate = RATE
@@ -148,18 +148,23 @@ class VoiceManager:
             self.expire()
             if len(self.sessions) >= 4:
                 raise ValueError("已有多个页面正在使用麦克风，请先关闭其他页面的监听。")
-            if self.spotter is None:
-                self.spotter = sherpa_onnx.KeywordSpotter(
-                    tokens=str(KWS_DIR / "tokens.txt"),
-                    encoder=str(KWS_DIR / "encoder-epoch-12-avg-2-chunk-16-left-64.onnx"),
-                    decoder=str(KWS_DIR / "decoder-epoch-12-avg-2-chunk-16-left-64.onnx"),
-                    joiner=str(KWS_DIR / "joiner-epoch-12-avg-2-chunk-16-left-64.onnx"),
-                    keywords_file=str(ROOT / ("config/keywords-aifeng.txt" if self.wake_word == "爱凤同学" else "config/keywords.txt")), num_threads=2,
-                    keywords_threshold=0.3, keywords_score=1.5)
+            self.warm()
             session_id = uuid.uuid4().hex
             self.sessions[session_id] = VoiceSession(self.spotter, mode, self.wake_word)
             self.sessions[session_id].identify_speaker = identify_speaker is True
             return {"session": session_id, "keyword": self.wake_word, "sample_rate": RATE}
+
+    def warm(self):
+        """Load the keyword spotter before the first page connects (called at startup)."""
+        if self.spotter is None:
+            self.spotter = sherpa_onnx.KeywordSpotter(
+                tokens=str(KWS_DIR / "tokens.txt"),
+                encoder=str(KWS_DIR / "encoder-epoch-12-avg-2-chunk-16-left-64.onnx"),
+                decoder=str(KWS_DIR / "decoder-epoch-12-avg-2-chunk-16-left-64.onnx"),
+                joiner=str(KWS_DIR / "joiner-epoch-12-avg-2-chunk-16-left-64.onnx"),
+                keywords_file=str(ROOT / ("config/keywords-aifeng.txt" if self.wake_word == "爱凤同学" else "config/keywords.txt")), num_threads=2,
+                keywords_threshold=0.3, keywords_score=1.5)
+        return self.spotter
 
     def expire(self):
         now = time.monotonic()

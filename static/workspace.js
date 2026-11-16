@@ -12,10 +12,17 @@ function showWorkspacePage(key){
   if(key==='diagnostics'){if(typeof conversationDiagnostics!=='undefined')conversationDiagnostics.render();if(typeof diagnosticOverview!=='undefined')diagnosticOverview.load();}
   if(key==='speech'&&typeof audioDevices!=='undefined')audioDevices.refresh();
   if(key==='models'&&typeof modelSettingsUI!=='undefined')modelSettingsUI.load();
+  // 回到对话页时重新核对登录/空间状态：令牌过期或空间被移除后，开关要立刻变灰并说明原因。
+  if(key==='chat'&&typeof sharedChatMemorySync==='function')sharedChatMemorySync();
   workspaceActivity();
 }
-function showSharedPage(key){if(!sharedPages[key])return;sharedPage=key;setWorkspaceTabs(sharedPages,key);workspaceActivity();}
-function showSharedEditor(){showWorkspacePage('shared');showSharedPage('library');$('sharedEditorDisclosure').open=true;}
+function showSharedPage(key){
+  if(!sharedPages[key])return;sharedPage=key;setWorkspaceTabs(sharedPages,key);
+  // 进入资料导入页就自动读取已导入批次，不再要求用户先点“刷新”。
+  if(key==='import'&&typeof sharedBatchesAutoLoad==='function')sharedBatchesAutoLoad();
+  workspaceActivity();
+}
+function showSharedEditor(){showWorkspacePage('shared');showSharedPage('library');const panel=$('sharedEditorDisclosure');panel.open=true;if(typeof panel.scrollIntoView==='function')panel.scrollIntoView({block:'start'});}
 function workspaceActivity(){
   const active=[];
   const profile=typeof profiles!=='undefined'&&typeof activeProfile!=='undefined'?profiles.find(p=>p.id===activeProfile):null;
