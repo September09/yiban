@@ -233,6 +233,23 @@ class SharedImport:
         self.shared.evidence.stage(token,space['id'],normalized,candidates)
         return {'candidates':candidates,'mode':mode,'notice':'候选内容尚未入库。请逐条核对；AI 提炼可能遗漏或误解，原文摘录相符也不代表结论必然正确。'}
 
+    def reviewed(self, token, data, cancel=None):
+        from yiban.memory.reviewed_materials import unpack
+        cancel=cancel or Cancellation()
+        _,space=self.access(token,data.get('space_id'))
+        cancel.check()
+        sources,candidates,batch_name=unpack(data.get('document'),self.shared._text)
+        with self.shared.store.connect() as db:
+            actor=self.shared._actor(db,token);current=self.shared._member(db,actor['id'],space['id'])
+            for candidate in candidates:
+                # File hints never grant visibility or editing rights.
+                payload=self.shared._payload(db,actor,current,{**candidate,'visibility':'selected','edit_policy':'author','viewers':[]},None)
+                candidate.update({k:payload[k] for k in ('content','event_date','status','status_reason','source_note')})
+        cancel.check();self.guard(token,space)
+        self.shared.evidence.stage(token,space['id'],sources,candidates)
+        return {'candidates':candidates,'sources':[{**source,'warnings':['审阅包文字快照；摘要和引文相符不证明事实正确。']} for source in sources],
+                'batch_name':batch_name,'mode':'manual','notice':'已读取审阅包，尚未入库。请核对候选、当前空间、可见范围和修改权限，再预览确认。包内建议不更改账号或空间权限。'}
+
     def preview(self, token, data):
         with self.shared.store.connect() as db:
             db.execute('BEGIN')
@@ -322,6 +339,7 @@ class SharedImport:
         if not isinstance(data,dict):raise SharedError('请求格式无效。')
         if path=='capabilities':return self.capabilities(token,data)
         if path=='read':return self.read(token,data,cancel)
+        if path=='reviewed':return self.reviewed(token,data,cancel)
         if path=='organize':return self.organize(token,data,cancel)
         if path=='preview':return self.preview(token,data)
         if path=='confirm':return self.confirm(token,data)

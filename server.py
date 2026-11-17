@@ -2,6 +2,7 @@
 from contextvars import ContextVar
 from contextlib import nullcontext
 import base64
+from itertools import chain
 import json
 import re
 import threading
@@ -15,6 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from zoneinfo import ZoneInfo
 from urllib.parse import urlsplit
 from yiban.appearance import Appearance, strip_name_prefix
+from yiban.character_memory import CharacterMemory
 from yiban.actions import action_for_text
 from yiban.settings import ROOT, load_settings
 from yiban.backends import build_services
@@ -35,6 +37,8 @@ from yiban.memory.agent_audit import AgentAudit
 from yiban.memory.answer_feedback import AnswerFeedback
 from yiban.memory.shared_backup import SharedBackup
 from yiban.memory.personal_retrieval import PersonalMemory
+from yiban.memory.unified_memory import UnifiedMemory
+from yiban.memory.v2_store import StructuredMemory
 from yiban.audio.speakers import SpeakerService
 from yiban.turns import TurnRegistry, Cancelled
 from yiban.audio.diagnostics import audio_metadata, log_audio_diagnostic
@@ -43,6 +47,8 @@ from yiban.conversation_diagnostics import TRACES, CURRENT, measured, model_even
 SETTINGS = load_settings()
 APPEARANCE = Appearance(SETTINGS["appearance"], Path(SETTINGS["memory"]["database"]).parent / "appearance.json")
 PERSONA = ContextVar("ip_persona", default=None)
+CHARACTER = ContextVar("ip_character", default=None)
+CHARACTER_MEMORY = CharacterMemory(Path(SETTINGS["memory"]["database"]).parent / "character-memory.json")
 if SETTINGS["audio"]["wake_enabled"]:
     from yiban.audio.voice import manager as voice_manager, available as voice_available
     voice_manager.configure(APPEARANCE.snapshot()["wake_word"])
@@ -73,6 +79,8 @@ RETRIEVER = MemoryRetriever(SETTINGS['retrieval'], STORE.path.parent/'retrieval/
 PERSONAL_MEMORY = PersonalMemory(STORE, RETRIEVER, SERVICES.models)
 STORE.personal_retriever = PERSONAL_MEMORY.retriever
 SHARED = SharedMemory(STORE, retriever=RETRIEVER)
+UNIFIED_MEMORY = UnifiedMemory(SHARED, PERSONAL_MEMORY, SERVICES.models)
+STRUCTURED_MEMORY = StructuredMemory(SHARED, SERVICES.models)
 SHARED_BACKUP = SharedBackup(SHARED)
 SHARED_VOICE = SharedVoice(SHARED)
 SHARED_IMPORT = SharedImport(SHARED, SERVICES.models)
@@ -86,11 +94,11 @@ PORT = SETTINGS["port"]
 MODEL = SETTINGS["llm"]["model"]
 VISION_MODEL = SETTINGS["llm"]["vision_model"]
 
-SYSTEM = "是中文语音助手。用自然、友好的中文交流，通常用2到4句话简洁回答，不用Markdown格式。你没有联网、实际机器人或操作电脑的能力。界面支持固定屏幕动作：点头、摇头、向左看、向右看、开心、回正；只有系统提供动作结果时才能说已完成。图片仅在用户本次提供时可见，不能持续观察摄像头，不要猜测没有提供的画面。不知道的事情请坦诚说明。"
+SYSTEM = "是中文语音助手。用自然、友好的中文交流，通常用2到4句话简洁回答，不用Markdown格式。你没有联网、实际机器人或操作电脑的能力。界面支持固定屏幕动作：点头、摇头、向左看、向右看、开心、回正；只有系统提供动作结果时才能说已完成。图片仅在用户本次提供时可见，不能持续观察摄像头，不要猜测没有提供的画面。询问当前说话人时只依据当前用户档案，未确认时不猜身份，不建议用摄像头辨认人的身份。不知道的事情请坦诚说明。"
 
 
 def system_prompt():
-    return "你叫" + (PERSONA.get() or APPEARANCE.snapshot()["name"]) + "，" + SYSTEM
+    return "你叫" + (PERSONA.get() or APPEARANCE.snapshot()["name"]) + "，" + SYSTEM + CHARACTER_MEMORY.context(CHARACTER.get() if CHARACTER.get() is not None else CHARACTER_MEMORY.lookup(APPEARANCE.snapshot()))
 
 
 def current_time_context():
@@ -271,7 +279,7 @@ class Handler(BaseHTTPRequestHandler):
             status = {"chat": False, "vision": False, "model": active_llm["model"], "vision_model": active_llm["vision_model"],
                       "asr": SERVICES.asr.available(),
                       "wake": SETTINGS["audio"]["wake_enabled"] and voice_available(),
-                      "tts": SERVICES.tts.available(), "wake_word": active_ip["wake_word"], "appearance": active_ip, "version": 29,
+                      "tts": SERVICES.tts.available(), "tts_streaming": SPEECH.streaming_available(), "wake_word": active_ip["wake_word"], "appearance": active_ip, "version": 52, "memory_schema_version": 2,
                       "retrieval": {"enabled": RETRIEVER is not None, "strategy": SETTINGS["retrieval"]["strategy"], "model": SETTINGS["retrieval"]["model"]},
                       "remote_model": urlsplit(active_llm['base_url']).hostname not in {'localhost', '127.0.0.1', '::1'},
                       "backends": {**{key: SETTINGS[key]["backend"] for key in ("asr", "tts", "actions")}, "llm":active_llm["backend"]},
@@ -282,11 +290,12 @@ class Handler(BaseHTTPRequestHandler):
                 pass
             self.json_response(status)
             return
-        files = {"/branding.js": ("branding.js", "text/javascript; charset=utf-8"), "/branding.css": ("branding.css", "text/css; charset=utf-8"), "/aifeng.svg": ("aifeng.svg", "image/svg+xml"),"/personal-state.js": ("personal-state.js", "text/javascript; charset=utf-8"),"/audio-devices.js": ("audio-devices.js", "text/javascript; charset=utf-8"),"/model-settings.js": ("model-settings.js", "text/javascript; charset=utf-8"),"/workspace.js": ("workspace.js", "text/javascript; charset=utf-8"),
+        files = {"/md-import.js": ("md-import.js", "text/javascript; charset=utf-8"), "/structured-memory.js": ("structured-memory.js", "text/javascript; charset=utf-8"), "/companion-memory.js": ("companion-memory.js", "text/javascript; charset=utf-8"), "/branding.js": ("branding.js", "text/javascript; charset=utf-8"), "/branding.css": ("branding.css", "text/css; charset=utf-8"), "/aifeng.svg": ("aifeng.svg", "image/svg+xml"),"/personal-state.js": ("personal-state.js", "text/javascript; charset=utf-8"),"/audio-devices.js": ("audio-devices.js", "text/javascript; charset=utf-8"),"/model-settings.js": ("model-settings.js", "text/javascript; charset=utf-8"),"/workspace.js": ("workspace.js", "text/javascript; charset=utf-8"),
                  "/workspace.css": ("workspace.css", "text/css; charset=utf-8"),
                  "/": ("index.html", "text/html; charset=utf-8"),
                  "/speech-settings.js": ("speech-settings.js", "text/javascript; charset=utf-8"),
                  "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+                 "/speech-stream.js": ("speech-stream.js", "text/javascript; charset=utf-8"),
                  "/conversation-diagnostics.js": ("conversation-diagnostics.js", "text/javascript; charset=utf-8"),
                  "/shared.js": ("shared.js", "text/javascript; charset=utf-8"),
             "/shared-replacement.js": ("shared-replacement.js", "text/javascript; charset=utf-8"),
@@ -375,7 +384,9 @@ class Handler(BaseHTTPRequestHandler):
         streaming = False
         trace_token = CURRENT.set(TRACES.begin(self.headers.get('X-Conversation-Trace')))
         model_binding = MODEL_SETTINGS.bind()
-        persona_binding = PERSONA.set(APPEARANCE.snapshot()["name"])
+        ip_snapshot = APPEARANCE.snapshot()
+        persona_binding = PERSONA.set(ip_snapshot["name"])
+        character_binding = CHARACTER.set(CHARACTER_MEMORY.lookup(ip_snapshot))
         try:
             length = int(self.headers.get("Content-Length", "0"))
             maximum = 32_000_000 if self.path in {'/api/shared/backup/inspect', '/api/shared/backup/preview'} else 8_000_000
@@ -413,6 +424,23 @@ class Handler(BaseHTTPRequestHandler):
                 if not isinstance(data, dict):
                     raise ValueError('请求格式不正确。')
                 self.json_response(TRACES.read(data.get('trace_id')))
+            elif self.path.startswith('/api/memory/v2/'):
+                data=json.loads(raw)
+                auth=self.headers.get('Authorization','');token=auth[7:] if auth.startswith('Bearer ') else None
+                context=(system_prompt()+current_time_context()) if not REMOTE_REQUEST.get() else '你是中文记忆助手。'
+                result=STRUCTURED_MEMORY.dispatch(self.path[len('/api/memory/v2/'):],token,data,TURNS.get(data.get('turn_id')) if isinstance(data,dict) else None,context)
+                self.json_response(result)
+            elif self.path in ('/api/companion/ask','/api/companion/reset'):
+                data=json.loads(raw)
+                if not isinstance(data,dict):raise SharedError('请求格式不正确。')
+                auth=self.headers.get('Authorization','');token=auth[7:] if auth.startswith('Bearer ') else None
+                if self.path.endswith('/reset'):
+                    result=STRUCTURED_MEMORY.dispatch('reset',token,data) if data.get('memory_version')==2 else UNIFIED_MEMORY.reset(token,data)
+                else:
+                    context=(system_prompt()+current_time_context()) if not REMOTE_REQUEST.get() else '你是中文陪伴助手。'
+                    if data.get('memory_version')==2:result=STRUCTURED_MEMORY.dispatch('ask',token,data,TURNS.get(data.get('turn_id')),context)
+                    else:result=UNIFIED_MEMORY.answer(token,data,TURNS.get(data.get('turn_id')),context)
+                self.json_response(result)
             elif self.path.startswith("/api/shared/"):
                 auth = self.headers.get('Authorization', '')
                 token = auth[7:] if auth.startswith('Bearer ') else None
@@ -505,6 +533,7 @@ class Handler(BaseHTTPRequestHandler):
                 profile = data.get("profile_id") or None
                 if profile:
                     STORE.profile(profile)
+                identity_response = False
                 reply = measured('routing', STORE.command, profile, clean[-1]["content"]) if not picture else None
                 memory_changed = reply is not None
                 memory_review = None
@@ -512,11 +541,14 @@ class Handler(BaseHTTPRequestHandler):
                     memory_review, reply = reply['review'], reply['reply']
                     memory_changed = False
                 if reply is None and not picture:
+                    reply = CHARACTER_MEMORY.reply(clean[-1]["content"], PERSONA.get(), CHARACTER.get())
+                if reply is None and not picture:
                     reply = clock_reply(strip_name_prefix(clean[-1]["content"], PERSONA.get()))
                 if reply is None and not picture:
-                    reply = STORE.identity_reply(profile, strip_name_prefix(clean[-1]["content"], PERSONA.get()))
+                    reply = STORE.identity_reply(profile, strip_name_prefix(clean[-1]["content"], PERSONA.get()), assistant_name=PERSONA.get())
+                    identity_response = reply is not None
                 if reply is not None:
-                    self.send_bytes(200, (json.dumps({"message": {"role": "assistant", "content": reply}, "memory_changed": memory_changed, "memory_review": memory_review, "reply_mode": "memory_command" if memory_changed or memory_review else "rule", "done": True}, ensure_ascii=False) + "\n").encode(), "application/x-ndjson; charset=utf-8")
+                    self.send_bytes(200, (json.dumps({"message": {"role": "assistant", "content": reply}, "memory_changed": memory_changed, "memory_review": memory_review, "identity_greeting": bool(identity_response and profile), "reply_mode": "memory_command" if memory_changed or memory_review else "rule", "done": True}, ensure_ascii=False) + "\n").encode(), "application/x-ndjson; charset=utf-8")
                     return
                 personal = measured('memory', PERSONAL_MEMORY.search, profile, clean[-1]['content'][:1200], cancel, not bool(picture) and not bool(action_for_text(clean[-1]['content'], PERSONA.get())))
                 TRACES.retrieval(CURRENT.get(), personal['retrieval'])
@@ -564,12 +596,20 @@ class Handler(BaseHTTPRequestHandler):
                     return
                 events = model_events(SERVICES.models.chat([{"role": "system", "content": system}] + clean, vision=bool(picture), cancel=cancel))
                 try:
-                    first = next(events)  # Fail before sending HTTP 200 when the backend rejects the request.
-                    # 校验放在第一个片段到达时、写任何内容之前：既保证不用过期的个人记忆作答，
-                    # 也不必等整段回答生成完再显示（以前整段缓冲会白等一整次生成时间）。
-                    if personal['sources']:
-                        PERSONAL_MEMORY.validate(personal)
+                    # 含记忆的回答先完成生成、复核快照再发送，避免生成中删改资料或撤权后泄露旧内容。
+                    # 没有记忆资料的普通聊天仍即时分片，保留分句朗读的响应速度。
+                    if personal['sources'] or shared_context:
+                        buffered = []
+                        for event in events:
+                            cancel.check()
+                            buffered.append(event)
+                        if personal['sources']:
+                            PERSONAL_MEMORY.validate(personal)
+                        if shared_context:
+                            SHARED.validate_answer(shared_token, shared_context['guard'])
                         cancel.check()
+                        events = iter(buffered)
+                    first = next(events)  # Fail before sending HTTP 200 when the backend rejects the request.
                     first = {**first, 'personal_memory': PERSONAL_MEMORY.public(personal)}
                     if shared_context:
                         first['shared_memory'] = {'space': shared_context['space_name'], 'space_id': shared_space,
@@ -597,6 +637,29 @@ class Handler(BaseHTTPRequestHandler):
                 cancel.check()
                 audio, mime = SPEECH.synthesize(SPEECH.SAMPLE, cancel=cancel, selection=data)
                 self.send_bytes(200, audio, mime)
+            elif self.path == "/api/speak/stream":
+                data = json.loads(raw)
+                if not isinstance(data, dict):
+                    raise ValueError("请求格式不正确。")
+                cancel = TURNS.get(data.get("turn_id"))
+                events = SPEECH.stream_synthesize(data.get("text", ""), cancel=cancel)
+                try:
+                    first = next(events)
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("X-Content-Type-Options", "nosniff")
+                    self.end_headers()
+                    streaming = True
+                    for event in chain((first,), events):
+                        cancel.check()
+                        self.wfile.write((json.dumps(event) + "\n").encode())
+                        self.wfile.flush()
+                except (BrokenPipeError, ConnectionResetError):
+                    cancel.cancel()
+                    raise
+                finally:
+                    events.close()
             elif self.path == "/api/speak":
                 data = json.loads(raw)
                 cancel = TURNS.get(data.get("turn_id"))
@@ -631,6 +694,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self.json_response({"error": message,**({"diagnostic":error.agent_diagnostic} if hasattr(error,"agent_diagnostic") else {})}, 400)
         finally:
+            CHARACTER.reset(character_binding)
             PERSONA.reset(persona_binding)
             MODEL_SETTINGS.unbind(model_binding)
             CURRENT.reset(trace_token)
@@ -652,6 +716,14 @@ def warm_models():
 
 
 if __name__ == "__main__":
+    def warm_speech():
+        try:
+            warm = getattr(SERVICES.tts, "warm", None)
+            if callable(warm):
+                warm()
+        except Exception:
+            print("Speech warm-up failed; retry on next request.", flush=True)
+    threading.Thread(target=warm_speech, daemon=True).start()
     threading.Thread(target=warm_models, daemon=True).start()
     print(f"{APPEARANCE.snapshot()['name']}已启动：http://127.0.0.1:{PORT}", flush=True)
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()

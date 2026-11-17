@@ -180,7 +180,7 @@ class PersonalHTTPTests(unittest.TestCase):
             text = result['message']['content']
             self.assertFalse(result['memory_changed'])
             if name:
-                self.assertEqual(text, f'当前对话的用户档案是「{name}」。')
+                self.assertEqual(text, f'{name}，你好。我是{self.app.APPEARANCE.snapshot()["name"]}，很高兴和你聊天。');self.assertTrue(result['identity_greeting']);self.assertNotIn('摄像头',text)
                 self.assertEqual(self.post('/api/memory/list', {'profile_id': profile})[0]['memories'], [])
             else:
                 self.assertIn('访客', text)
@@ -191,14 +191,14 @@ class PersonalHTTPTests(unittest.TestCase):
 
     def test_voice_identity_questions_use_profile_or_visitor(self):
         profile = self.post('/api/profiles/create', {'name': '测试档案乙'})[0]['id']
-        for question in ('现在你可以通过这样的声音来猜猜我是谁了吗？', '你能凭我的声纹认出我吗？'):
+        for question in ('现在你可以通过这样的声音来猜猜我是谁了吗？', '你能凭我的声纹认出我吗？', '你猜一下现在和你讲话的是谁呀？', '现在跟你聊天的人是谁？', '你猜猜我是谁呀？', '你记得我叫什么名字吗？', '你能知道跟你讲话的是谁吗？'):
             for identity in (profile, ''):
                 with self.subTest(question=question, has_profile=bool(identity)):
                     result = self.post('/api/chat', {
                         'profile_id': identity, 'messages': [{'role': 'user', 'content': question}],
                     })[0]
                     if identity:
-                        self.assertEqual(result['message']['content'], '当前对话的用户档案是「测试档案乙」。')
+                        self.assertTrue(result['message']['content'].startswith('测试档案乙，你好。我是'));self.assertTrue(result['identity_greeting']);self.assertNotIn('摄像头',result['message']['content'])
                     else:
                         self.assertIn('访客', result['message']['content'])
         self.assertIsNone(self.app.STORE.identity_reply(profile, '通过声音判断我是谁的朋友吗？'))

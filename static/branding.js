@@ -114,3 +114,36 @@ const branding=(()=>{
   // must not overwrite a newer saved IP configuration.
   return {apply,fromStatus:config=>{if(!info)apply(config);},load,controls,name:()=>saved.name,wakeWord:()=>saved.wake_word,sessionKeyword:word=>{if(['你好小伴','爱凤同学'].includes(word)){saved.wake_word=word;refreshLabels();}}};
 })();
+
+// Local presentation only: never start speech, recording, model calls or memory writes.
+(()=>{
+  const robot=document.getElementById('robot'),bubble=document.getElementById('ipReaction');
+  if(!robot||!bubble)return;
+  let replyTimer=null,lastGreeting=0,greetingIndex=0;
+  const quiet=()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function blocked(){
+    return (typeof busy!=='undefined'&&(busy||recording||speaking||enrolling||wakeStarting||wakePhase==='command'))||
+      (typeof sharedVoiceActive==='function'&&sharedVoiceActive())||
+      (typeof motion!=='undefined'&&motion?.playState==='running');
+  }
+  function resetLean(){robot.style.removeProperty('--ip-lean');robot.style.removeProperty('--ip-shift');}
+  robot.onpointermove=event=>{
+    if(event.pointerType==='touch'||quiet()||blocked())return;
+    const box=robot.getBoundingClientRect(),x=Math.max(-1,Math.min(1,(event.clientX-box.left-box.width/2)/(box.width/2)));
+    robot.style.setProperty('--ip-lean',`${(x*5).toFixed(2)}deg`);
+    robot.style.setProperty('--ip-shift',`${(x*4).toFixed(2)}px`);
+  };
+  robot.onpointerleave=resetLean;
+  function greet(){
+    if(blocked())return;
+    const now=Date.now();if(now-lastGreeting<900)return;lastGreeting=now;
+    const greetings=['我在呢，很高兴见到你。','收到你的小招呼啦！','想聊什么？我陪你。'];
+    bubble.textContent=greetings[greetingIndex++%greetings.length];bubble.hidden=false;
+    clearTimeout(replyTimer);replyTimer=setTimeout(()=>{bubble.hidden=true;},3200);
+    resetLean();
+    if(typeof animateAction==='function')animateAction({target:'screen',action:'happy',label:'回应招呼',duration_ms:900});
+  }
+  robot.onclick=greet;
+  robot.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();greet();}};
+  window.addEventListener('pagehide',()=>{clearTimeout(replyTimer);bubble.hidden=true;resetLean();});
+})();

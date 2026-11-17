@@ -213,6 +213,35 @@ class SharedRecoveryTests(unittest.TestCase):
         self.assertEqual(self.record(item['id'])['content'],'我喜欢咖啡')
         self.assertEqual(self.record(item['id'])['status'],'pending')
 
+
+    def test_query_exclusion_survives_trash_and_restore(self):
+        item=self.publish(content='虚构旧资料，已退出查询')
+        with self.store.connect() as db:
+            db.execute('INSERT INTO shared_query_exclusions(memory,reason) VALUES (?,?)',(item['id'],'仅保留历史'))
+        trash=self.trash(item)
+        with self.store.connect() as db:
+            snapshot=json.loads(db.execute('SELECT snapshot FROM shared_trash WHERE id=?',(trash['trash_id'],)).fetchone()[0])
+            self.assertEqual(snapshot['query_exclusion']['reason'],'仅保留历史')
+        self.commit(self.propose('trash_restore',trash_id=trash['trash_id']))
+        with self.store.connect() as db:
+            self.assertEqual(db.execute('SELECT reason FROM shared_query_exclusions WHERE memory=?',(item['id'],)).fetchone()[0],'仅保留历史')
+        ctx=self.shared.question_context(self.token('owner'),self.space,'旧资料',include_outdated=True)
+        self.assertNotIn(item['id'],[r['id'] for r in ctx['sources']])
+
+    def test_recycle_bin_accepts_complete_119_item_batch_with_recovery(self):
+        ids=['recycle-batch-'+str(i) for i in range(119)]
+        with self.store.connect() as db:
+            for identity in ids:
+                db.execute('INSERT INTO shared_memories(id,space,author,editor,content,visibility,edit_policy) VALUES (?,?,?,?,?,?,?)',
+                           (identity,self.space,self.uid('owner'),self.uid('owner'),'虚构批次 '+identity,'all','author'))
+        for identity in ids:
+            self.shared.delete_memory(self.token('owner'),{'space_id':self.space,'id':identity,'version':1,'confirmed':True})
+        items=self.service.list(self.token('owner'),{'space_id':self.space})['items']
+        self.assertEqual(len(items),119)
+        self.commit(self.propose('trash_restore',trash_id=items[0]['trash_id']))
+        self.assertEqual(self.record(items[0]['id'])['status'],'pending')
+        self.assertEqual(len(self.service.list(self.token('owner'),{'space_id':self.space})['items']),118)
+
     def test_history_and_trash_limits_do_not_silently_drop_data(self):
         item=self.publish()
         with patch.object(self.service,'encode',return_value='x'*24_000_001):

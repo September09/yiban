@@ -100,7 +100,7 @@ async function sharedFeedbackDetail(identity){
     line('当时回答',snapshot.answer);
     line('反馈说明',row.note||'未填写');
     if(row.sources_changed)line('资料变化','以下为当时快照，当前记忆已更新。');
-    const cited=new Set(['model_reported','linked_record'].includes(snapshot.source_usage)?snapshot.answer_source_ids:[]);
+    const cited=new Set(['model_reported','linked_record','program_selected'].includes(snapshot.source_usage)?snapshot.answer_source_ids:[]);
     for(const source of snapshot.sources){
       line(cited.has(source.id)?'当时实际引用':'当时候选资料',source.content);
       line('状态与日期',(sharedStatusNames[source.status]||'待核实')+' · '+(source.event_date||'未填写事件日期'));

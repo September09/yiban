@@ -8,8 +8,8 @@
     "enable_thinking": false
   },
   "tts": {
-    "backend": "macos",
-    "voice": "Tingting",
+    "backend": "qwen3_tts",
+    "voice": "Serena",
     "rate": 195
   },
   "retrieval": {

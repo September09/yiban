@@ -5,6 +5,8 @@ import secrets
 import threading
 import time
 
+from yiban.memory.retrieval import event_selectors
+
 
 def broad_question(query):
     return bool(re.search(r'分别|对比|比较|区别|差别|所有|全部|各个|有哪些|哪些活动|汇总|总结|回顾', query))
@@ -58,20 +60,23 @@ def matching(query,topics):
     query_dates=dates(query)
     # A month/day is also an explicit disambiguator, but never silently guesses the year.
     short_dates=re.findall(r'(\d{1,2})月(\d{1,2})[日号]?',query)
-    words=set(re.findall(r'[\u4e00-\u9fff]{2,}',query))
     matches=[]
     for topic in topics.values():
         title=topic['title']
-        lexical=title in query or any(len(w)>=3 and w in title for w in words)
-        # Chinese questions have no spaces: accept distinctive shared bigrams, not just 活动.
-        core=re.sub(r'活动|亲子|周末|会议','',title)
-        pairs={core[i:i+2] for i in range(len(core)-1)}
-        distinctive=pairs-{'秋日','冬季','春季','夏季','亲子','周末','计划','安排','体验','家庭','团队'}
-        lexical=lexical or any(p in query for p in distinctive)
+        # A pronoun or class code shared with a slogan is not an event anchor.
+        # Partial Chinese titles need a meaningful run of at least three chars.
+        fragments=re.findall(r'[\u4e00-\u9fff]{3,}',title)
+        generic={'我们的','同学们','全体成员','共同记忆','参加活动','活动安排','活动时间','活动地点'}
+        lexical=title in query or any(
+            fragment[i:j] in query and fragment[i:j] not in generic
+            for fragment in fragments for i in range(len(fragment))
+            for j in range(i+3,len(fragment)+1))
         when=topic['date']
         dated=when in query_dates if query_dates else any(when.endswith(f'-{int(m):02d}-{int(d):02d}') for m,d in short_dates)
         if (query_dates or short_dates) and not dated:continue
-        if lexical or dated:matches.append(topic)
+        selectors=event_selectors(query)
+        date_only=dated and not any(selectors[k] for k in ('role','term','opponent'))
+        if lexical or date_only:matches.append(topic)
     return matches
 
 

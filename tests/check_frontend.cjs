@@ -57,6 +57,7 @@ const context=vm.createContext({
   vm.runInContext(fs.readFileSync('static/diagnostic-overview.js','utf8'),context);
   vm.runInContext(fs.readFileSync('static/model-settings.js','utf8'),context);
   vm.runInContext(fs.readFileSync('static/workspace.js','utf8'),context);
+  vm.runInContext(fs.readFileSync('static/companion-memory.js','utf8'),context);
   await new Promise(r=>setImmediate(r));
   assert.equal(micCalls,0,'page load must not acquire media');
   assert.equal(vm.runInContext("isVisualRequest('请向左看看')",context),false);
@@ -87,6 +88,9 @@ const context=vm.createContext({
   const before=ids.robot.animation;
   vm.runInContext("animateAction({target:'hardware',action:'nod',duration_ms:1000})",context);
   assert.equal(ids.robot.animation,before,'screen adapter ignores hardware target');
+  vm.runInContext("animateAction({target:'screen',action:'shake',label:'摇头',duration_ms:1600})",context);
+  assert.equal(ids.robot.animation.options.duration,1600,'illustrated mascot keeps screen actions');
+  assert.notEqual(ids.robot.animation,before,'new screen action replaces the previous animation');
   const wav=vm.runInContext('encodeWav([new Float32Array([0,1,-1])],16000)',context);
   assert.equal(wav.byteLength,50);assert.equal(new DataView(wav).getUint32(24,true),16000);
   assert.equal(new DataView(wav).getInt16(46,true),32767);
@@ -540,7 +544,13 @@ const context=vm.createContext({
     diagnosticSpeaker=speakerResult;
     await vm.runInContext('startRecording()',context);await vm.runInContext('stopRecording()',context);await new Promise(r=>setImmediate(r));
     assert.equal(new Set(tracedRequests.slice(-3).map(r=>r.trace)).size,1,'automatic identity switch preserves one trace');
-    await audioInstances.at(-1).onended();
+    // Greetings and the reply may now be separate clips. Complete every clip
+    // before asserting that the whole recording trace has finished.
+    for(let guard=0;guard<30&&vm.runInContext('conversationDiagnostics.exportData().turns[0].outcome',context)==='running';guard++){
+      const player=audioInstances.at(-1);
+      if(player?.onended&&!player.ended){player.ended=true;await player.onended();}
+      await new Promise(r=>setImmediate(r));
+    }
     assert.equal(vm.runInContext('conversationDiagnostics.exportData().turns[0].steps[0].stage',context),'capture');
     assert.equal(vm.runInContext('conversationDiagnostics.exportData().turns[0].outcome',context),'done');
   }
@@ -582,7 +592,13 @@ const context=vm.createContext({
   // Speech settings: explicit persistence, preview cancellation, late responses and shared-mode guards.
   vm.runInContext("busy=false;recording=false;speaking=false;enrolling=false;wakeStarting=false;wakePhase='';wakeEnabled=false;sharedVoiceState.session=null;",context);
   const speechData={available:true,voices:[{name:'Tingting',locale:'zh_CN'},{name:'Eddy',locale:'zh_CN'}],current:{voice:'Tingting',rate:195},revision:'one'};
+  context.qwenSpeechData={available:true,engine:'Qwen3-TTS',supports_rate:false,voices:['Serena','Vivian','Uncle_Fu'].map(name=>({name,locale:'zh_CN'})),current:{voice:'Serena',rate:195},revision:'qwen'};
+  vm.runInContext('displaySpeechSettings(qwenSpeechData);speechSettingsControls()',context);
+  assert.equal(ids.speechVoice.value,'Serena');
+  assert.equal(ids.speechRate.hidden,true);assert.equal(ids.speechRate.disabled,true);
+  assert.equal(ids.speechRateLabel.hidden,true);assert.match(ids.speechCurrent.textContent,/自然语速/);
   context.speechTestData=speechData;vm.runInContext('displaySpeechSettings(speechTestData)',context);
+  assert.equal(ids.speechRate.hidden,false);assert.equal(ids.speechRateLabel.hidden,false);
   let saves=0,previews=0,plays=0,resolvePreview;
   const speechFetch=context.fetch;
   context.fetch=async(path,options)=>{
@@ -893,5 +909,17 @@ const context=vm.createContext({
   lateOverview({ok:true,json:async()=>({available:true,records:[{...overviewRow,materials:{searched:[{...overviewA,content:'退出后不得出现的私密资料'}],read:[],cited:[]}}]})});await pendingOverview;
   assert.equal(ids.overviewList.children.length,0);assert.ok(!overviewText(ids.overviewDetail).includes('退出后不得出现'));
   assert.ok(!JSON.stringify(saved).includes('普通聊天候选'),'overview bodies are never persisted in browser storage');
+  // A deterministic identity greeting must not receive a second voice prefix.
+  const identityFetch=context.fetch;
+  context.fetch=async(path,options)=>{
+    if(path!=='/api/chat')return identityFetch(path,options);
+    let sent=false;
+    return {ok:true,body:{getReader:()=>({read:async()=>sent?{done:true}:(sent=true,{done:false,value:new TextEncoder().encode(JSON.stringify({message:{content:'甲，你好。我是小伴，很高兴和你聊天。'},identity_greeting:true,reply_mode:'rule',done:true})+'\n')})})}};
+  };
+  vm.runInContext("busy=false;recording=false;enrolling=false;wakeEnabled=false;wakePhase='';ready=true;ttsReady=false;companionMemory.mode='personal';sharedState.token=null;sharedVoiceState.session=null;profiles=[{id:'identity-greeting',name:'甲'}];activeProfile='identity-greeting';voiceMatchedProfile=activeProfile;greetedProfiles.clear();messages=[];",context);
+  await vm.runInContext("send('你猜猜我是谁呀？',{source:'manual'})",context);
+  assert.equal(vm.runInContext("messages.at(-1).content",context),'甲，你好。我是小伴，很高兴和你聊天。');
+  context.fetch=identityFetch;
+
   console.log('Frontend checks passed: permissions, camera, profile isolation, cancellation, PCM and disabled speech.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

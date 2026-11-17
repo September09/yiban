@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import threading
 import uuid
+from yiban.audio.qwen_profile import generation_settings
 
 
 class SpeechPreferences:
@@ -32,6 +33,9 @@ class SpeechPreferences:
             if self._voices is None:
                 if not self.speech.available():
                     return []
+                if not getattr(type(self.speech), "supports_rate", True):
+                    self._voices = self.speech.voices()
+                    return list(self._voices)
                 result = subprocess.run(["/usr/bin/say", "-v", "?"], capture_output=True, text=True, timeout=10, check=True)
                 voices = []
                 for line in result.stdout.splitlines():
@@ -45,7 +49,7 @@ class SpeechPreferences:
 
     def validate(self, data):
         if not self.speech.available():
-            raise ValueError("当前平台未启用 Mac 语音合成。")
+            raise ValueError("语音合成环境不可用，请检查本机语音环境。")
         if not isinstance(data, dict):
             raise ValueError("声音设置格式不正确。")
         voice, rate = data.get("voice"), data.get("rate")
@@ -53,17 +57,42 @@ class SpeechPreferences:
             raise ValueError("请选择本机音色列表中的声音。")
         if type(rate) is not int or not self.MIN_RATE <= rate <= self.MAX_RATE:
             raise ValueError("语速须为 100 到 300 之间的整数。")
-        return {"voice": voice, "rate": rate}
+        if not getattr(type(self.speech), "supports_rate", True) and rate != 195:
+            raise ValueError("Qwen3-TTS 当前使用自然语速，请重新加载声音设置。")
+        selected = {"voice": voice, "rate": rate}
+        if getattr(type(self.speech), "engine_name", "") == "Qwen3-TTS":
+            selected["generation"] = generation_settings(data.get("generation"))
+        return selected
 
     def snapshot(self):
         with self.lock:
-            return dict(self.current)
+            selected = dict(self.current)
+            if getattr(type(self.speech), "engine_name", "") == "Qwen3-TTS":
+                selected["generation"] = generation_settings(selected.get("generation"))
+            return selected
+
+    def streaming_available(self):
+        return self.speech.available() and callable(getattr(type(self.speech), "stream_synthesize", None))
+
+    def stream_synthesize(self, text, cancel=None):
+        selected = self.snapshot()
+        if not self.streaming_available():
+            raise ValueError("当前声音引擎不支持连续音频，请重新加载页面。")
+        yield from self.speech.stream_synthesize(text, cancel=cancel, selection=selected)
 
     def describe(self):
         with self.lock:
+            runtime = self.speech.runtime_status() if callable(getattr(type(self.speech), "runtime_status", None)) else None
+            if runtime is not None and getattr(type(self.speech), "engine_name", "") == "Qwen3-TTS":
+                runtime = {**runtime, "generation": {**runtime.get("generation", {}), **self.snapshot()["generation"]},
+                           "streaming": "single_utterance_pcm"}
             return {"available": self.speech.available(), "voices": self.voices(),
-                    "current": dict(self.current), "revision": self.revision,
-                    "min_rate": self.MIN_RATE, "max_rate": self.MAX_RATE, "warning": self.warning}
+                    "current": self.snapshot(), "revision": self.revision,
+                    "generation_defaults": generation_settings() if getattr(type(self.speech), "engine_name", "") == "Qwen3-TTS" else None,
+                    "min_rate": self.MIN_RATE, "max_rate": self.MAX_RATE, "warning": self.warning,
+                    "supports_rate": getattr(type(self.speech), "supports_rate", True),
+                    "engine": getattr(type(self.speech), "engine_name", "macOS"),
+                    "runtime": runtime}
 
     def save(self, data):
         with self.lock:

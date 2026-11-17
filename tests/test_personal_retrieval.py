@@ -57,6 +57,8 @@ class PersonalRetrievalTests(unittest.TestCase):
         note=self.service.scope_note(None)
         self.assertIn('共同记忆',note);self.assertIn('访客',note)
         self.assertIn('不要说',note)  # 不许把"团队里没有"说成"没有这条记忆"
+        self.assertIn('自动查询个人与团队',note)
+        self.assertNotIn('主对话不接入共同记忆',note)
         self.assertEqual(self.service.scope_note(self.a),'')
 
     def test_scope_note_describes_attached_shared_space(self):

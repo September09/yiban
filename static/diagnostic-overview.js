@@ -45,6 +45,7 @@ const diagnosticOverview=(()=>{
     if(row.retrieval?.strategy)add('p',retrievalDiagnosticText(row.retrieval));
     if(row.kind==='chat')add('p','普通聊天可能使用近期对话和通用知识；下列长期记忆仅为候选，不能认定回答实际引用了它们。');
     if(row.citation_status==='model_reported')add('p','实际引用依据模型声明的编号区分，已校验编号范围；仍需核对原文是否支持结论。');
+    if(row.citation_status==='program_selected')add('p','程序直接展示了本轮已读取的对应记录，请核对来源。');
     if(row.citation_status==='linked_record')add('p','实际引用由程序按替代关系定位；过时记录仅供回顾。');
     if(row.kind==='shared')add('p','记忆正文按当前权限和版本重新读取；变化、删除或失去权限时隐藏。诊断库不保存当时正文。');
     else add('p','以下为本页当轮返回的资料，刷新或切换档案后清空；修改／删除个人记忆时也会清空本页记录。');

@@ -65,6 +65,20 @@ class AgentTests(unittest.TestCase):
         self.assertNotIn('archived_excerpt',json.dumps(model.seen[:-1]))
         with self.store.connect() as db:self.assertEqual(before,'\n'.join(db.iterdump()))
 
+    def test_explicit_unknown_from_single_read_record_is_shown_without_inventing_a_score(self):
+        item=self.publish(content='2026年9月2日对阵72Q，资料记载本队落败，未给出最终比分。')
+        model=Scripted(step('search_memory','对阵72Q比分'),step('read_material',refs=[1]),step('finish'),{'answer':'资料未说明。','references':[]})
+        result=self.ask(model,'对阵72Q最终比分多少？赢了吗？')
+        self.assertIn('落败',result['answer']);self.assertIn('未给出最终比分',result['answer'])
+        self.assertIn('尚待核实',result['answer']);self.assertEqual(result['answer_source_ids'],[item['id']])
+        self.assertEqual(result['source_usage'],'program_selected')
+
+    def test_unknown_fallback_does_not_cite_a_record_missing_a_different_attribute(self):
+        self.publish(content='2026年9月2日对阵72Q，未给出最终比分。')
+        model=Scripted(step('search_memory','对阵72Q'),step('read_material',refs=[1]),step('finish'),{'answer':'资料未说明。','references':[]})
+        result=self.ask(model,'对阵72Q的活动负责人是谁？')
+        self.assertEqual(result['answer_source_ids'],[]);self.assertEqual(result['source_usage'],'model_reported')
+
     def test_time_uses_host_clock_in_shanghai_without_reading_memories(self):
         self.publish(content='私人记录',visibility='selected')
         model=Scripted(step('get_current_time'),step('finish'))

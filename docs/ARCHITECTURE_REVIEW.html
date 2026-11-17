@@ -1,0 +1,34 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>忆伴架构审视与完善顺序</title>
+<style>body{font:16px/1.75 system-ui;max-width:1200px;margin:36px auto;padding:0 24px;color:#26382f;background:#f8faf8}section{background:white;border:1px solid #d7e1da;border-radius:14px;padding:24px;margin:20px 0}h1,h2,h3{line-height:1.35}table{border-collapse:collapse;width:100%}td,th{padding:14px;border:1px solid #d7e1da;vertical-align:top;text-align:left}th{background:#edf4ee}.flow{display:flex;flex-wrap:wrap;gap:10px}.flow span{background:#eaf2ed;padding:10px;border-radius:8px}.note{background:#fff3d9;padding:18px;border-radius:10px}small{color:#63766a}code{overflow-wrap:anywhere}</style>
+<h1>忆伴：架构审视与完善顺序</h1><p>2026年11月17日 · 基于本机仓库、当前运行方式与测试证据；不包含未验证的多机或硬件能力。</p>
+<section><h2>判断</h2><p><b>适合继续采用模块化单体＋本地SQLite，把核心业务路径收敛清楚。</b>已有模型适配、权限、精确引用、确认写入、语音组件和多轮工具查询。当前主要成本来自新旧记忆路径并存、提取与问答职责边界、资料版本追踪，以及真实评测和维护工具的覆盖。</p><p>继续扩功能前，先确保“这段资料从哪里来、谁能读、有没有核实、为什么能回答、修改后如何回退”在所有入口使用同一套规则。</p></section>
+<section><h2>当前分层</h2><table><tr><th>层</th><th>当前承担的职责</th><th>需要收敛的边界</th></tr>
+<tr><td>界面</td><td>陪伴对话、账号与空间、记忆库、核验、模型与语音设置。</td><td>称呼档案与账号分工仍易混淆；语音识别人不能直接授予账号权限。</td></tr>
+<tr><td>HTTP与应用服务</td><td>server.py分发；结构化记忆、旧版共享记忆、个人检索、工具规划分别负责业务。</td><td>server.py仍耦合服务初始化与多路编排；应逐步提取统一问答入口及业务接口，而非增加更多平行入口。</td></tr>
+<tr><td>记忆领域</td><td>新版统一来源、人物、事件、事实、原文、状态与权限；写入先预览再确认。</td><td>新旧数据并行时间较长；原图片119条现已移入回收站，保留历史和查询排除规则，不混入新版。</td></tr>
+<tr><td>能力适配</td><td>本地／兼容云端LLM、ASR、TTS、唤醒、声纹、动作。</td><td>需要统一资源调度、超时／取消和健康状态；MD提取不能拖住正在对话的人。</td></tr>
+<tr><td>存储与运维</td><td>本机SQLite、私有配置、派生索引、运行与诊断文件。</td><td>新版空间级备份恢复、模式升级、全链路版本记录及干净电脑安装仍需补齐。</td></tr></table></section>
+<section><h2>资料进入和使用的流程</h2>
+<div class="flow"><span>上传UTF-8 MD</span><span>→ 本机分段提取cards</span><span>→ 原文段落编号校验</span><span>→ 私人内容分列</span><span>→ 脱敏正文与来源全文</span><span>→ 用户预览确认</span><span>→ 待核实新版记忆</span><span>→ 人工核验</span><span>→ 有权限的检索与回答</span></div>
+<p>原文证据由程序按有效段落编号还原，不让模型生成的“引文”代替真实原文。数字、任职、比分的结构化字段另外校验；不完整时降为带原文的候选并说明待补核，不冒充确定事实。提取和权限是两个独立步骤，模型不能决定owner、公开范围或是否核验通过。</p>
+<p>问答继续采用简单问题快速处理、复杂问题受控只读工具查询；每轮重新检查权限、版本、取消与引用。当前本机向量开关关闭，不能把现状描述成所有查询都依赖向量；只读工具通过受约束JSON选择，并非所有供应商原生tool_calls已统一。</p></section>
+<section><h2>昨天JSON与正式结构</h2><table><tr><th>cards字段</th><th>新版承接</th></tr>
+<tr><td>type / title / what / detail</td><td>records中的type / title / summary / detail。</td></tr>
+<tr><td>who_names</td><td>entities与participants；名字不自动变成登录账号，不自动跨文章合并同名人物。</td></tr>
+<tr><td>when / when_precision</td><td>事件时间、精度与依据。缺年份保持未知，不用发布日期代替发生时间。</td></tr>
+<tr><td>emotion / tags</td><td>emotions / tags，仍是候选描述。</td></tr>
+<tr><td>quote / source</td><td>程序还原精确原文，保存来源全文SHA256、字符位置与摘录。</td></tr>
+<tr><td>新增事实字段</td><td>任职、数量口径、比分等进入已注册的fact结构；格式或依据不足则留待核对。</td></tr>
+<tr><td>confidence / needs_review / owner / visibility</td><td>不作为真实性或权限依据。由人工核验状态、当前账号、真实成员权限和保存预览决定。</td></tr></table>
+<p>正式协议继续是<code>yiban.memory-candidates.v2</code>，复用现有数据模型与校验器，不另建一套MD专属记忆数据库。</p></section>
+<section><h2>按优先级完善</h2><table><tr><th>优先级</th><th>工作</th><th>验收目标</th></tr>
+<tr><td>P0 · 本轮</td><td>统一资料口径；MD候选、私人段落和全文脱敏；旧图片批次退出查询。</td><td>确认前零写库；私人段落不残留在公共来源；旧图片记忆在历史入口及自动查询也不可被召回，历史可追溯。</td></tr>
+<tr><td>P1</td><td>统一查询服务与策略。</td><td>对话页、专门问答、工具和语音读取共用权限、资料版本、统计与未知规则；逐步收敛旧路径，减少规则散落。</td></tr>
+<tr><td>P1</td><td>提取任务、模型、提示词与来源的版本追踪。</td><td>清楚记录用什么模型、规则和源版本生成候选；可重提取对比，不覆盖已核验记忆。当前草稿只在内存保留，重启／超时不能恢复任务。</td></tr>
+<tr><td>P1</td><td>数据生命周期、备份和恢复。</td><td>新版空间连同原文、事件、权限映射、历史与查询排除状态可完整备份恢复；引入显式数据库迁移与版本回滚。当前仍主要依赖SQLite一致性备份，旧版导出恢复不能当作新版完整备份。</td></tr>
+<tr><td>P1</td><td>独立质量评测与持续回归。</td><td>分别量化提取覆盖、隐私遗漏、事实正确、引用完整、未知拒答、权限和等待；新题与修复回归分开。原30项与补充2题不能拼成“本版30/30”。</td></tr>
+<tr><td>P1</td><td>共享资源与等待治理。</td><td>对话优先、提取可暂停、模型和语音队列可取消，记录首字／首音／整轮耗时。当前MD模块限制并行提取，但尚无跨所有模块的统一模型调度。</td></tr>
+<tr><td>P2</td><td>可安装、可升级、可诊断。</td><td>干净电脑可复现安装，依赖与模型有版本清单；隐私安全的诊断包只含必要元数据，避免保存原始私人输入。</td></tr>
+<tr><td>P2</td><td>远程与硬件阶段。</td><td>在远程访问前补认证部署、TLS、会话与操作审计；当前仍按本机原型使用。Windows、多人声纹和真实回声／打断需独立实机验收。</td></tr></table></section>
+<section><h2>本轮验证边界</h2><p>相关225项后端检查及两组前端逻辑检查通过；真实本机9B与Chrome用虚构MD检查候选、私人段落和脱敏全文，保存预览后取消，未入库。扩展自动上传受限，实际浏览器用粘贴入口；文件选择读取由前端检查覆盖，尚不能称文件选择器全程实测。旧图片119条停查后，实际历史提问返回0条依据。</p></section><section><h2>下一批建议</h2><ol><li>用3–5篇未参与修复的MD验收自动提取与人工审阅，重点检查数量口径、私人段落及漏提取。</li><li>把问答入口收敛到同一查询服务，同时建立新版空间备份与恢复演练。</li><li>邀请3–5人独立完成登录、添加、核验、提问和查原文，再依据实际卡点优化界面和等待。</li></ol>
+<div class="note">自动提取是候选准备，不是事实认证；全文脱敏仍需人检查。当前草稿30分钟失效，一次最多5篇、每篇24000字，段落数量有上限，格式失败不会写入记忆。模型可能漏提取或产生重复口径，不能把“JSON校验通过”视为内容完整或真实。</div></section></html>

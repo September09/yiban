@@ -6,8 +6,9 @@
 <div class="workspace-shell">
 <div id="workspaceTabs" class="workspace-tabs" role="tablist" aria-label="主要功能">
 <button id="navChat" type="button" role="tab" aria-controls="viewChat" aria-selected="true" tabindex="0">陪伴对话</button>
-<button id="navPersonal" type="button" role="tab" aria-controls="viewPersonal" aria-selected="false" tabindex="-1">个人记忆</button>
-<button id="navShared" type="button" role="tab" aria-controls="viewShared" aria-selected="false" tabindex="-1">共同记忆</button>
+<button id="navPersonal" type="button" role="tab" aria-controls="viewPersonal" aria-selected="false" tabindex="-1">个人档案</button>
+<button id="navShared" type="button" role="tab" aria-controls="viewShared" aria-selected="false" tabindex="-1">账号与空间</button>
+<button id="navMemoryV2" type="button" role="tab" aria-controls="viewMemoryV2" aria-selected="false" tabindex="-1">记忆库</button>
 <button id="navSpeech" type="button" role="tab" aria-controls="viewSpeech" aria-selected="false" tabindex="-1">声音设置</button>
 <button id="navModels" type="button" role="tab" aria-controls="viewModels" aria-selected="false" tabindex="-1">模型设置</button>
 <button id="navDiagnostics" type="button" role="tab" aria-controls="viewDiagnostics" aria-selected="false" tabindex="-1">运行诊断</button></div><aside id="workspaceActivity" class="workspace-activity" hidden aria-live="polite"><span id="workspaceActivityText"></span><button id="workspaceReturnChat" class="text-button">返回对话</button><button id="workspaceReviewDraft" class="text-button" hidden>查看待确认内容</button></aside>
@@ -19,7 +20,7 @@
     <p id="workspaceSpeakerResult" class="feature-help" role="status" hidden></p>
     <button id="speakerRetry" class="secondary-button" type="button" hidden>重新识别声音</button>
     <p class="intro">聊个想法，问个问题，<br>或者把今天的故事说给我听。</p>
-    <div class="robot-scene" aria-hidden="true"><div class="halo"></div><div class="robot" id="robot"><img id="ipAvatar" alt="IP形象" hidden><div class="antenna"></div><div class="face"><span></span><span></span><b></b></div><div class="cheek left"></div><div class="cheek right"></div></div><div class="shadow"></div></div>
+    <div class="robot-scene"><div class="halo" aria-hidden="true"></div><div class="robot" id="robot" role="button" tabindex="0" aria-label="和小伙伴打个招呼" title="点点我，打个招呼"><img id="ipAvatar" alt="IP形象" hidden><div class="antenna"></div><div class="face"><span></span><span></span><b></b></div><div class="cheek left"></div><div class="cheek right"></div></div><div class="shadow" aria-hidden="true"></div><div id="ipReaction" class="ip-reaction" role="status" aria-live="polite" hidden></div></div>
     <div class="state" id="state" role="status">正在连接本地模型…</div>
     <div class="wave" id="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <button class="mic" id="mic" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0014 0v-2M12 19v3M8 22h8"/></svg><span>点击说话</span></button>
@@ -41,10 +42,15 @@
   </section>
   <section class="conversation" aria-label="对话">
     <div class="conversation-header"><div><h2 id="conversationTitle">和小伴聊聊</h2><p id="connection">模型准备中</p></div><button class="text-button" id="clear">新对话</button></div>
+    <div class="chat-memory-toolbar" aria-label="对话记忆范围">
+      <label for="chatMemoryVersion">资料版本</label><select id="chatMemoryVersion"><option value="2" selected>当前记忆库</option><option value="1">历史资料</option></select>
+      <label for="chatMemoryMode">记忆范围</label><select id="chatMemoryMode"><option value="chat">普通聊天（不查账号记忆）</option><option value="auto" selected>自动查询个人与团队</option><option value="personal">仅个人记忆</option><option value="shared">指定共同记忆空间</option></select>
+      <label for="chatMemorySpace" id="chatMemorySpaceLabel" hidden>空间</label><select id="chatMemorySpace" hidden aria-label="选择共同记忆空间"><option value="">请选择空间</option></select>
+      <button id="chatMemoryManage" class="text-button" type="button" hidden>登录记忆账号</button>
+    </div>
+    <button id="chatOpenMemory" class="text-button" type="button">整理与核验记忆</button>
+    <p id="chatMemoryHint" class="feature-help chat-memory-hint" role="status">普通对话只查询当前个人档案。</p>
     <button id="workspaceSharedVoice" class="text-button" type="button">普通对话 · 设置共同记忆语音</button>
-    <label class="feature-option" id="chatSharedMemoryRow"><input type="checkbox" id="chatSharedMemory" disabled aria-describedby="chatSharedMemoryHint"> 带上当前空间共同记忆</label>
-    <p class="feature-help" id="chatSharedMemoryHint">未登录空间账号：陪伴对话只读个人记忆。要带团队资料，请先到「共同记忆」登录空间账号并选择空间。</p>
-    <button id="chatSharedMemoryGo" class="text-button" type="button" hidden>去登录空间账号</button>
     <div id="messages" class="messages" role="log" aria-live="polite"></div>
 
     <section id="sharedVoiceBanner" class="shared-voice-banner" aria-label="共同记忆语音状态" hidden>
@@ -59,11 +65,11 @@
   </section>
 </main>
 </section>
-<section id="viewPersonal" class="workspace-panel" role="tabpanel" aria-labelledby="navPersonal" tabindex="0" hidden><div class="page-heading"><h1>个人记忆</h1><p>管理自己的档案、称呼、声纹和长期记忆。这里的内容不会自动共享给家庭或团队。</p></div><details open class="personal-card" id="personalPanel">
-      <summary>用户与记忆</summary>
+<section id="viewPersonal" class="workspace-panel" role="tabpanel" aria-labelledby="navPersonal" tabindex="0" hidden><div class="page-heading"><h1>个人档案</h1><p>管理本机称呼、声纹和历史档案文字。账号下的个人与团队记忆，请在记忆库中管理。</p><button id="personalOpenMemory" type="button" class="text-button">打开记忆库</button></div><details open class="personal-card" id="personalPanel">
+      <summary>本机档案与历史文字记忆</summary>
       <label for="profileSelect">当前用户</label>
       <select id="profileSelect"><option value="">访客 · 不读取个人记忆</option></select>
-      <p class="feature-help">访客不读取任何个人记忆。主对话只使用当前个人档案的记忆，默认<strong>不读取家庭／团队共同记忆</strong>；登录空间账号并选择空间后，可在对话页勾选「带上当前空间共同记忆」，只带入该账号可见的那部分。</p>
+      <p class="feature-help">这里的档案用于称呼与声纹，不代表已登录记忆账号。登录后，对话默认查询账号自己的个人记忆和有权限的团队记忆；下方历史文字不会自动转换到记忆库。</p>
       <div class="personal-row"><input id="profileName" maxlength="40" placeholder="新用户名称" aria-label="新用户名称"><button id="createProfile" class="secondary-button">创建</button></div>
       <label for="profileSalutation">首次问候称呼</label>
       <div class="personal-row"><input id="profileSalutation" maxlength="40" placeholder="例如：王先生、李女士、小王" aria-label="首次问候称呼"><button id="saveSalutation" class="secondary-button">保存称呼</button></div>
@@ -74,6 +80,7 @@
       <details><summary>录入或删除声纹</summary>
         <p id="enrollPrompt">请先选择用户，然后本人录制三段不同内容的语音，每段约 6–10 秒。</p>
         <label class="feature-option"><input id="voiceConsent" type="checkbox"> 我本人同意在这台电脑保存声纹特征；原始录音不落盘。</label>
+        <p id="enrollmentStatus" class="notice" role="status" aria-live="polite"></p>
         <div class="personal-row"><button id="recordVoice" class="secondary-button">录制第 1 段</button><button id="cancelEnroll" class="text-button">取消录入</button></div>
         <div class="personal-row"><button id="saveVoice" class="secondary-button" disabled>保存声纹</button><button id="deleteVoice" class="text-button">删除声纹</button></div>
       </details>
@@ -138,7 +145,7 @@
       <button id="deleteProfile" class="text-button danger">删除当前用户及其记忆、声纹</button>
     </details>
 </section>
-<section id="viewShared" class="workspace-panel" role="tabpanel" aria-labelledby="navShared" tabindex="0" hidden><div class="page-heading"><h1>共同记忆</h1><p>让家庭与团队的资料有归属、可核对、可追溯。</p></div><details open class="personal-card shared-card" id="sharedPanel">
+<section id="viewShared" class="workspace-panel" role="tabpanel" aria-labelledby="navShared" tabindex="0" hidden><div class="page-heading"><h1>账号与空间</h1><p>登录记忆账号，管理团队空间与成员。新的资料与人工核验统一在记忆库中处理。</p><button id="sharedOpenMemory" type="button" class="secondary-button">打开记忆库</button></div><details open class="personal-card shared-card" id="sharedPanel">
   <summary>家庭与团队 · 后台管理</summary>
   <p class="feature-help">个人记忆不会自动共享。共同记忆使用独立空间账号，声纹和个人记忆页的档案选择不授予空间权限；本机账号不是互联网账号。</p>
   <p id="sharedStatus" role="status">请注册或登录空间账号。</p>
@@ -148,9 +155,9 @@
     <div class="personal-row"><button id="sharedLogin" class="secondary-button">登录空间</button><button id="sharedRegister" class="text-button">注册空间账号</button></div>
   </section>
   <section id="sharedSignedIn" hidden aria-label="共同记忆管理"><div class="personal-row"><strong id="sharedIdentity"></strong><button id="sharedLogout" class="text-button">锁定并退出空间账号</button><button id="sharedRefresh" class="text-button">刷新空间</button></div><div class="space-context"><label for="sharedSpaceSelect">当前共同记忆空间</label><select id="sharedSpaceSelect"><option value="">请选择空间</option></select><p id="sharedSpaceInfo" class="feature-help"></p></div><div id="sharedWorkspaceTabs" class="workspace-tabs" role="tablist" aria-label="共同记忆功能">
-<button id="navSharedQuestion" type="button" role="tab" aria-controls="sharedPageQuestion" aria-selected="true" tabindex="0">记忆问答</button>
-<button id="navSharedLibrary" type="button" role="tab" aria-controls="sharedPageLibrary" aria-selected="false" tabindex="-1">记忆库</button>
-<button id="navSharedImport" type="button" role="tab" aria-controls="sharedPageImport" aria-selected="false" tabindex="-1">资料导入</button>
+<button id="navSharedQuestion" type="button" role="tab" aria-controls="sharedPageQuestion" aria-selected="true" tabindex="0">历史资料问答</button>
+<button id="navSharedLibrary" type="button" role="tab" aria-controls="sharedPageLibrary" aria-selected="false" tabindex="-1">历史资料库</button>
+<button id="navSharedImport" type="button" role="tab" aria-controls="sharedPageImport" aria-selected="false" tabindex="-1">历史资料导入</button>
 <button id="navSharedBackup" type="button" role="tab" aria-controls="sharedPageBackup" aria-selected="false" tabindex="-1">备份与恢复</button>
 <button id="navSharedMembers" type="button" role="tab" aria-controls="sharedPageMembers" aria-selected="false" tabindex="-1">空间与成员</button></div>
 <section id="sharedPageQuestion" class="workspace-panel" role="tabpanel" aria-labelledby="navSharedQuestion" tabindex="0">
@@ -259,6 +266,7 @@
       <fieldset id="materialEditor">
         <legend>1 · 添加聊天记录或活动资料</legend>
         <label for="materialBatchName">本次导入批次名称</label><input id="materialBatchName" maxlength="160" placeholder="例如：十一月活动纪要 · 第一批">
+        <details class="editor-disclosure"><summary>已有逐条审阅结果？读取审阅导入包</summary><label for="materialReviewedFile">选择审阅导入包JSON（每包最多40条）</label><input id="materialReviewedFile" type="file" accept=".json,application/json"><p class="feature-help">保留已整理的正文、状态、日期与精确原文依据，不再让AI重新提炼。只加载候选，仍须核对当前空间、范围和修改权限，再预览确认。原始候选审阅JSON请先转换为审阅导入包。</p></details>
         <label for="materialFiles">读取文件（可多选）</label>
         <input id="materialFiles" type="file" multiple accept=".txt,.md,.csv,.json,.docx,.pdf,.png,.jpg,.jpeg">
         <p class="feature-help">支持文字、聊天导出 JSON／CSV、Word DOCX、PDF、PNG／JPG。每份最多 4 MB、PDF 最多 20 页；单份文字最长 20 万字，超过 30000 字会自动按行分块，整理时按每批 30000 字自动分批进行，一次最多导入 200 条（也是每个空间的记忆上限）。图片和扫描页目前在 Mac 本机识别；模糊长图请分段上传。微信原始数据库、旧版 DOC、PPT／PPTX、音视频请先转为以上格式（PPTX 可在「文件 → 导出」存为 PDF）。</p>
@@ -267,7 +275,7 @@
         <h3>2 · 核对读取的原文</h3>
         <div id="materialSources"></div>
         <label for="materialMode">整理方式</label>
-        <select id="materialMode"><option value="paragraphs">按原文段落生成（不调用模型）</option><option value="ai">AI 提炼活动、决定和团队事实</option></select>
+        <select id="materialMode"><option value="paragraphs">按原文段落生成（不调用模型）</option><option value="manual" disabled>已审阅候选（不重新提炼）</option><option value="ai">AI 提炼活动、决定和团队事实</option></select>
         <p id="materialModelInfo" class="feature-help">选择 AI 时会检查当前模型。</p>
         <label><input id="materialRemoteConsent" type="checkbox">如果当前使用远端模型，我同意将本批原文发送给它整理</label>
         <button id="materialOrganize" type="button" class="secondary-button">生成候选记忆</button>
@@ -321,7 +329,7 @@
     <button id="sharedRecoveryConfirm" class="secondary-button" disabled>确认执行本次操作</button>
   </section>
   <button id="sharedRecoveryCancel" class="text-button">取消本次操作</button>
-  <p class="feature-help">本轮支持共同记忆的单条恢复和最近一次替代纠正；恢复后的内容需要重新核实。回收站最多100条或24 MB，暂不自动清理；整空间删除会一并删除回收站及恢复记录。空间备份仅包含正常记忆，请先恢复需要备份的回收站资料。</p>
+  <p class="feature-help">本轮支持共同记忆的单条恢复和最近一次替代纠正；恢复后的内容需要重新核实。回收站最多200条或24 MB，暂不自动清理；整空间删除会一并删除回收站及恢复记录。空间备份仅包含正常记忆，请先恢复需要备份的回收站资料。</p>
 </details>
   <h3>1 · 备份当前空间</h3>
   <p class="feature-help">仅管理员可导出。文件包含全空间记忆、完整原文、修改历史、状态、成员角色、可见范围和新旧安排关联。文件未加密，请妥善保管。</p>
@@ -366,6 +374,55 @@
 </section>
 </details>
 </section>
+<section id="viewMemoryV2" class="workspace-panel" role="tabpanel" aria-labelledby="navMemoryV2" tabindex="0" hidden>
+<div class="page-heading"><h1>记忆库</h1><p>整理个人或团队资料，核对原文后保存，再回到对话中提问。</p></div>
+<section class="memory-start-guide" aria-label="记忆使用步骤"><h2>从这里开始</h2>
+<p>先选择个人或团队范围，添加一条文字记忆；核对候选和可见成员后保存，最后回到对话中提问。</p>
+<div class="personal-row"><button id="v2StartAdd" type="button" class="secondary-button">1 · 添加记忆</button><button id="v2StartReview" type="button" class="text-button">2 · 核验已保存的记忆</button><button id="v2StartChat" type="button" class="text-button">3 · 回到对话提问</button></div></section>
+<section class="personal-card shared-card"><p id="v2Identity" role="status"></p><button id="v2Login" type="button" class="secondary-button">去登录空间账号</button>
+<p class="feature-help">旧记忆保留在原入口，不会自动转换。新版个人记忆属于当前登录账号，不能通过选择同名个人档案读取。私人候选请先存入个人范围。</p>
+<fieldset id="v2Controls" disabled><legend>资料归属与审阅</legend>
+<label for="v2Scope">保存／查看范围</label><select id="v2Scope"><option value="personal">个人记忆</option></select>
+<label for="v2Visibility">团队查看权限</label><select id="v2Visibility"><option value="selected">仅作者与团队管理员</option><option value="all">团队全体成员（含以后加入的成员）</option></select>
+<p class="feature-help">修改权限为作者与管理员。文件中的“公开”和所有者姓名不会自动改变这里的权限。</p>
+<section id="v2FocusPanel" aria-label="记忆快速核验">
+<h2>记忆快速核验</h2><p class="feature-help">看问题、候选答案和右侧原文，直接标注即可。确认正确后自动保存并进入下一条，不必逐项填写。系统会自动检查权限、版本和格式。</p>
+<div class="v2-focus-toolbar"><label for="v2FocusStatus">审核进度<select id="v2FocusStatus"><option value="open">待核验</option><option value="all">全部使用中记忆</option><option value="confirmed">已确认</option><option value="disputed">待修改／有争议</option><option value="archived">已归档</option></select></label><label for="v2FocusCategory">问题类型<select id="v2FocusCategory"><option value="all">全部问题</option><option value="quantity">数量口径</option><option value="role">任职届次</option><option value="score">比分与对手</option><option value="identity">姓名与归属</option><option value="date">活动日期</option><option value="boundary">事件边界</option><option value="other">其他核对</option></select></label><label for="v2FocusSearch">查找问题或人物<input id="v2FocusSearch" type="search" placeholder="标题、人物或核对提示"></label><button id="v2FocusRefresh" type="button" class="secondary-button">刷新审核列表</button></div>
+<p id="v2FocusCount" role="status">登录并选择范围后显示待核验问题。</p>
+<div class="v2-focus-layout"><nav id="v2FocusList" aria-label="待核验问题列表"></nav><div id="v2FocusDetail" hidden>
+<h3 id="v2FocusTitle"></h3><p id="v2FocusReason" class="notice"></p><p id="v2FocusPosition" class="feature-help"></p>
+<div class="v2-review-columns"><section aria-label="当前问题答案"><h3>候选答案</h3><p id="v2FocusAnswer" class="v2-quick-answer"></p><div id="v2FocusEditorHost"></div></section><aside class="v2-focus-evidence" aria-label="当前记忆原文依据"><h3>原文依据</h3><p class="feature-help">以下为保存时的精确摘录；来源如为脱敏整理版或候选文件，会明确标注。未记载的信息不能靠确认按钮补齐。</p><div id="v2FocusEvidence" aria-live="polite"></div></aside></div>
+<div id="v2ReviewHost"></div><div class="v2-focus-actions"><button id="v2FocusConfirm" type="button" class="secondary-button">确认正确，下一条</button><button id="v2FocusWrong" type="button" class="secondary-button">不正确，稍后修改</button><button id="v2FocusPending" type="button" class="text-button">不确定，下一条</button></div><details class="v2-review-more"><summary>修改答案或管理归档</summary><div class="v2-focus-actions"><button id="v2FocusModify" type="button" class="text-button">修改答案</button><button id="v2FocusRestore" type="button" class="text-button" hidden>恢复使用 · 查看预览</button><button id="v2FocusEvent" type="button" class="text-button">修正关联事件日期</button><button id="v2FocusNext" hidden type="button" class="text-button">暂不处理，下一条</button></div></details><p class="feature-help">点击“确认正确”表示你已完成人工核验；只确认当前内容，不改数字、日期或权限。标“不正确”后可集中修改；“不确定”先跳过。缺失信息不会自动补齐。</p>
+</div></div></section>
+<details id="v2ImportDisclosure"><summary>添加记忆与导入资料</summary><h2>记录一条文字记忆</h2>
+<p class="feature-help">适合先记录偏好、经历或简短说明。任职、数量、比分等需要核对字段的资料，可从下方候选文件导入。私人内容请先选“个人记忆”。</p>
+<label for="v2DraftTitle">标题（可选）</label><input id="v2DraftTitle" maxlength="160" placeholder="例如：我喜欢的茶">
+<label for="v2DraftText">想保留的文字</label><textarea id="v2DraftText" rows="4" maxlength="1200" placeholder="例如：我喜欢茉莉茶。请保留原话，保存前还会显示范围与权限。"></textarea>
+<button id="v2Draft" type="button" class="secondary-button">生成候选，尚不保存</button>
+<p id="v2DraftStatus" class="feature-help" role="status" aria-live="polite"></p>
+<details id="v2MdImport"><summary>上传MD，自动提取记忆</summary>
+<p class="feature-help">先由本机模型生成候选，私人内容单独列出并从正文和来源全文移除。自动识别可能遗漏，必须检查脱敏全文；保存前仍有独立预览与确认。每次1–5篇、每篇最多24000字，较长文章分段处理。</p>
+<label for="v2MdFiles">选择MD文章</label><input id="v2MdFiles" type="file" accept=".md,.markdown,text/markdown,text/plain" multiple>
+<details><summary>或粘贴MD正文</summary><label for="v2MdName">文章文件名</label><input id="v2MdName" maxlength="160" placeholder="例如：班级活动.md"><label for="v2MdText">MD正文</label><textarea id="v2MdText" rows="6" maxlength="24000"></textarea></details>
+<button id="v2MdExtract" type="button" class="secondary-button">本机提取候选，尚不保存</button>
+<p id="v2MdProgress" role="status" aria-live="polite"></p><div id="v2MdReview"></div>
+<label><input id="v2MdConsent" type="checkbox">我已检查候选、私人段落及脱敏来源全文</label>
+<button id="v2MdAccept" type="button" class="secondary-button" disabled>使用脱敏候选，继续保存预览</button>
+</details>
+<details id="v2FileImport"><summary>从候选文件批量导入</summary>
+<label for="v2Original">原始文章（可选）</label><textarea id="v2Original" rows="4" maxlength="200000" placeholder="若只有候选卡片，可粘贴原文核对摘录。未提供时会明确标为候选文件依据。"></textarea>
+<label for="v2File">选择候选文件</label><input id="v2File" type="file" accept=".json,application/json">
+<p class="feature-help">支持新版候选包，以及之前含cards的候选JSON。转换后仍是待核实；日期推定、混合事件和私人内容需逐项核对。</p>
+</details>
+<div id="v2Candidates"></div>
+<details><summary>查看／调整候选文件</summary><p class="feature-help">调整人物、事件边界、时间、事实值或依据后，请重新校验。编号相同表示同一对象；同一天也可以有不同事件。</p><label for="v2Packet">候选内容</label><textarea id="v2Packet" rows="12" spellcheck="false" maxlength="4000000"></textarea><button id="v2Validate" type="button" class="secondary-button">重新校验候选</button><button id="v2Export" type="button" class="text-button">下载候选文件</button></details>
+<button id="v2Preview" type="button" class="secondary-button" disabled>查看保存预览</button>
+</details>
+<section id="v2Edit" hidden><h2>修改／核实已有记忆</h2><label for="v2EditTitle">标题</label><input id="v2EditTitle" maxlength="160"><label for="v2EditSummary">摘要</label><textarea id="v2EditSummary" maxlength="1200" rows="3"></textarea><label for="v2EditDetail">细节</label><textarea id="v2EditDetail" maxlength="4000" rows="4"></textarea><label for="v2EditStatus">核实状态</label><select id="v2EditStatus"><option value="pending">待核实</option><option value="confirmed">已确认</option><option value="disputed">有争议</option></select><label for="v2EditReason">核实依据／争议说明</label><textarea id="v2EditReason" maxlength="500" rows="2"></textarea><div id="v2FactFields"></div><details id="v2EditFactBox"><summary>调整结构化事实</summary><p>数量、口径、任职及比分问答使用此处的值。修改后会回到待核实；原始依据保留。</p><label><input id="v2UseAdvancedFact" type="checkbox">使用高级事实内容覆盖上方表单</label><label for="v2EditFact">事实内容（高级）</label><textarea id="v2EditFact" rows="8" maxlength="12000" spellcheck="false"></textarea></details><details><summary>更多管理操作</summary><label><input id="v2EditArchived" type="checkbox">归档，退出当前查询（保留历史）</label></details><button id="v2EditPreview" type="button" class="secondary-button">预览修改</button></section>
+<section id="v2EventEdit" hidden><h2>修正关联事件</h2><p class="feature-help">调整日期、发生状态或事件类别前，会列出受影响的关联记忆。保存后相关记录回到待核实，原文和历史继续保留。</p><div id="v2EventFields"></div><details><summary>高级事件内容</summary><label><input id="v2UseAdvancedEvent" type="checkbox">使用高级内容覆盖上方表单</label><label for="v2EventChanges">事件修订内容（高级）</label><textarea id="v2EventChanges" rows="10" maxlength="12000" spellcheck="false"></textarea></details><button id="v2EventPreview" type="button" class="secondary-button">预览事件修订及影响</button></section>
+<div id="v2ReviewHome"><section id="v2Review" hidden><h2>核对后保存</h2><div id="v2ReviewItems"></div><label><input id="v2Consent" type="checkbox">我已核对归属、内容及查看权限</label><label id="v2WarningsLabel" hidden><input id="v2WarningsConsent" type="checkbox">我已阅读待核对问题，保留相应不确定状态</label><button id="v2Confirm" type="button" class="secondary-button" disabled>确认保存</button><button id="v2Cancel" type="button" class="text-button">取消预览</button></section></div>
+<details id="v2AllRecords"><summary>全部新版记忆（含非重点条目）</summary><h2>已保存的新版记忆</h2><div class="personal-row"><button id="v2Reload" type="button" class="secondary-button">刷新记忆库</button><label><input id="v2Archived" type="checkbox">包括已归档</label></div><div id="v2Records"></div></details>
+</fieldset><button id="v2MdStop" type="button" class="text-button" hidden>停止MD提取</button><p id="v2Status" class="notice" role="status" style="white-space:pre-wrap"></p></section></section>
 <section id="viewSpeech" class="workspace-panel" role="tabpanel" aria-labelledby="navSpeech" tabindex="0" hidden><div class="page-heading"><h1>声音设置</h1><p>查看输入输出档位和设备状态，或调整回答音色与语速。只读自检不录音、不播放。</p></div><section class="personal-card shared-card" id="ipSettingsPanel" aria-label="IP形象与主题">
 <h2>IP形象与主题</h2><p class="feature-help">统一设置名称、形象和配色。未填写名称时显示“小伴”；未上传形象时保留默认机器人。此设置供本机所有页面使用，不改变用户档案或团队权限。</p>
 <div class="ip-grid">
@@ -394,9 +451,19 @@
   <summary>回答声音 · 音色与语速</summary>
   <p class="feature-help">选择 → 试听 → 保存。试听不保存；保存后从下一次朗读开始生效，重启后保留。使用当前播放设备和系统音量，不提高音量。</p>
   <p id="speechCurrent">展开后读取当前声音。</p>
-  <label for="speechVoice">音色（Mac 系统语音）</label><select id="speechVoice" disabled></select>
-  <label for="speechRate">语速：<output id="speechRateValue" for="speechRate">195</output>（100 慢 — 300 快）</label>
+  <label for="speechVoice">回答音色</label><select id="speechVoice" disabled></select>
+  <label id="speechRateLabel" for="speechRate">语速：<output id="speechRateValue" for="speechRate">195</output>（100 慢 — 300 快）</label>
   <input id="speechRate" type="range" min="100" max="300" step="1" value="195" disabled>
+  <details id="speechGenerationPanel" hidden>
+    <summary>高级：声音稳定性</summary>
+    <p>较低的随机性通常更稳定。种子固定后，相同文本和参数更便于复现；文本不同仍会有自然语气变化。设置从下一次朗读生效，不改变正在播放的声音。</p>
+    <label for="speechSeed">固定种子（0–2147483647）</label><input id="speechSeed" type="number" min="0" max="2147483647" step="1" value="42">
+    <label for="speechTemperature">温度 temperature（0.1–1.5，越高变化越多）</label><input id="speechTemperature" type="number" min="0.1" max="1.5" step="0.05" value="0.5">
+    <label for="speechTopK">候选数量 top_k（1–100）</label><input id="speechTopK" type="number" min="1" max="100" step="1" value="20">
+    <label for="speechTopP">候选范围 top_p（0.1–1）</label><input id="speechTopP" type="number" min="0.1" max="1" step="0.05" value="0.85">
+    <button id="speechRestoreGeneration" class="text-button" type="button">恢复稳定设置</button>
+    <p>稳定设置：42 / 0.5 / 20 / 0.85。恢复后可先试听，点击「保存声音设置」才会生效。</p>
+  </details>
   <div class="personal-row"><button id="speechPreview" class="secondary-button" disabled>试听当前选择</button><button id="speechPreviewStop" class="text-button" disabled>停止试听</button><button id="speechSave" class="secondary-button" disabled>保存声音设置</button><button id="speechReload" class="text-button">重新加载</button></div>
   <p id="speechSettingsStatus" role="status" aria-live="polite"></p>
 </details>
@@ -446,6 +513,7 @@
 <footer>MAC 体验版 <span>·</span> 唤醒开启时监听，允许插话时回答期间也会监听 <span>·</span> 记忆与声纹特征存于本机 <span>·</span> 保持页面打开、电脑不休眠</footer>
 <script src="/conversation-diagnostics.js"></script>
 <script src="/branding.js"></script>
+<script src="/speech-stream.js"></script>
 <script src="/app.js"></script>
 <script src="/personal.js"></script>
 <script src="/personal-retrieval.js"></script>
@@ -469,4 +537,6 @@
 <script src="/diagnostic-overview.js"></script>
 <script src="/model-settings.js"></script>
 <script src="/workspace.js"></script>
+<script src="/companion-memory.js"></script>
+<script src="/md-import.js"></script><script src="/structured-memory.js"></script>
 </body></html>

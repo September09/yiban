@@ -1,24 +1,42 @@
 // Device preferences only: preview never changes system/output gain or stored memories.
 var speechPrefs = {data:null, loading:false, saving:false, preview:null, epoch:0};
+const speechGenerationFields={seed:'speechSeed',temperature:'speechTemperature',top_k:'speechTopK',top_p:'speechTopP'};
 function speechPreviewActive(){return !!speechPrefs.preview;}
 function speechSettingsBlocked(){return busy||recording||speaking||enrolling||wakeStarting||wakePhase==='command'||(typeof sharedVoiceActive==='function'&&sharedVoiceActive());}
 function speechSettingsControls(){
   if(typeof workspaceActivity==='function')workspaceActivity();
   if(typeof speechPrefs==='undefined')return;
   const locked=speechPrefs.loading||speechPrefs.saving||speechPreviewActive(), unavailable=!speechPrefs.data?.available;
-  $('speechVoice').disabled=locked||unavailable;$('speechRate').disabled=locked||unavailable;
+  $('speechVoice').disabled=locked||unavailable;$('speechRate').disabled=locked||unavailable||speechPrefs.data?.supports_rate===false;
   $('speechPreview').disabled=locked||unavailable||speechSettingsBlocked();
   $('speechSave').disabled=locked||unavailable||speechSettingsBlocked();
   $('speechReload').disabled=locked;$('speechPreviewStop').disabled=!speechPreviewActive();
+  for(const id of [...Object.values(speechGenerationFields),'speechRestoreGeneration'])if($(id))$(id).disabled=locked||unavailable||speechSettingsBlocked();
 }
-function speechSelection(){return {voice:$('speechVoice').value,rate:Number($('speechRate').value)};}
+function speechSelection(){
+  const selected={voice:$('speechVoice').value,rate:Number($('speechRate').value)};
+  if(speechPrefs.data?.generation_defaults){
+    selected.generation={...speechPrefs.data.generation_defaults};
+    for(const [key,id] of Object.entries(speechGenerationFields)){
+      if(!$(id).value.trim()||!$(id).checkValidity())throw new Error('请填写范围内的声音参数，种子和 top_k 须为整数。');
+      selected.generation[key]=Number($(id).value);
+    }
+  }
+  return selected;
+}
 function displaySpeechSettings(data){
   speechPrefs.data=data;$('speechVoice').replaceChildren();
   const voices=[...data.voices].sort((a,b)=>Number(b.locale.startsWith('zh'))-Number(a.locale.startsWith('zh'))||a.name.localeCompare(b.name));
   for(const v of voices){const option=document.createElement('option');option.value=v.name;option.textContent=`${v.name==='Tingting'?'婷婷 · Tingting':v.name}（${v.locale}）`;$('speechVoice').append(option);}
   $('speechVoice').value=data.current.voice;$('speechRate').value=data.current.rate;$('speechRateValue').textContent=data.current.rate;
-  $('speechCurrent').textContent=`已生效：${data.current.voice} · 语速 ${data.current.rate}`;
-  $('speechSettingsStatus').textContent=data.available?(data.warning||'可先试听，再保存。'): '当前平台未启用 Mac 朗读，暂不支持调整音色。';
+  $('speechCurrent').textContent=`已生效：${data.current.voice} · ${data.supports_rate===false?'自然语速':`语速 ${data.current.rate}`}`;
+  $('speechRate').hidden=data.supports_rate===false;
+  $('speechRateLabel').hidden=data.supports_rate===false;
+  if($('speechGenerationPanel')){
+    $('speechGenerationPanel').hidden=!data.generation_defaults;
+    if(data.generation_defaults)for(const [key,id] of Object.entries(speechGenerationFields))$(id).value=(data.current.generation||data.generation_defaults)[key];
+  }
+  $('speechSettingsStatus').textContent=data.available?(data.warning||(data.engine==='Qwen3-TTS'?(data.runtime?.state==='ready'?'声音已准备好 · 可直接试听，后续朗读无需重新加载。':data.runtime?.state==='loading'?'正在后台准备声音 · 准备完成后朗读会更快。':'声音尚未准备好 · 试听时会自动加载。'):'可先试听，再保存。')): '语音环境不可用，请检查本机安装。';
 }
 async function loadSpeechSettings(){
   if(speechPrefs.loading||speechPrefs.saving||speechPreviewActive())return;
@@ -38,9 +56,10 @@ function stopSpeechPreview(resume=true,message='已停止试听，未更改保�
 }
 async function previewSpeech(){
   if(speechSettingsBlocked()||speechPreviewActive()||!speechPrefs.data?.available||speechPrefs.loading||speechPrefs.saving)return;
-  const selection=speechSelection(),epoch=++speechPrefs.epoch;
+  let selection;try{selection=speechSelection();}catch(error){$('speechSettingsStatus').textContent=error.message;return;}
+  const epoch=++speechPrefs.epoch;
   const p={id:newTurnId(),controller:new AbortController(),audio:null,url:null};speechPrefs.preview=p;
-  p.timeout=setTimeout(()=>{if(speechPrefs.preview===p)stopSpeechPreview(true,'试听超时，已停止。请重试。');},90000);
+  p.timeout=setTimeout(()=>{if(speechPrefs.preview===p)stopSpeechPreview(true,'试听超时，已停止。请重试。');},speechPrefs.data.engine==='Qwen3-TTS'?250000:90000);
   speechSettingsControls();$('speechSettingsStatus').textContent='准备试听…沿用当前系统音量。';
   try{
     await pauseWake();if(epoch!==speechPrefs.epoch)return;
@@ -64,5 +83,11 @@ $('speechSettingsPanel').ontoggle=()=>{if($('speechSettingsPanel').open&&!speech
 $('speechReload').onclick=loadSpeechSettings;$('speechPreview').onclick=previewSpeech;$('speechPreviewStop').onclick=()=>stopSpeechPreview();$('speechSave').onclick=saveSpeechSettings;
 $('speechRate').oninput=()=>{$('speechRateValue').textContent=$('speechRate').value;$('speechSettingsStatus').textContent='当前选择尚未保存，可先试听。';};
 $('speechVoice').onchange=()=>{$('speechSettingsStatus').textContent='当前选择尚未保存，可先试听。';};
+for(const id of Object.values(speechGenerationFields))if($(id))$(id).oninput=()=>{$('speechSettingsStatus').textContent='当前声音参数尚未保存，可先试听。';};
+if($('speechRestoreGeneration'))$('speechRestoreGeneration').onclick=()=>{
+  if(!speechPrefs.data?.generation_defaults)return;
+  for(const [key,id] of Object.entries(speechGenerationFields))$(id).value=speechPrefs.data.generation_defaults[key];
+  $('speechSettingsStatus').textContent='已恢复稳定设置的选择，点击「保存声音设置」后生效。';
+};
 window.addEventListener('pagehide',()=>stopSpeechPreview(false));
 speechSettingsControls();

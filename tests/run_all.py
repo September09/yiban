@@ -15,7 +15,10 @@ def main():
     checks = [
         ("后端测试", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"]),
         ("前端逻辑测试", [node, "tests/check_frontend.cjs"]),
+        ("MD提取审阅测试", [node, "tests/check_md_import.cjs"]),
         ("流式朗读测试", [node, "tests/check_stream_speech.cjs"]),
+        ("单次连续音频测试", [node, "tests/check_continuous_speech.cjs"]),
+        ("声音参数设置测试", [node, "tests/check_speech_settings.cjs"]),
         ("个人记忆保存反馈测试", [node, "tests/check_personal_save.cjs"]),
         ("共同记忆编辑保存测试", [node, "tests/check_shared_edit.cjs"]),
         ("资料导入批次测试", [node, "tests/check_import_batches.cjs"]),
@@ -23,6 +26,14 @@ def main():
         ("空间成员添加测试", [node, "tests/check_shared_members.cjs"]),
         ("陪伴对话共同记忆测试", [node, "tests/check_shared_chat.cjs"]),
         ("大文件分轮整理测试", [node, "tests/check_material_rounds.cjs"]),
+        ("模型设置测试", [node, "tests/check_model_settings.cjs"]),
+        ("音频设备逻辑测试", [node, "tests/check_audio_devices.cjs"]),
+        ("个人记忆状态测试", [node, "tests/check_personal_state.cjs"]),
+        ("角色主题测试", [node, "tests/check_branding.cjs"]),
+        ("审阅资料导入测试", [node, "tests/check_reviewed_materials.cjs"]),
+        ("指定空间对话测试", [node, "tests/check_companion_memory.cjs"]),
+        ("个人与团队自动记忆测试", [node, "tests/check_auto_memory.cjs"]),
+        ("新版结构化记忆测试", [node, "tests/check_structured_memory.cjs"]),
     ]
     failed = []
     for name, command in checks:

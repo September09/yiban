@@ -45,11 +45,15 @@ def load_settings(path=None):
                 result[key] = value
     if "ASSISTANT_PORT" in os.environ:
         result["port"] = int(os.environ["ASSISTANT_PORT"])
+    # The desktop entry point can select Qwen without changing the model/memory profile.
+    if "ASSISTANT_TTS_BACKEND" in os.environ:
+        backend = os.environ["ASSISTANT_TTS_BACKEND"]
+        result["tts"] = {"backend": backend, "voice": "Serena" if backend == "qwen3_tts" else "Tingting", "rate": 195}
     if type(result["port"]) is not int or not 1 <= result["port"] <= 65535:
         raise ValueError("port 必须在 1–65535 之间。")
     for section, supported in (("llm", {"ollama", "openai_compatible"}),
                                ("asr", {"sensevoice", "disabled"}),
-                               ("tts", {"macos", "disabled"}),
+                               ("tts", {"macos", "qwen3_tts", "disabled"}),
                                ("actions", {"screen"})):
         if result[section]["backend"] not in supported:
             raise ValueError(f"尚未实现 {section} 后端：{result[section]['backend']}")
@@ -84,6 +88,11 @@ def load_settings(path=None):
         raise ValueError('completion 状态检查仅支持 OpenAI 兼容的纯文字配置。')
     if type(result["tts"]["rate"]) is not int or result["tts"]["rate"] <= 0:
         raise ValueError("tts.rate 必须为正整数。")
+    if result["tts"]["backend"] == "qwen3_tts":
+        if result["tts"]["voice"] not in ("Serena", "Vivian", "Uncle_Fu"):
+            raise ValueError("Qwen3-TTS 音色须为 Serena、Vivian 或 Uncle_Fu。")
+        if result["tts"]["rate"] != 195:
+            raise ValueError("Qwen3-TTS 使用自然语速，请保留 rate=195。")
     if result["audio"]["input"] != "browser":
         raise ValueError("目前仅实现 browser 音频入口，USB/ESP32 入口待接入。")
     if result["audio"]["wake_enabled"] and result["asr"]["backend"] == "disabled":

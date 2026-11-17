@@ -82,6 +82,31 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
   assert.ok(enroll && enroll.body.recordings.length === 3 && enroll.body.consent === true, '应提交三段录音并带同意');
   assert.match(ids.notice.textContent, /声纹已保存/, '保存声纹应提示成功');
 
+  // Recording failures must be visible beside the button even with chat hidden.
+  assert.match(html, /id="enrollmentStatus"[^>]*role="status"/);
+  let starts=0, stops=0, allow;
+  context.micError=e=>e.message;
+  context.Microphone=class {async start(){starts++;await new Promise(resolve=>{allow=resolve;});}async stop(){stops++;}};
+  run("activeProfile='';enrollmentSamples=[];$('voiceConsent').checked=true");
+  await run("recordEnrollment()");
+  assert.match(ids.enrollmentStatus.textContent,/当前用户/);
+  assert.equal(starts,0,'Guest must not open microphone');
+  run("activeProfile='p1';$('voiceConsent').checked=true");
+  const pending=run("recordEnrollment()");await tick();
+  assert.match(ids.enrollmentStatus.textContent,/权限提示/);
+  assert.equal(ids.recordVoice.disabled,true,'Cannot start a second pending capture');
+  await run("recordEnrollment()");assert.equal(starts,1);
+  await run("cancelEnrollment()");allow();await pending;
+  assert.equal(run('enrollmentSamples.length'),0,'Late permission cannot add a recording');
+  assert.ok(stops>0);
+  context.Microphone=class {async start(){throw new Error('麦克风权限被拒绝');}async stop(){}};
+  run("$('voiceConsent').checked=true");
+  await run("recordEnrollment()");
+  assert.match(ids.enrollmentStatus.textContent,/未开始录音.*权限被拒绝/);
+  assert.equal(run('enrolling'),false);
+  assert.equal(run('enrollmentStarting'),false);
+  assert.equal(ids.recordVoice.disabled,false);
+
   // 6) 打开自动识别时，说明文字不参与识别，避免误以为声纹失效。
   ids.notice.textContent = '';
   run("$('speakerAuto').checked=true");

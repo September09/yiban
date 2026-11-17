@@ -12,6 +12,7 @@ from yiban.memory.memory_review import possible_conflicts
 
 
 class SharedRecovery:
+    MAX_TRASH_ITEMS = 200
     OPERATIONS = {'trash', 'trash_restore', 'history_restore', 'undo_replacement'}
     RECORD_FIELDS = ('id', 'space', 'author', 'editor', 'content', 'visibility', 'edit_policy',
                      'event_date', 'source_note', 'version', 'created', 'updated', 'status', 'status_reason')
@@ -66,7 +67,8 @@ class SharedRecovery:
         evidence = db.execute('SELECT * FROM shared_evidence WHERE memory=?', (item['id'],)).fetchone()
         return {'record': item, 'history': [dict(row) for row in db.execute(
             'SELECT * FROM shared_history WHERE memory=? ORDER BY id', (item['id'],))],
-            'evidence': dict(evidence) if evidence else None}
+            'evidence': dict(evidence) if evidence else None,
+            'query_exclusion': (dict(row) if (row:=db.execute('SELECT * FROM shared_query_exclusions WHERE memory=?',(item['id'],)).fetchone()) else None)}
 
     def undo_pair(self, db, actor, space, current):
         self.eligible(actor, space, current)
@@ -136,8 +138,8 @@ class SharedRecovery:
                 snapshot = self.snapshot(db, item); after = []
                 size = len(self.encode(snapshot).encode())
                 used = db.execute('SELECT COUNT(*),COALESCE(SUM(length(CAST(snapshot AS BLOB))),0) FROM shared_trash WHERE space=?', (space['id'],)).fetchone()
-                if used[0] >= 100 or used[1] + size > 24_000_000:
-                    raise SharedError('回收站达到100条或24 MB上限，未删除任何内容。')
+                if used[0] >= self.MAX_TRASH_ITEMS or used[1] + size > 24_000_000:
+                    raise SharedError('回收站达到200条或24 MB上限，未删除任何内容。')
                 metadata['trash_id'] = uuid.uuid4().hex
             elif operation == 'history_restore':
                 if s.replacements.flags(db, item['id'])[1]:
@@ -215,6 +217,10 @@ class SharedRecovery:
             if snapshot['evidence']:
                 e=snapshot['evidence']; columns=('memory','source_name','source_text','source_hash','quotes_json','captured_content','created')
                 db.execute('INSERT INTO shared_evidence VALUES (?,?,?,?,?,?,?)', [e[k] for k in columns])
+            exclusion=snapshot.get('query_exclusion')
+            if exclusion:
+                db.execute('INSERT INTO shared_query_exclusions(memory,reason,created) VALUES (?,?,?)',
+                           (item['id'],exclusion['reason'],exclusion['created']))
             db.execute('DELETE FROM shared_trash WHERE id=?', (plan['metadata']['trash_id'],))
         else:
             if operation == 'undo_replacement':

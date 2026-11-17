@@ -9,13 +9,16 @@ function readChatHistory(identity=''){
   }catch{return [];}
 }
 let messages=readChatHistory();
-let ready=false, asrReady=false, wakeReady=false, visionReady=false, ttsReady=true, busy=false, recording=false, speaking=false;
+let ready=false, asrReady=false, wakeReady=false, visionReady=false, ttsReady=true, ttsStreaming=false, busy=false, recording=false, speaking=false;
+let continuousPlayback=null;
 let wakeEnabled=false, wakePhase='', wakeStarting=false, wakeListener=null;
 let audio=null, audioUrl=null, speechVersion=0, manual=null, frames=[], timer, tick;
 let activeProfile='', speakerReady=false, turnVersion=0, turnId=null, chatAbort=null, ttsAbort=null, activeRow=null, enrolling=false;
 let cameraStream=null, cameraStarting=false, cameraVersion=0, motion=null, motionTimer;
 function assistantName(){return typeof branding!=='undefined'?branding.name():'小伴';}
 function wakePhrase(){return typeof branding!=='undefined'?branding.wakeWord():'你好小伴';}
+function identifySpeechSpeaker(){return $('speakerAuto').checked&&!(typeof companionMemoryVoiceActive==='function'&&companionMemoryVoiceActive());}
+function keepMemoryVoiceTopic(){return typeof companionMemoryKeepVoiceTopic==='function'&&companionMemoryKeepVoiceTopic();}
 function welcome(){return `我是${assistantName()}，现在可以听你叫我，也可以看你拍的照片。\n开启语音唤醒后，说「${wakePhrase()}」，看到我回应后再提问。你也可以试试说「请点点头」。`;}
 
 function state(text,mode=''){ $('state').textContent=text; document.body.className=mode; }
@@ -39,10 +42,11 @@ function controls(){
     (typeof sharedVoiceActive==='function'&&sharedVoiceActive());
   if(typeof personalControls==='function')personalControls();
   if(typeof sharedVoiceControls==='function')sharedVoiceControls();
+  if(typeof companionMemoryControls==='function')companionMemoryControls();
   document.querySelectorAll('[data-action]').forEach(b=>b.disabled=enrolling||busy||recording||wakePhase==='command');
 }
 function idle(){if(busy||recording||speaking||wakePhase==='command')return;state(wakeEnabled?`轻声叫我「${wakePhrase()}」`:'我在这里，随时可以聊',wakeEnabled?'waiting':'');}
-function persist(){try{localStorage.setItem(activeProfile?'xiaoban-history-'+activeProfile:'xiaoban-history',JSON.stringify(messages.slice(-30)));}catch{notice('浏览器存储不可用，对话仅在当前页面保留。');}}
+function persist(){if(typeof companionMemoryActive==='function'&&companionMemoryActive())return;try{localStorage.setItem(activeProfile?'xiaoban-history-'+activeProfile:'xiaoban-history',JSON.stringify(messages.slice(-30)));}catch{notice('浏览器存储不可用，对话仅在当前页面保留。');}}
 function scroll(){$('messages').scrollTop=$('messages').scrollHeight;}
 function addMessage(role,text,image){
   const item=document.createElement('div');item.className=`message ${role}`;
@@ -52,14 +56,15 @@ function addMessage(role,text,image){
   $('messages').append(item);scroll();return{item,bubble};
 }
 function replayButton(item,text){const b=document.createElement('button');b.className='replay';b.textContent='▷ 再听一遍';b.onclick=()=>speak(text);item.append(b);}
-function render(){$('messages').replaceChildren();if(!messages.length)addMessage('assistant',welcome());for(const m of messages){const row=addMessage(m.role,m.content);if(m.role==='assistant')replayButton(row.item,m.content);}$('suggestions').hidden=messages.length>0;}
+function render(){if(typeof companionMemoryActive==='function'&&companionMemoryActive()){companionMemoryRender();return;}$('messages').replaceChildren();if(!messages.length)addMessage('assistant',welcome());for(const m of messages){const row=addMessage(m.role,m.content);if(m.role==='assistant')replayButton(row.item,m.content);}$('suggestions').hidden=messages.length>0;}
 async function api(path,body,type='application/json',signal=null,extraHeaders={}){
   const res=await fetch(path,{method:'POST',signal,headers:{'Content-Type':type,...extraHeaders},body:type==='application/json'?JSON.stringify(body):body});
   if(!res.ok){const data=await res.json();throw new Error(data.error||'请求失败');}return res;
 }
-function stopAudio(){speechVersion++;speaking=false;if(audio){if(typeof audioDevices!=='undefined')audioDevices.releaseOutput(audio);audio.pause();audio=null;}if(audioUrl){URL.revokeObjectURL(audioUrl);audioUrl=null;}}
+function stopAudio(){speechVersion++;speaking=false;const stream=continuousPlayback;continuousPlayback=null;stream?.stop();if(audio){if(typeof audioDevices!=='undefined')audioDevices.releaseOutput(audio);audio.pause();audio=null;}if(audioUrl){URL.revokeObjectURL(audioUrl);audioUrl=null;}}
 function newTurnId(){return crypto.randomUUID();}
-function cancelTurn({preserveSharedVoice=false,preserveTrace=false}={}){
+function cancelTurn({preserveSharedVoice=false,preserveTrace=false,preserveCompanionTopic=false}={}){
+  if(typeof companionMemoryCancel==='function')companionMemoryCancel(preserveCompanionTopic);
   if(typeof stopSpeechPreview==='function')stopSpeechPreview(false);
   if(typeof personalMemoryCancel==='function')personalMemoryCancel();
   if(!preserveTrace){if(typeof diagnosticOverview!=='undefined')diagnosticOverview.finishLocal(conversationDiagnostics.current(),'cancelled');conversationDiagnostics.finish(conversationDiagnostics.current(),'cancelled','stopped');}
@@ -76,9 +81,12 @@ async function monitorInterrupt(){
   if(!wakeEnabled||!$('bargeIn').checked||enrolling||wakeListener)return;
   await resumeWake('interrupt');
 }
-// 回答还在生成时就按句合成播放：第一句一到就开口，不必等全文结束。
 function openReplySpeech(version,traceId){
-  const queue=[];let cursor=0,remaining=0,running=false,closed=false,prepared=false,cancelled=false,failed=false,settled=false,finish=null;
+  return ttsStreaming?openContinuousReplySpeech(version,traceId):openBufferedReplySpeech(version,traceId);
+}
+// Legacy engines without PCM streaming retain their supported WAV path.
+function openBufferedReplySpeech(version,traceId){
+  const queue=[];let cursor=0,remaining=0,running=false,closed=false,prepared=false,cancelled=false,failed=false,settled=false,finish=null,pending=null;
   const done=new Promise(resolve=>{finish=resolve;});
   const alive=()=>version===turnVersion&&!cancelled&&!failed;
   // 队列收尾时当场结束本轮诊断，和原来整段朗读的时序保持一致。
@@ -101,18 +109,20 @@ function openReplySpeech(version,traceId){
     if(!alive())return;
     stopAudio();speaking=true;audioUrl=URL.createObjectURL(blob);audio=new Audio(audioUrl);const player=audio;
     // 只有被「再听一遍」、打断或外部暂停抢走播放器时才算取消；本轮自己收尾不算。
-    let releasing=false;
-    player.onpause=()=>{if(!releasing&&player===audio&&!player.ended)cancelled=true;};
+    let releasing=false,releasePlayback=null;
+    player.onpause=()=>{if(!releasing&&!player.ended){cancelled=true;releasePlayback?.();}};
     const routed=typeof audioDevices!=='undefined'?audioDevices.routeOutput(player):null;if(routed)await routed;
     if(!alive()||player!==audio)return;
     conversationDiagnostics.stage(traceId,'playback');
-    await player.play();
+    await player.play();if(alive()){conversationDiagnostics.playbackStarted(traceId);if(typeof audioDevices!=='undefined')audioDevices.playbackStarted(player);}
     await new Promise(resolve=>{
+      releasePlayback=resolve;
       // 最后一段播完就在同一个回调里收尾，避免多等几个微任务才结束本轮。
       player.onended=()=>{if(closed&&remaining<=1)settle();resolve();};
       player.onerror=()=>{failed=true;if(closed&&remaining<=1)settle();resolve();};
+      if(!alive()||player!==audio)resolve();
     });
-    releasing=true;
+    releasePlayback=null;releasing=true;
     if(player===audio)stopAudio();
   }
   async function pump(){
@@ -120,34 +130,56 @@ function openReplySpeech(version,traceId){
     try{
       if(!prepared){prepared=true;await prepare();}
       state('正在说给你听…','speaking');
-      let pending=null;
-      // 合成失败要落到值上再判断，预取的那一句失败时也不能留下未处理的异常。
-      const request=text=>synth(text).then(blob=>({blob}),error=>({error}));
+      prefetch();
       while(alive()){
-        if(!pending){if(!queue.length)break;pending=request(queue.shift());}
+        prefetch();if(!pending)break;
         const current=pending;pending=null;
-        // 当前句播放时就开始合成下一句，句间不留合成空档。
-        const ahead=queue.length?request(queue.shift()):null;
+        prefetch();
         const result=await current;if(!alive())break;
         if(result.error)throw result.error;
-        await play(result.blob);pending=ahead;remaining--;
+        await play(result.blob);remaining--;
       }
-    }catch(error){if(error.name!=='AbortError'){failed=true;notice('声音未播放：'+(error.name==='NotAllowedError'?'浏览器拦截了自动播放，先点一下页面任意位置即可':'')+error.message);}}
+    }catch(error){if(error.name==='AbortError')cancelled=true;else{failed=true;notice('声音未播放：'+(error.name==='NotAllowedError'?'浏览器拦截了自动播放，先点一下页面任意位置即可':'')+error.message);}}
     running=false;speaking=false;
     // 合成或播放失败时队列里可能还剩着句子，也要收尾，否则这一轮永远结束不了、麦克风不会恢复。
     if(closed&&(remaining<=0||!alive()))settle();
   }
-  function enqueue(text){const clean=(text||'').trim();if(!clean||!alive())return;queue.push(clean);remaining++;pump();}
+  // Keep at most one request ahead of the playing/generating segment, even
+  // when the next sentence arrives after playback has already begun.
+  function prefetch(){
+    if(!pending&&queue.length&&alive())pending=synth(queue.shift()).then(blob=>({blob}),error=>({error}));
+  }
+  function enqueue(text){const clean=(text||'').trim();if(!clean||!alive())return;queue.push(clean);remaining++;if(running)prefetch();else pump();}
   return {
-    feed(answer){
+    feed(answer,final=false){
       if(closed||!alive())return;
-      const rest=answer.slice(cursor);
-      const sentence=rest.match(/[\s\S]*[。！？!?；;\n]/);
-      if(!sentence||sentence[0].replace(/\s/g,'').length<6)return;
-      cursor+=sentence[0].length;enqueue(sentence[0]);
+      while(alive()){
+        const rest=answer.slice(cursor);
+        // A completed short reply shares one voice-generation context.
+        if(final&&rest.length<=100){cursor=answer.length;enqueue(rest);return;}
+        const marks=rest.matchAll(/[。！？!?；;\n]/g);
+        let end=0;
+        for(const mark of marks){
+          const size=rest.slice(0,mark.index+1).replace(/\s/g,'').length;
+          if(mark.index+1>100)break;
+          if(size>=24){end=mark.index+1;break;}
+        }
+        // For very long unpunctuated output, prefer a natural phrase boundary.
+        if(!end&&rest.length>=100){
+          const prefix=rest.slice(0,100),breaks=[...prefix.matchAll(/[，、\s]/g)].filter(m=>m.index>=24);
+          if(breaks.length)end=breaks.at(-1).index+1;
+          else{
+            let cut=100;
+            while(cut>24&&/[A-Za-z0-9_.,:/+%\-]/.test(rest[cut-1])&&/[A-Za-z0-9_.,:/+%\-]/.test(rest[cut]))cut--;
+            if(cut>24)end=cut;
+          }
+        }
+        if(!end)return;
+        cursor+=end;enqueue(rest.slice(0,end));
+      }
     },
     async end(answer){
-      if(!closed&&alive()){const rest=answer.slice(cursor);cursor=answer.length;enqueue(rest);}
+      if(!closed&&alive()){this.feed(answer,true);const rest=answer.slice(cursor);cursor=answer.length;enqueue(rest);}
       closed=true;
       // 队列已经播完或中途失败就立刻收尾；还剩句子但播放循环没在跑时补启动一次。
       if(!running){if(remaining<=0||!alive())settle();else pump();}
@@ -162,6 +194,14 @@ async function speak(text,{onComplete=null,onFailure=null,traceId=null}={}){
   if(busy||recording||wakePhase==='command'||enrolling)return;
   traceId=traceId&&conversationDiagnostics.isLive(traceId)?traceId:conversationDiagnostics.start('replay');
   conversationDiagnostics.stage(traceId,'tts');
+  if(ttsStreaming){
+    ttsAbort?.abort();stopAudio();if(!turnId)turnId=newTurnId();
+    const speech=openContinuousReplySpeech(turnVersion,traceId,{finishTrace:!onComplete});
+    const ok=await speech.end(text);
+    if(ok){if(onComplete)await onComplete();else await returnToWake();}
+    else if(speech.failed&&onFailure)onFailure();
+    return;
+  }
   ttsAbort?.abort();stopAudio();const version=speechVersion;
   const id=turnId||newTurnId();turnId=id;const controller=new AbortController();ttsAbort=controller;
   speaking=true;
@@ -176,7 +216,7 @@ async function speak(text,{onComplete=null,onFailure=null,traceId=null}={}){
     audio.onended=async()=>{if(version===speechVersion){stopAudio();if(onComplete)await onComplete();else{conversationDiagnostics.finish(traceId);returnToWake();}}};
     audio.onerror=()=>{if(version===speechVersion){conversationDiagnostics.finish(traceId,'error','playback');if(typeof audioDevices!=='undefined')audioDevices.failed('output',{});stopAudio();if(onFailure)onFailure();notice('声音播放失败，可以点击「再听一遍」。');returnToWake();}};
     const player=audio;if(typeof audioDevices!=='undefined')await audioDevices.routeOutput(player);if(version!==speechVersion||audio!==player)return;
-    conversationDiagnostics.stage(traceId,'playback');await player.play();if(version===speechVersion&&typeof audioDevices!=='undefined')audioDevices.playbackStarted(player);if(version===speechVersion)state(wakeEnabled&&$('bargeIn').checked?'正在说给你听，可以插话…':'正在说给你听…','speaking');
+    conversationDiagnostics.stage(traceId,'playback');await player.play();if(version===speechVersion)conversationDiagnostics.playbackStarted(traceId);if(version===speechVersion&&typeof audioDevices!=='undefined')audioDevices.playbackStarted(player);if(version===speechVersion)state(wakeEnabled&&$('bargeIn').checked?'正在说给你听，可以插话…':'正在说给你听…','speaking');
   }catch(error){if(version===speechVersion&&error.name!=='AbortError'){conversationDiagnostics.finish(traceId,'error',audio?'playback':'tts');conversationDiagnostics.refresh(traceId);if(audio&&typeof audioDevices!=='undefined')audioDevices.failed('output',error);stopAudio();if(onFailure)onFailure();notice('声音未播放：'+error.message);returnToWake();}}
   finally{conversationDiagnostics.refresh(traceId);if(ttsAbort===controller)ttsAbort=null;}
 }
@@ -214,6 +254,7 @@ function takePhoto(){
 async function send(text,{image=null,source='text',traceId=null}={}){
   text=text.trim();if(!text||busy||!ready||recording||enrolling)return;
   if(typeof sharedVoiceActive==='function'&&sharedVoiceActive()){notice('当前是共同记忆语音模式，请使用麦克风；文字输入不能代替口头确认。');return;}
+  if(typeof companionMemoryActive==='function'&&companionMemoryActive()){if(image||(source!=='text'&&!companionMemoryV2())){notice('当前记忆查询不支持这个输入，请直接输入问题。');return;}return companionMemorySend(text,{source,traceId});}
   traceId=traceId&&conversationDiagnostics.isLive(traceId)?traceId:conversationDiagnostics.start(source);
   if(source==='text'&&typeof speakerDiagnostic==='function')speakerDiagnostic('文字发送',{'说明':'此按钮只发送文字，不采集声音，也不会重新匹配声纹。','声纹开关':$('speakerAuto').checked?'已开启，但本次没有音频':'关闭'});
   if(!image&&isVisualRequest(text)){
@@ -234,9 +275,8 @@ async function send(text,{image=null,source='text',traceId=null}={}){
     // 插话监听与请求并行启动；以前要等麦克风重建完才发问题，白等几百毫秒。
     void monitorInterrupt();
     if(typeof speakerDiagnostic==='function')speakerDiagnostic('问题已提交',{'输入方式':source==='text'?'文字':source==='wake'?'语音唤醒 / 插话':'点击录音','当前档案':activeProfile?'已选择或匹配用户':'访客'});
-    const sharedScope=typeof sharedChatScope==='function'?sharedChatScope():null;
-    const res=await api('/api/chat',{messages:messages.slice(-16),profile_id:activeProfile,turn_id:id,...(sharedScope||{}),...(image?{image}:{})},'application/json',controller.signal,conversationDiagnostics.headers(traceId));const reader=res.body.getReader(),decoder=new TextDecoder();let pending='';
-    function consume(line){if(version!==turnVersion||!line.trim())return;const data=JSON.parse(line);if(data.reply_mode==='rule'&&typeof diagnosticOverview!=='undefined')diagnosticOverview.sourcesLocal(traceId,{profile:null,sources:[],answer_source_ids:[],source_usage:'program_selected'});if(data.error)throw new Error(data.error);if(data.memory_changed&&typeof refreshMemories==='function')refreshMemories();if(data.memory_review&&typeof showMemoryReview==='function')showMemoryReview(data.memory_review);if(data.action)animateAction(data.action);if(data.personal_memory){if(typeof diagnosticOverview!=='undefined')diagnosticOverview.sourcesLocal(traceId,data.personal_memory,data.reply_mode!=='personal_conflict');if(typeof renderPersonalMemoryContext==='function')renderPersonalMemoryContext(row,data.personal_memory);}if(data.shared_memory){const shared=data.shared_memory;notice(shared.count?`本轮带上共同记忆 ${shared.count} 条（空间：${shared.space}${shared.public_only?'；云端模型，仅全体成员可见':''}）。`:`本轮在空间「${shared.space}」里没有找到与问题相关的可见记忆。`);}const piece=data.message?.content||'';if(piece&&!answer&&greeting){answer=greeting.text;markVoiceGreeting(greeting);}answer+=piece;row.bubble.textContent=answer||'…';if(speech)speech.feed(answer);if(data.done)completed=true;scroll();}
+    const res=await api('/api/chat',{messages:messages.slice(-16),profile_id:activeProfile,turn_id:id,...(image?{image}:{})},'application/json',controller.signal,conversationDiagnostics.headers(traceId));const reader=res.body.getReader(),decoder=new TextDecoder();let pending='';
+    function consume(line){if(version!==turnVersion||!line.trim())return;const data=JSON.parse(line);if(data.reply_mode==='rule'&&typeof diagnosticOverview!=='undefined')diagnosticOverview.sourcesLocal(traceId,{profile:null,sources:[],answer_source_ids:[],source_usage:'program_selected'});if(data.error)throw new Error(data.error);if(data.memory_changed&&typeof refreshMemories==='function')refreshMemories();if(data.memory_review&&typeof showMemoryReview==='function')showMemoryReview(data.memory_review);if(data.action)animateAction(data.action);if(data.personal_memory){if(typeof diagnosticOverview!=='undefined')diagnosticOverview.sourcesLocal(traceId,data.personal_memory,data.reply_mode!=='personal_conflict');if(typeof renderPersonalMemoryContext==='function')renderPersonalMemoryContext(row,data.personal_memory);}const piece=data.message?.content||'';if(piece&&!answer&&greeting){if(!data.identity_greeting)answer=greeting.text;markVoiceGreeting(greeting);}answer+=piece;row.bubble.textContent=answer||'…';if(speech)speech.feed(answer);if(data.done)completed=true;scroll();}
     while(true){const{value,done}=await reader.read();if(version!==turnVersion){await reader.cancel();return;}if(done)break;pending+=decoder.decode(value,{stream:true});const lines=pending.split('\n');pending=lines.pop();for(const line of lines)consume(line);}
     pending+=decoder.decode();if(pending.trim())consume(pending);if(!completed||!answer.trim())throw new Error('回答中断了，请再试一次。');
     if(version!==turnVersion)return;activeRow=null;
@@ -283,7 +323,7 @@ class Microphone{
 class WakeListener{
   constructor(mode='wake'){this.mode=mode;this.closed=false;this.queue=[];this.pending=[];this.count=0;this.sequence=0;this.sending=false;this.mic=new Microphone();this.traceId=mode==='command'?conversationDiagnostics.current():null;}
   async start(){
-    const result=await(await api('/api/listen/start',{mode:this.mode,identify_speaker:$('speakerAuto').checked})).json();this.session=result.session;this.keyword=result.keyword||wakePhrase();if(typeof branding!=='undefined')branding.sessionKeyword(this.keyword);
+    const result=await(await api('/api/listen/start',{mode:this.mode,identify_speaker:identifySpeechSpeaker()})).json();this.session=result.session;this.keyword=result.keyword||wakePhrase();if(typeof branding!=='undefined')branding.sessionKeyword(this.keyword);
     if(this.closed){await this.stop();return;}
     await this.mic.start(chunk=>{
       this.pending.push(chunk);this.count+=chunk.length;
@@ -298,7 +338,7 @@ class WakeListener{
         const bytes=pcm16(this.queue.shift()),pcm=btoa(String.fromCharCode(...bytes));
         const result=await(await api('/api/listen/chunk',{session:this.session,sequence:this.sequence++,pcm},'application/json',null,conversationDiagnostics.headers(this.traceId))).json();
         if(this.closed)return;
-        if(result.event==='interrupt'){cancelTurn();this.traceId=conversationDiagnostics.start('interrupt');conversationDiagnostics.stage(this.traceId,'listening');wakePhase='command';state('已打断，我在听…','listening');controls();}
+        if(result.event==='interrupt'){cancelTurn({preserveCompanionTopic:keepMemoryVoiceTopic()});this.traceId=conversationDiagnostics.start('interrupt');conversationDiagnostics.stage(this.traceId,'listening');wakePhase='command';state('已打断，我在听…','listening');controls();}
         else if(result.event==='wake'){this.traceId=conversationDiagnostics.start('wake');conversationDiagnostics.stage(this.traceId,'listening');wakePhase='command';state('我在听，请说你的问题…','listening');$('wakeHint').textContent='说完停顿约一秒，自动发送 · 最长 30 秒';animateAction({action:'nod',label:'听到你啦',target:'screen',duration_ms:800});controls();}
         else if(result.event==='listening'){if(this.mode==='command'&&!this.confirmStarted&&result.speech){this.confirmStarted=true;this.traceId=conversationDiagnostics.start('confirmation');conversationDiagnostics.stage(this.traceId,'listening');}state(result.speech?'我在听，说完会自动发送…':'我在听，请说你的问题…','listening');}
         else if(result.event==='utterance'||result.event==='timeout'){
@@ -309,8 +349,8 @@ class WakeListener{
             await sharedVoiceReceive(result,'wake',traceId);
             return;
           }
-          if(result.speaker&&typeof applySpeaker==='function')applySpeaker(result.speaker);
-          if(speakerRetryNeeded(result,traceId)){
+          if(identifySpeechSpeaker()&&result.speaker&&typeof applySpeaker==='function')applySpeaker(result.speaker);
+          if(identifySpeechSpeaker()&&speakerRetryNeeded(result,traceId)){
             await resumeWake();
             return;
           }
@@ -346,7 +386,7 @@ async function resumeWake(mode='wake'){
 function micError(error){return error.name==='NotAllowedError'?'请在浏览器地址栏允许麦克风权限，也可以先打字体验。':error.message;}
 async function startRecording(){
   if(!speaking&&!busy&&typeof sharedVoiceState!=='undefined'&&sharedVoiceState.pending)conversationDiagnostics.finish(conversationDiagnostics.current());
-  cancelTurn({preserveSharedVoice:!speaking&&!busy});
+  cancelTurn({preserveSharedVoice:!speaking&&!busy,preserveCompanionTopic:keepMemoryVoiceTopic()});
   const version=turnVersion;busy=true;controls();await pauseWake();if(version!==turnVersion)return;
   notice();const mic=new Microphone();manual=mic;frames=[];const traceId=conversationDiagnostics.start('manual');mic.traceId=traceId;conversationDiagnostics.stage(traceId,'capture');
   try{
@@ -365,25 +405,25 @@ async function stopRecording(){
   if(version!==turnVersion)return;
   $('mic').querySelector('span').textContent='点击说话';$('micHint').textContent='点击开始，再次点击结束 · 最长 30 秒';state('正在听懂你说的话…','thinking');
   try{
-    const result=await(await api('/api/transcribe',encodeWav(captured,16000),'audio/wav',null,{'X-Speaker-Recognition':String($('speakerAuto').checked),...conversationDiagnostics.headers(traceId)})).json();
+    const result=await(await api('/api/transcribe',encodeWav(captured,16000),'audio/wav',null,{'X-Speaker-Recognition':String(identifySpeechSpeaker()),...conversationDiagnostics.headers(traceId)})).json();
     if(version!==turnVersion)return;
     conversationDiagnostics.audioResult(traceId,result);conversationDiagnostics.refresh(traceId);
     if(typeof transcriptionDiagnostic==='function')transcriptionDiagnostic(result,'manual');
     if(typeof sharedVoiceActive==='function'&&sharedVoiceActive()){busy=false;controls();await sharedVoiceReceive(result,'manual',traceId);return;}
-    if(result.speaker&&typeof applySpeaker==='function')applySpeaker(result.speaker);
+    if(identifySpeechSpeaker()&&result.speaker&&typeof applySpeaker==='function')applySpeaker(result.speaker);
     busy=false;controls();
-    if(speakerRetryNeeded(result,traceId)){await resumeWake();return;}
+    if(identifySpeechSpeaker()&&speakerRetryNeeded(result,traceId)){await resumeWake();return;}
     if(result.text)send(result.text,{source:'manual',traceId});else{conversationDiagnostics.finish(traceId,'empty','empty');notice('没有听清，请再说一次。');resumeWake();}
   }catch(error){if(version===turnVersion){conversationDiagnostics.finish(traceId,'error','recognition');conversationDiagnostics.refresh(traceId);if(typeof speakerDiagnostic==='function')speakerDiagnostic('录音处理失败',{'原因':error.message});busy=false;controls();notice(error.message);resumeWake();}}
 }
 async function stopInteraction(){
-  cancelTurn();
+  cancelTurn({preserveCompanionTopic:keepMemoryVoiceTopic()});
   if(enrolling&&typeof cancelEnrollment==='function')await cancelEnrollment();
   if(recording){
     recording=false;clearInterval(tick);clearTimeout(timer);const mic=manual;manual=null;frames=[];await mic?.stop();
     $('mic').querySelector('span').textContent='点击说话';$('micHint').textContent='点击开始，再次点击结束 · 最长 30 秒';
   }
-  await returnToWake();controls();
+  await returnToWake();controls();if(typeof companionMemoryActive==='function'&&companionMemoryActive())sharedControls();
 }
 
 function closeCamera(){cameraVersion++;cameraStream?.getTracks().forEach(t=>t.stop());cameraStream=null;$('camera').srcObject=null;$('cameraPreview').hidden=true;$('cameraToggle').textContent='开启摄像头';$('cameraToggle').setAttribute('aria-pressed','false');$('cameraHint').textContent='开启后说「帮我看看这是什么」，或点击拍照。';controls();}
@@ -399,7 +439,7 @@ $('mic').onclick=()=>recording?stopRecording():startRecording();
 $('wake').onclick=async()=>{wakeEnabled=!wakeEnabled;if(wakeEnabled){if(speaking)cancelTurn();stopAudio();await resumeWake();}else{if(wakePhase==='command')conversationDiagnostics.finish(conversationDiagnostics.current(),'cancelled','stopped');await pauseWake();$('wakeHint').textContent='语音唤醒已关闭 · 麦克风已释放';idle();controls();}};
 $('stopAudio').onclick=stopInteraction;
 $('bargeIn').onchange=async()=>{if(busy||speaking){await pauseWake();await monitorInterrupt();}};$('autoplay').onchange=()=>{if(!$('autoplay').checked){if(speaking)conversationDiagnostics.finish(conversationDiagnostics.current(),'cancelled','muted');ttsAbort?.abort();stopAudio();returnToWake();}};
-$('clear').onclick=()=>{if(typeof sharedVoiceActive==='function'&&sharedVoiceActive()){cancelTurn();$('messages').replaceChildren();notice();resumeWake();return;}cancelTurn();if(typeof resetVoiceGreetings==='function')resetVoiceGreetings();messages=[];persist();render();notice();resumeWake();};
+$('clear').onclick=()=>{if(typeof companionMemoryActive==='function'&&companionMemoryActive()){cancelTurn();companionMemoryRender();$('input').value='';notice();sharedControls();return;}if(typeof sharedVoiceActive==='function'&&sharedVoiceActive()){cancelTurn();$('messages').replaceChildren();notice();resumeWake();return;}cancelTurn();if(typeof resetVoiceGreetings==='function')resetVoiceGreetings();messages=[];persist();render();notice();resumeWake();};
 $('cameraToggle').onclick=toggleCamera;$('capture').onclick=()=>{try{send($('input').value.trim()||'请描述这张照片里你看到了什么。',{image:takePhoto()});}catch(error){notice(error.message);}};
  document.querySelectorAll('#suggestions button').forEach(b=>b.onclick=()=>send(b.textContent));
 document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>runAction(b.dataset.action));
@@ -408,7 +448,7 @@ async function status(){
   try{const result=await(await fetch('/api/status')).json();if(typeof branding!=='undefined')branding.fromStatus(result.appearance);ready=result.chat;asrReady=result.asr;wakeReady=result.wake;visionReady=result.vision;
     $('modelPrivacy').textContent=result.remote_model?'远端模型回答 · 对话与相关记忆会发送到模型服务':'本机模型回答 · 按需使用麦克风与摄像头';
     speakerReady=result.capabilities?.speaker===true;
-    ttsReady=result.tts!==false;$('autoplay').disabled=!ttsReady;if(!ttsReady)$('autoplay').checked=false;
+    ttsReady=result.tts!==false;ttsStreaming=result.tts_streaming===true;$('autoplay').disabled=!ttsReady;if(!ttsReady)$('autoplay').checked=false;
     $('connection').textContent=ready?`${result.remote_model?'远端':'本机'}对话已就绪 · ${result.model||''} · ${visionReady?'看图已就绪':'看图未启用或未就绪'}`:'聊天模型未就绪，正在检查连接';idle();controls();if(!ready)setTimeout(status,5000);
   }catch{state('服务未连接，请运行启动脚本');setTimeout(status,5000);}
 }

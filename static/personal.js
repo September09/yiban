@@ -40,6 +40,8 @@ function transcriptionDiagnostic(result,source){
   if(d.code==='low_score')details['建议']='确认本人讲话，并使用登记时的麦克风与距离；先不要降低匹配阈值。';
   speakerDiagnostic('语音处理结果',details);
 }
+let enrollmentStarting=false;
+function enrollmentNotice(text){$('enrollmentStatus').textContent=text;notice(text);}
 let enrollmentMic=null, enrollmentFrames=[], enrollmentSamples=[], enrollmentTimer=null, enrollmentVersion=0, enrollmentSaving=false;
 const enrollmentPrompts=[
   '请读：今天我想和机器人聊聊天，也希望它能慢慢记住我的习惯。',
@@ -58,9 +60,9 @@ function personalControls(){
   $('memorySearch').disabled=!activeProfile||!memoryLoaded;
   $('exportMemories').disabled=!activeProfile||!memoryLoaded||locked||memoryBusy;
   $('memoryText').disabled=!activeProfile||locked||memoryBusy;
-  $('recordVoice').disabled=!speakerReady||enrollmentSaving;
-  $('saveVoice').disabled=enrollmentSaving||!!enrollmentMic;
-  $('voiceConsent').disabled=enrollmentSaving||!!enrollmentMic;
+  $('recordVoice').disabled=!speakerReady||enrollmentSaving||enrollmentStarting;
+  $('saveVoice').disabled=enrollmentSaving||enrollmentStarting||!!enrollmentMic;
+  $('voiceConsent').disabled=enrollmentSaving||enrollmentStarting||!!enrollmentMic;
   $('cancelEnroll').disabled=enrollmentSaving;
   if(typeof personalMemoryControls==='function')personalMemoryControls();
   if(typeof memoryImportControls==='function')memoryImportControls();
@@ -218,7 +220,7 @@ $('memorySearch').oninput=renderMemories;
 $('exportMemories').onclick=exportMemories;
 
 function updateEnrollment(){
-  $('recordVoice').textContent=enrollmentMic?'结束这一段':`录制第 ${Math.min(3,enrollmentSamples.length+1)} 段`;
+  $('recordVoice').textContent=enrollmentStarting?'正在打开麦克风…':enrollmentMic?'结束这一段':`录制第 ${Math.min(3,enrollmentSamples.length+1)} 段`;
   $('enrollPrompt').textContent=enrollmentSamples.length===3?'三段录音已准备好，点击「保存声纹」。':`${enrollmentSamples.length}/3 已录制。${enrollmentPrompts[enrollmentSamples.length]}`;
   personalControls();
 }
@@ -226,22 +228,30 @@ function updateEnrollment(){
 async function cancelEnrollment(){
   if(enrollmentSaving)return;
   enrollmentVersion++;clearTimeout(enrollmentTimer);
-  const mic=enrollmentMic;enrollmentMic=null;enrollmentFrames=[];enrollmentSamples=[];enrolling=false;
+  const mic=enrollmentMic;enrollmentMic=null;enrollmentFrames=[];enrollmentSamples=[];enrolling=false;enrollmentStarting=false;
   if(mic)await mic.stop();$('voiceConsent').checked=false;updateEnrollment();controls();
 }
 
 async function recordEnrollment(){
+  if(enrollmentStarting)return;
   if(enrollmentMic){await finishEnrollment();return;}
-  if(!activeProfile){notice('请先选择用户档案，再录入声纹。');return;}
-  if(!$('voiceConsent').checked){notice('请先勾选「我本人同意在这台电脑保存声纹特征」，再开始录音。');return;}
-  if(enrollmentSamples.length>=3){notice('三段已经录满，点击「保存声纹」即可。');return;}
-  cancelTurn();enrolling=true;controls();await pauseWake();
-  const version=++enrollmentVersion,mic=new Microphone();enrollmentMic=mic;enrollmentFrames=[];let count=0;
+  if(!activeProfile){enrollmentNotice('请先在上方“当前用户”选择本人档案，再录入声纹；访客不能保存声纹。');return;}
+  if(!$('voiceConsent').checked){enrollmentNotice('请先勾选“我本人同意在这台电脑保存声纹特征”，再开始录音。');return;}
+  if(enrollmentSamples.length>=3){enrollmentNotice('三段已经录满，点击“保存声纹”即可。');return;}
+  cancelTurn();enrolling=true;enrollmentStarting=true;
+  const version=++enrollmentVersion;
+  updateEnrollment();controls();enrollmentNotice('正在打开麦克风，请留意浏览器的权限提示；允许后开始朗读。');
   try{
-    await mic.start(chunk=>{if(version!==enrollmentVersion)return;enrollmentFrames.push(chunk);count+=chunk.length;if(count>=160000)finishEnrollment();});
+    await pauseWake();if(version!==enrollmentVersion)return;
+    const mic=new Microphone();enrollmentMic=mic;enrollmentFrames=[];let count=0;
+    await mic.start(chunk=>{if(version!==enrollmentVersion)return;enrollmentFrames.push(chunk);count+=chunk.length;if(count>=160000)finishEnrollment();},
+      async()=>{if(version!==enrollmentVersion)return;await cancelEnrollment();enrollmentNotice('麦克风已断开，本段未保存。请检查设备后重试。');});
     if(version!==enrollmentVersion){await mic.stop();return;}
-    enrollmentTimer=setTimeout(finishEnrollment,12000);updateEnrollment();state('正在录入声纹，请自然说话…','listening');
-  }catch(error){await cancelEnrollment();notice(micError(error));}
+    enrollmentStarting=false;
+    enrollmentTimer=setTimeout(finishEnrollment,12000);updateEnrollment();
+    enrollmentNotice('正在录制，请自然朗读上方句子约6–10秒；再次点击“结束这一段”即可。');
+    state('正在录入声纹，请自然说话…','listening');
+  }catch(error){if(version!==enrollmentVersion)return;await cancelEnrollment();enrollmentNotice('未开始录音：'+micError(error));}
 }
 
 async function finishEnrollment(){
@@ -249,11 +259,11 @@ async function finishEnrollment(){
   enrollmentMic=null;clearTimeout(enrollmentTimer);const chunks=enrollmentFrames;enrollmentFrames=[];
   const version=enrollmentVersion;await mic.stop();if(version!==enrollmentVersion)return;
   enrolling=false;
-  if(chunks.reduce((n,c)=>n+c.length,0)<16000*4){notice('这一段太短，请至少录制 4 秒。');}
+  if(chunks.reduce((n,c)=>n+c.length,0)<16000*4){enrollmentNotice('这一段太短，请至少录制 4 秒。');}
   else{
     const bytes=new Uint8Array(encodeWav(chunks,16000));let binary='';
     for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
-    enrollmentSamples.push(btoa(binary));notice('本段已暂存在内存中，尚未保存声纹。');
+    enrollmentSamples.push(btoa(binary));enrollmentNotice('本段已暂存在内存中，尚未保存声纹。');
   }
   updateEnrollment();controls();idle();
 }
@@ -286,12 +296,12 @@ $('deleteProfile').onclick=async()=>{
   if(!activeProfile||!window.confirm('删除这个用户的全部长期记忆和声纹？'))return;
   try{const identity=activeProfile;await api('/api/profiles/delete',{profile_id:identity});localStorage.removeItem('xiaoban-history-'+identity);switchProfile('');await refreshProfiles();}catch(error){notice(error.message);}
 };
-$('recordVoice').onclick=recordEnrollment;$('cancelEnroll').onclick=()=>cancelEnrollment();$('voiceConsent').onchange=personalControls;
+$('recordVoice').onclick=recordEnrollment;$('cancelEnroll').onclick=async()=>{await cancelEnrollment();enrollmentNotice('已取消录入，未保存的录音已清空。');};$('voiceConsent').onchange=personalControls;
 $('saveVoice').onclick=async()=>{
   if(enrollmentSaving||enrollmentMic)return;
-  if(!activeProfile){notice('请先选择用户档案，再保存声纹。');return;}
-  if(!$('voiceConsent').checked){notice('请先勾选「我本人同意在这台电脑保存声纹特征」，再保存声纹。');return;}
-  if(enrollmentSamples.length!==3){notice(`还需要录制 ${3-enrollmentSamples.length} 段语音，才能保存声纹。`);return;}
+  if(!activeProfile){enrollmentNotice('请先选择用户档案，再保存声纹。');return;}
+  if(!$('voiceConsent').checked){enrollmentNotice('请先勾选「我本人同意在这台电脑保存声纹特征」，再保存声纹。');return;}
+  if(enrollmentSamples.length!==3){enrollmentNotice(`还需要录制 ${3-enrollmentSamples.length} 段语音，才能保存声纹。`);return;}
   const identity=activeProfile,name=profiles.find(p=>p.id===identity)?.name||'当前用户';
   enrollmentSaving=true;enrolling=true;controls();
   try{
@@ -299,9 +309,9 @@ $('saveVoice').onclick=async()=>{
     enrollmentSamples=[];
     $('speakerStatus').textContent=`声纹已保存：${name}。勾选「用声纹自动识别本轮说话的人」后，用麦克风说话即可验证。`;
     await refreshProfiles();
-    notice(`声纹已保存（${name}）：三段录音已合并为特征，原始录音未落盘。勾选「用声纹自动识别」后说一句话验证。`);
+    enrollmentNotice(`声纹已保存（${name}）：三段录音已合并为特征，原始录音未落盘。勾选「用声纹自动识别」后说一句话验证。`);
   }
-  catch(error){notice('声纹未保存：'+error.message);}
+  catch(error){enrollmentNotice('声纹未保存：'+error.message);}
   finally{enrollmentSaving=false;enrolling=false;updateEnrollment();controls();}
 };
 $('deleteVoice').onclick=async()=>{if(!activeProfile||!window.confirm('删除当前用户的声纹特征？'))return;try{await api('/api/speaker/delete',{profile_id:activeProfile});await cancelEnrollment();await refreshProfiles();$('speakerStatus').textContent='声纹已删除。';}catch(error){notice(error.message);}};

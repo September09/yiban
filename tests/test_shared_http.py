@@ -90,3 +90,19 @@ class SharedHTTPTests(unittest.TestCase):
         # 带秒的时钟必须排在资料之后：否则每一轮的前缀都不同，模型无法复用已算好的历史提示
         self.assertLess(system.index('成员可见的公开内容'),system.index('本轮电脑时钟'))
         self.assertLess(len(system),1200,'陪伴对话的资料块要压缩，不能整段塞进提示词')
+
+    def test_legacy_companion_chat_rechecks_shared_permissions_after_generation(self):
+        owner,reader,space,reader_id=self.setup_space('legacy-race')
+        def chat(messages,**kwargs):
+            yield {'message':{'content':'不应送达的旧权限内容'},'done':False}
+            self.app.SHARED.set_member(owner,{'space_id':space,'account_id':reader_id},True)
+            yield {'message':{'content':'结束'},'done':True}
+        request=urllib.request.Request(f'http://127.0.0.1:{self.http.server_port}/api/chat',
+            data=json.dumps({'messages':[{'role':'user','content':'成员可见的内容是什么'}],
+                             'shared_token':reader,'shared_space_id':space}).encode(),
+            headers={'Content-Type':'application/json'})
+        with patch.object(self.app.SERVICES.models,'chat',side_effect=chat):
+            with self.assertRaises(urllib.error.HTTPError) as caught:
+                urllib.request.urlopen(request,timeout=5)
+        self.assertEqual(caught.exception.code,403)
+        self.assertNotIn('不应送达',caught.exception.read().decode())

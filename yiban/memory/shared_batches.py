@@ -155,8 +155,8 @@ class SharedBatches:
                 action['metadata'].update(batch_id=batch['id'], batch_name=batch['name'])
                 actions.append(action)
         used = db.execute('SELECT COUNT(*),COALESCE(SUM(length(CAST(snapshot AS BLOB))),0) FROM shared_trash WHERE space=?', (space['id'],)).fetchone()
-        if used[0]+len(actions)>100 or used[1]+sum(len(s.recovery.encode(a['snapshot']).encode()) for a in actions)>24_000_000:
-            raise SharedError('整批撤销会超过回收站100条或24 MB上限，未移除任何记忆。')
+        if used[0]+len(actions)>s.recovery.MAX_TRASH_ITEMS or used[1]+sum(len(s.recovery.encode(a['snapshot']).encode()) for a in actions)>24_000_000:
+            raise SharedError('整批撤销会超过回收站200条或24 MB上限，未移除任何记忆。')
         signature = hashlib.sha256(self.encode({'entries':entries, 'snapshots':[a['snapshot'] for a in actions]}).encode()).hexdigest()
         return batch, entries, actions, signature, reason
 

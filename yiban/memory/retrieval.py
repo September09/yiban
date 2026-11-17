@@ -72,6 +72,23 @@ def lexical_score(query, content):
     return overlap/max(len(terms),1),overlap
 
 
+def event_selectors(value):
+    numerals={word:str(index) for index,word in enumerate('零一二三四五六七八九十')}
+    terms={numerals.get(word,word.lstrip('0') or '0') for word in re.findall(r'第([一二三四五六七八九十\d]+)届',value)}
+    opponents={m.upper() for m in re.findall(r'(?:对阵|对战|对|vs)\s*(\d{2}[A-Za-z])',value,re.I)}
+    dates={f'{int(y):04d}-{int(m):02d}-{int(d):02d}' for y,m,d in re.findall(r'(\d{4})(?:年|-)(\d{1,2})(?:月|-)(\d{1,2})(?:日|号)?',value)}
+    roles=set(re.findall(r'学习委员|生活委员|文艺委员|宣传委员|体育委员|秘书长|班长',value.replace('执行班长','')))
+    if '执行班长' in value:roles.add('执行班长')
+    return {'term':terms,'opponent':opponents,'date':dates,'role':roles}
+
+
+def explicit_match_bonus(query,item):
+    """Promote matches already above the relevance threshold; never admit a new hit."""
+    requested,recorded=event_selectors(query),event_selectors(item['content'])
+    if not recorded['date'] and item.get('event_date'):recorded['date']=event_selectors(item['event_date'])['date']
+    return .15*sum(bool(values & recorded[key]) for key,values in requested.items())
+
+
 def facet_supported(query, item):
     """Conservative checks for explicit missing attributes; not general answer entailment."""
     content=item['content']
@@ -79,6 +96,14 @@ def facet_supported(query, item):
         if not re.search(r'预算|经费|费用|收费|价钱|价格|免费|\d+(?:\.\d+)?\s*元',content):return False
     if re.search(r'电话|手机号码|联系方式',query):
         if not re.search(r'电话|手机|联系方式|\b1[3-9]\d{9}\b|\d{3,4}-\d{7,8}',content):return False
+    # Explicit event/term selectors must survive semantic similarity. Only
+    # reject a record with a different explicit value; absent values stay unknown.
+    requested,recorded=event_selectors(query),event_selectors(content)
+    if not recorded['date'] and item.get('event_date'):recorded['date']=event_selectors(item['event_date'])['date']
+    for key,values in requested.items():
+        other=recorded[key]
+        if key=='date' and (len(values)!=1 or len(other)!=1):continue
+        if values and other and values.isdisjoint(other):return False
     return True
 
 
@@ -210,6 +235,17 @@ class MemoryRetriever:
         items=[dict(x) for x in candidates]
         if len({x['id'] for x in items})!=len(items):raise ValueError('重复的候选编号。')
         eligible=[x for x in items if facet_supported(query,x)]
+        requested=event_selectors(query)
+        latest_term=None
+        if requested['role'] and not requested['term'] and re.search(r'现在|目前|当前|现任|最新',query):
+            numbered=[int(t) for x in eligible if event_selectors(x['content'])['role']==requested['role']
+                      for t in event_selectors(x['content'])['term'] if t.isdigit()]
+            if numbered:latest_term=max(numbered)
+        # An exact requested role in the latest explicit term is a lexical anchor
+        # even when a short Chinese role contributes only one overlapping bigram.
+        current_role_ids={x['id'] for x in eligible if latest_term is not None
+                          and event_selectors(x['content'])['role']==requested['role']
+                          and str(latest_term) in event_selectors(x['content'])['term']}
         lexical={x['id']:lexical_score(query,x['content']) for x in eligible}
         strategy=self.config['strategy'];fallback=False;reason='relevant_candidates';cache_hits=0;scores={}
         if eligible and strategy=='hybrid':
@@ -235,7 +271,7 @@ class MemoryRetriever:
                     v=vectors[item['id']]
                     if len(v)!=len(qv):raise RetrievalUnavailable('embedding_shape')
                     sim=sum(a*b for a,b in zip(v,qv));lex,overlap=lexical[item['id']]
-                    if sim>=self.config['min_similarity'] or (lex>=self.config['min_lexical'] and overlap>=2):
+                    if sim>=self.config['min_similarity'] or (lex>=self.config['min_lexical'] and overlap>=2) or (item['id'] in current_role_ids and overlap>=1):
                         scores[item['id']]=(.85*sim+.15*lex,sim)
             except Cancelled:raise
             except (RetrievalUnavailable,sqlite3.Error,OSError,ValueError):
@@ -245,9 +281,17 @@ class MemoryRetriever:
         if strategy=='lexical':
             for item in eligible:
                 lex,overlap=lexical[item['id']]
-                if lex>=self.config['min_lexical'] and overlap>=2:scores[item['id']]=(lex,None)
+                if (lex>=self.config['min_lexical'] and overlap>=2) or (item['id'] in current_role_ids and overlap>=1):scores[item['id']]=(lex,None)
         cancel.check()
         priority={'valid':0,'pending':1,'outdated':2}
+        for item in eligible:
+            if item['id'] in scores:
+                score,similarity=scores[item['id']]
+                bonus=explicit_match_bonus(query,item)
+                if latest_term is not None:
+                    facets=event_selectors(item['content'])
+                    if facets['role']==requested['role'] and str(latest_term) in facets['term']:bonus+=.45
+                scores[item['id']]=(score+bonus,similarity)
         ranked=sorted((x for x in eligible if x['id'] in scores),key=lambda x:(-scores[x['id']][0],priority.get(x.get('status'),1),x['id']))
         ranked=focused_results(query,ranked,scores,self.config['relative_score_floor'])[:top_k]
         hits=[{'id':x['id'],'version':x['version'],'score':round(scores[x['id']][0],6)} for x in ranked]

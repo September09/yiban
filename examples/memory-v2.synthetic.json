@@ -1,0 +1,458 @@
+{
+  "schema": "yiban.memory-candidates.v2",
+  "batch_name": "虚构结构化验收",
+  "sources": [
+    {
+      "key": "source-one",
+      "name": "虚构原文.txt",
+      "kind": "original",
+      "text": "虚构资料：第一届角色甲任班长，第二届角色乙任班长。公益活动征集500本，最终送达460本。对阵乙队38比49失利，对阵丙队未记比分。聚餐举办两场。",
+      "sha256": "cae6240be131907d413ac647c053d04eda53d4576346ce480aad2aff7865d6dd",
+      "published_at": "",
+      "url": ""
+    }
+  ],
+  "entities": [
+    {
+      "key": "a",
+      "kind": "person",
+      "name": "角色甲",
+      "aliases": []
+    },
+    {
+      "key": "b",
+      "kind": "person",
+      "name": "角色乙",
+      "aliases": []
+    },
+    {
+      "key": "class",
+      "kind": "organization",
+      "name": "甲班",
+      "aliases": []
+    },
+    {
+      "key": "other",
+      "kind": "organization",
+      "name": "乙队",
+      "aliases": []
+    },
+    {
+      "key": "third",
+      "kind": "organization",
+      "name": "丙队",
+      "aliases": []
+    }
+  ],
+  "events": [
+    {
+      "key": "meal-one",
+      "kind": "meal",
+      "title": "午餐",
+      "time": {
+        "raw": "",
+        "start": "2026-01-01",
+        "end": null,
+        "precision": "day",
+        "basis": "explicit"
+      },
+      "state": "held",
+      "location": "",
+      "parent_key": null
+    },
+    {
+      "key": "meal-two",
+      "kind": "meal",
+      "title": "晚餐",
+      "time": {
+        "raw": "",
+        "start": "2026-01-01",
+        "end": null,
+        "precision": "day",
+        "basis": "explicit"
+      },
+      "state": "held",
+      "location": "",
+      "parent_key": null
+    },
+    {
+      "key": "game-one",
+      "kind": "basketball",
+      "title": "对阵乙队",
+      "time": {
+        "raw": "",
+        "start": "2026-01-01",
+        "end": null,
+        "precision": "day",
+        "basis": "explicit"
+      },
+      "state": "held",
+      "location": "",
+      "parent_key": null
+    },
+    {
+      "key": "game-two",
+      "kind": "basketball",
+      "title": "对阵丙队",
+      "time": {
+        "raw": "",
+        "start": "2026-01-01",
+        "end": null,
+        "precision": "day",
+        "basis": "explicit"
+      },
+      "state": "held",
+      "location": "",
+      "parent_key": null
+    },
+    {
+      "key": "donation",
+      "kind": "charity",
+      "title": "捐书",
+      "time": {
+        "raw": "",
+        "start": "2026-01-01",
+        "end": null,
+        "precision": "day",
+        "basis": "explicit"
+      },
+      "state": "held",
+      "location": "",
+      "parent_key": null
+    }
+  ],
+  "records": [
+    {
+      "key": "meal-report-one",
+      "type": "event",
+      "title": "第一次聚餐",
+      "summary": "第一次聚餐",
+      "detail": "",
+      "participants": [
+        "a"
+      ],
+      "event_key": "meal-one",
+      "fact": null,
+      "emotions": [],
+      "tags": [],
+      "verification": "pending",
+      "verification_reason": "",
+      "sensitivity": "normal",
+      "confidence": null,
+      "evidence": [
+        {
+          "source_key": "source-one",
+          "start": 0,
+          "end": 73,
+          "text": "虚构资料：第一届角色甲任班长，第二届角色乙任班长。公益活动征集500本，最终送达460本。对阵乙队38比49失利，对阵丙队未记比分。聚餐举办两场。"
+        }
+      ]
+    },
+    {
+      "key": "meal-report-copy",
+      "type": "event",
+      "title": "第一次聚餐的回顾",
+      "summary": "第一次聚餐的回顾",
+      "detail": "",
+      "participants": [
+        "a"
+      ],
+      "event_key": "meal-one",
+      "fact": null,
+      "emotions": [],
+      "tags": [],
+      "verification": "pending",
+      "verification_reason": "",
+      "sensitivity": "normal",
+      "confidence": null,
+      "evidence": [
+        {
+          "source_key": "source-one",
+          "start": 0,
+          "end": 73,
+          "text": "虚构资料：第一届角色甲任班长，第二届角色乙任班长。公益活动征集500本，最终送达460本。对阵乙队38比49失利，对阵丙队未记比分。聚餐举办两场。"
+        }
+      ]
+    },
+    {
+      "key": "meal-report-two",
+      "type": "event",
+      "title": "同日第二次聚餐",
+      "summary": "同日第二次聚餐",
+      "detail": "",
+      "participants": [
+        "a"
+      ],
+      "event_key": "meal-two",
+      "fact": null,
+      "emotions": [],
+      "tags": [],
+      "verification": "pending",
+      "verification_reason": "",
+      "sensitivity": "normal",
+      "confidence": null,
+      "evidence": [
+        {
+          "source_key": "source-one",
+          "start": 0,
+          "end": 73,
+          "text": "虚构资料：第一届角色甲任班长，第二届角色乙任班长。公益活动征集500本，最终送达460本。对阵乙队38比49失利，对阵丙队未记比分。聚餐举办两场。"
+        }
+      ]
+    },
+    {
+      "key": "role-a",
+      "type": "fact",
+      "title": "第一届班长任职",
+      "summary": "第一届班长任职",
+      "detail": "",
+      "participants": [
+        "a"
+      ],
+      "event_key": null,
+      "fact": {
+        "subject_key": "a",
+        "object_key": null,
+        "predicate": "holds_role",
+        "unit": "",
+        "metric": "",
+        "term": "第一届",
+        "effective": {
+          "raw": "",
+          "start": "2025-01-01",
+          "end": "2025-12-31",
+          "precision": "range",
+          "basis": "explicit"
+        },
+        "value": "班长"
+      },
+      "emotions": [],
+      "tags": [],
+      "verification": "pending",
+      "verification_reason": "",
+      "sensitivity": "normal",
+      "confidence": null,
+      "evidence": [
+        {
+          "source_key": "source-one",
+          "start": 0,
+          "end": 73,
+          "text": "虚构资料：第一届角色甲任班长，第二届角色乙任班长。公益活动征集500本，最终送达460本。对阵乙队38比49失利，对阵丙队未记比分。聚餐举办两场。"
+        }
+      ]
+    },
+    {
+      "key": "role-b",
+      "type": "fact",
+      "title": "第二届班长任职",
+      "summary": "第二届班长任职",
+      "detail": "",
+      "participants": [
+        "a"
+      ],
+      "event_key": null,
+      "fact": {
+        "subject_key": "b",
+        "object_key": null,
+        "predicate": "holds_role",
+        "unit": "",
+        "metric": "",
+        "term": "第二届",
+        "effective": {
+          "raw": "",
+          "start": "2026-01-01",
+          "end": null,
+          "precision": "range",
+          "basis": "explicit"
+        },
+        "value": "班长"
+      },
+      "emotions": [],
+      "tags": [],
+      "verification": "pending",
+      "verification_reason": "",
+      "sensitivity": "normal",
+      "confidence": null,
+      "evidence": [
+        {
+          "source_key": "source-one",
+          "start": 0,
+          "end": 73,
+          "text": "虚构资料：第一届角色甲任班长，第二届角色乙任班长。公益活动征集500本，最终送达460本。对阵乙队38比49失利，对阵丙队未记比分。聚餐举办两场。"
+        }
+      ]
+    },
+    {
+      "key": "collected",
+      "type": "fact",
+      "title": "捐书征集数量",
+      "summary": "捐书征集数量",
+      "detail": "",
+      "participants": [
+        "a"
+      ],
+      "event_key": "donation",
+      "fact": {
+        "subject_key": "class",
+        "object_key": null,
+        "predicate": "quantity",
+        "unit": "本",
+        "metric": "征集数量",
+        "term": "",
+        "effective": {
+          "raw": "",
+          "start": null,
+          "end": null,
+          "precision": "unknown",
+          "basis": "unknown"
+        },
+        "value": 500
+      },
+      "emotions": [],
+      "tags": [],
+      "verification": "pending",
+      "verification_reason": "",
+      "sensitivity": "normal",
+      "confidence": null,
+      "evidence": [
+        {
+          "source_key": "source-one",
+          "start": 0,
+          "end": 73,
+          "text": "虚构资料：第一届角色甲任班长，第二届角色乙任班长。公益活动征集500本，最终送达460本。对阵乙队38比49失利，对阵丙队未记比分。聚餐举办两场。"
+        }
+      ]
+    },
+    {
+      "key": "delivered",
+      "type": "fact",
+      "title": "捐书实际送达数量",
+      "summary": "捐书实际送达数量",
+      "detail": "",
+      "participants": [
+        "a"
+      ],
+      "event_key": "donation",
+      "fact": {
+        "subject_key": "class",
+        "object_key": null,
+        "predicate": "quantity",
+        "unit": "本",
+        "metric": "实际送达数量",
+        "term": "",
+        "effective": {
+          "raw": "",
+          "start": null,
+          "end": null,
+          "precision": "unknown",
+          "basis": "unknown"
+        },
+        "value": 460
+      },
+      "emotions": [],
+      "tags": [],
+      "verification": "pending",
+      "verification_reason": "",
+      "sensitivity": "normal",
+      "confidence": null,
+      "evidence": [
+        {
+          "source_key": "source-one",
+          "start": 0,
+          "end": 73,
+          "text": "虚构资料：第一届角色甲任班长，第二届角色乙任班长。公益活动征集500本，最终送达460本。对阵乙队38比49失利，对阵丙队未记比分。聚餐举办两场。"
+        }
+      ]
+    },
+    {
+      "key": "game-one-fact",
+      "type": "fact",
+      "title": "game-one篮球比分",
+      "summary": "game-one篮球比分",
+      "detail": "",
+      "participants": [
+        "a"
+      ],
+      "event_key": "game-one",
+      "fact": {
+        "subject_key": "class",
+        "object_key": "other",
+        "predicate": "score",
+        "unit": "",
+        "metric": "",
+        "term": "",
+        "effective": {
+          "raw": "",
+          "start": null,
+          "end": null,
+          "precision": "unknown",
+          "basis": "unknown"
+        },
+        "value": {
+          "own": 38,
+          "opponent": 49,
+          "result": "loss"
+        }
+      },
+      "emotions": [],
+      "tags": [],
+      "verification": "pending",
+      "verification_reason": "",
+      "sensitivity": "normal",
+      "confidence": null,
+      "evidence": [
+        {
+          "source_key": "source-one",
+          "start": 0,
+          "end": 73,
+          "text": "虚构资料：第一届角色甲任班长，第二届角色乙任班长。公益活动征集500本，最终送达460本。对阵乙队38比49失利，对阵丙队未记比分。聚餐举办两场。"
+        }
+      ]
+    },
+    {
+      "key": "game-two-fact",
+      "type": "fact",
+      "title": "game-two篮球比分",
+      "summary": "game-two篮球比分",
+      "detail": "",
+      "participants": [
+        "a"
+      ],
+      "event_key": "game-two",
+      "fact": {
+        "subject_key": "class",
+        "object_key": "third",
+        "predicate": "score",
+        "unit": "",
+        "metric": "",
+        "term": "",
+        "effective": {
+          "raw": "",
+          "start": null,
+          "end": null,
+          "precision": "unknown",
+          "basis": "unknown"
+        },
+        "value": {
+          "own": null,
+          "opponent": null,
+          "result": "unknown"
+        }
+      },
+      "emotions": [],
+      "tags": [],
+      "verification": "pending",
+      "verification_reason": "",
+      "sensitivity": "normal",
+      "confidence": null,
+      "evidence": [
+        {
+          "source_key": "source-one",
+          "start": 0,
+          "end": 73,
+          "text": "虚构资料：第一届角色甲任班长，第二届角色乙任班长。公益活动征集500本，最终送达460本。对阵乙队38比49失利，对阵丙队未记比分。聚餐举办两场。"
+        }
+      ]
+    }
+  ]
+}

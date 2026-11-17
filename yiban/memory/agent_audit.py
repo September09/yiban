@@ -135,7 +135,7 @@ class AgentAudit:
         checked=not error and usage in {'model_reported','linked_record','program_selected','not_needed'} and isinstance(citations,list) and all(isinstance(x,str) and x in known for x in citations) and len(set(citations))==len(citations)
         detail['cited_refs']=[{'id':x,'version':known[x]['version']} for x in citations] if checked else []
         detail['citation_checked']=checked
-        if usage=='linked_record':detail['citation_status']='linked_record'
+        if usage in {'linked_record','program_selected'}:detail['citation_status']=usage
         preview=result.get('memory_preview') or result.get('memory_selection') or {}
         with self.connect() as db:
             changed=db.execute('UPDATE events SET status=?,reason=?,elapsed_ms=?,details=? WHERE id=?',(status,reason,bounded(elapsed),json.dumps(detail),event['id'])).rowcount

@@ -1,4 +1,12 @@
 /* Task-oriented pages; existing controls and forms keep their behavior. */
+.chat-memory-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 0;font-size:12px}
+.chat-memory-toolbar select{max-width:100%;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:white;color:var(--ink);font:inherit}
+#chatMemorySpace{flex:1;max-width:300px}.chat-memory-hint{margin:6px 0;line-height:1.6}
+.chat-memory-sources{width:100%;margin-top:10px;font-size:12px}.chat-memory-sources summary{cursor:pointer}
+.chat-memory-sources ul{list-style:none;padding:0}.chat-memory-sources li{padding:10px 0;border-bottom:1px solid var(--line);white-space:pre-wrap;overflow-wrap:anywhere}
+.chat-memory-sources p{margin:6px 0;white-space:pre-wrap}.chat-memory-choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+@media(max-width:600px){#chatMemorySpace{max-width:none;flex-basis:65%}.chat-memory-toolbar label{font-size:11px}}
+
 .workspace-shell{max-width:1160px;margin:0 auto;padding:0 24px}
 .workspace-tabs{display:flex;gap:6px;border-bottom:1px solid var(--ip-tone-dce3d6,#dce3d6);padding:0 0 12px;margin:4px 0 28px;overflow-x:auto;scrollbar-width:thin}
 .workspace-tabs [role=tab]{white-space:nowrap;border:0;border-radius:10px;background:transparent;padding:12px 20px;color:var(--ip-tone-667660,#667660);font:inherit;font-size:14px;cursor:pointer}
@@ -42,3 +50,21 @@
 @media(max-width:760px){.overview-layout{grid-template-columns:1fr}#overviewList{max-height:220px}.overview-summary{grid-template-columns:1fr}}
 
 #audioDevicesPanel .personal-row>div{flex:1;min-width:220px}#audioDevicesPanel select{width:100%}.audio-checks{margin:16px 0;padding:12px 16px;border:1px solid var(--ip-tone-dce3d6,#dce3d6);border-radius:12px;background:var(--ip-tone-f8faf5,#f8faf5)}.audio-checks p,#audioInventory p{line-height:1.8;overflow-wrap:anywhere}#audioInventory h4{margin-bottom:8px}
+
+/* Structured memory review and evidence use existing theme variables. */
+#v2Controls{border:0;padding:0;min-width:0} .v2-memory-card{border:1px solid var(--border,#ddd);border-radius:14px;padding:16px;margin:14px 0;overflow-wrap:anywhere} #viewMemoryV2 pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.85em} #viewMemoryV2 textarea{width:100%;box-sizing:border-box} #viewMemoryV2 blockquote{margin:12px 0;padding-left:14px;border-left:3px solid var(--border,#ddd)} #v2Review{padding:18px;border:2px solid var(--border,#ddd);border-radius:14px} #v2Candidates input[type=checkbox]{margin-right:8px}
+
+/* Focus review uses the existing authenticated scope and versioned save workflow. */
+.v2-focus-toolbar{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.v2-focus-toolbar label{flex:1 1 180px;min-width:0}.v2-focus-toolbar input,.v2-focus-toolbar select{width:100%;box-sizing:border-box}.v2-focus-layout{display:grid;grid-template-columns:minmax(220px,280px) minmax(0,1fr);gap:20px;margin:18px 0}.v2-focus-layout>nav{max-height:76vh;overflow:auto;position:sticky;top:12px;align-self:start}.v2-focus-item{display:block;width:100%;padding:14px;text-align:left;border:1px solid var(--border);border-radius:10px;background:var(--surface,#fff);color:inherit;margin-bottom:10px;white-space:normal}.v2-focus-item strong,.v2-focus-item small{display:block;line-height:1.6}.v2-focus-item small{font-weight:normal;opacity:.8;margin-top:6px}.v2-focus-item[aria-pressed=true]{border-color:var(--accent,#79559b);box-shadow:inset 3px 0 var(--accent,#79559b)}.v2-review-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}.v2-review-columns>*{min-width:0}.v2-focus-evidence{background:var(--surface,#fff);border:1px solid var(--border);border-radius:12px;padding:16px;position:sticky;top:12px;max-height:80vh;overflow:auto;overflow-wrap:anywhere}.v2-focus-evidence small{display:block}.v2-focus-evidence blockquote{white-space:pre-wrap}.v2-focus-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}#v2FocusPanel{margin:22px 0}#v2AllRecords,#v2ImportDisclosure{margin-top:24px;padding:16px 0;border-top:1px solid var(--border)}#v2FocusList p{padding:12px}#v2FocusDetail input:not([type=checkbox]),#v2FocusDetail select{width:100%;box-sizing:border-box}#v2FocusDetail label{display:block;margin-top:10px}#v2FocusCount{font-weight:600}#v2Review pre{max-height:300px;overflow:auto}#v2FocusDetail #v2Review{margin:18px 0}
+@media(max-width:1000px){.v2-focus-layout{grid-template-columns:210px minmax(0,1fr)}.v2-review-columns{grid-template-columns:minmax(0,1fr)}.v2-focus-evidence{position:static;max-height:50vh}}
+@media(max-width:650px){.v2-focus-layout{display:block}.v2-focus-layout>nav{position:static;max-height:260px;margin-bottom:18px}.v2-focus-toolbar{display:block}.v2-focus-toolbar>*{display:block;margin:10px 0}.v2-focus-actions button{width:100%}}
+
+.v2-revision-summary{padding:14px;margin:8px 0 18px;background:var(--surface,#fff);border:1px solid var(--border);border-radius:10px;overflow-wrap:anywhere}
+
+.v2-quick-answer{white-space:pre-wrap;font-size:1.1em;line-height:1.9;background:var(--surface,#fff);border:1px solid var(--border);border-radius:12px;padding:18px}#v2FocusReason{font-size:.88em;line-height:1.6;opacity:.85}#v2FocusConfirm{background:var(--accent,#79559b);color:#fff}
+
+
+/* Entry guidance reuses existing page spacing, buttons and IP theme. */
+.memory-start-guide{padding:18px 20px;margin:0 0 20px;border:1px solid var(--border,#ddd);border-radius:14px;background:var(--surface,#fff)}
+.memory-start-guide h2{font-size:1.1em;margin:0 0 10px}.memory-start-guide p{line-height:1.8;margin:0 0 12px}
+.memory-start-guide .personal-row{flex-wrap:wrap}#v2DraftTitle{width:100%;box-sizing:border-box}#v2FileImport{margin:18px 0}

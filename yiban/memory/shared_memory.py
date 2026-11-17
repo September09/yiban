@@ -54,6 +54,9 @@ class SharedMemory:
                     edit_policy TEXT NOT NULL CHECK(edit_policy IN ('author','editors')),
                     event_date TEXT NOT NULL DEFAULT '', source_note TEXT NOT NULL DEFAULT '', version INTEGER NOT NULL DEFAULT 1,
                     created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+                CREATE TABLE IF NOT EXISTS shared_query_exclusions(
+                    memory TEXT PRIMARY KEY REFERENCES shared_memories(id) ON DELETE CASCADE,
+                    reason TEXT NOT NULL, created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
                 CREATE TABLE IF NOT EXISTS shared_audience(
                     memory TEXT NOT NULL REFERENCES shared_memories(id) ON DELETE CASCADE,
                     account TEXT NOT NULL REFERENCES shared_accounts(id), PRIMARY KEY(memory,account));
@@ -459,6 +462,7 @@ class SharedMemory:
         with self.store.connect() as db:
             db.execute('BEGIN');actor=self._actor(db,token);space=self._member(db,actor['id'],guard['space'])
             item=self._record(db,source['id'])
+            if not self.query_items(db,[item]):raise SharedError('该资料已退出查询，请使用当前记忆库。',409)
             if item['space']!=space['id'] or not self._visible(actor,space,item):raise SharedError('没有查看资料的权限。',403)
             if item['version']!=source['version'] or space['version']!=guard['version']:raise SharedError('资料已变化，请重新查询。',409)
             result={key:item[key] for key in ('content','status','status_reason','event_date','source_note')}
@@ -469,13 +473,18 @@ class SharedMemory:
         TRACES.materials(CURRENT.get(),[source],'read')
         return result
 
+    @staticmethod
+    def query_items(db, items):
+        excluded={r[0] for r in db.execute('SELECT memory FROM shared_query_exclusions')}
+        return [item for item in items if item['id'] not in excluded]
+
     def question_context(self, token, space_id, query, public_only=False, include_outdated=False, cancel=None, conversation=False, conversation_id=None, choice_id=None, search_query=None):
         from yiban.backends.model_settings import REMOTE_REQUEST
         public_only = public_only or REMOTE_REQUEST.get()
         query=self._text(query,'问题',2000)
         with self.store.connect() as db:
             db.execute('BEGIN');actor=self._actor(db,token);space=self._member(db,actor['id'],space_id)
-            items=self._items(db,actor,space)
+            items=self.query_items(db,self._items(db,actor,space))
             if public_only:
                 items=[item for item in items if item['visibility']=='all']
         include_outdated=include_outdated is True or bool(re.search(r'过时|已失效|旧版记忆',query))

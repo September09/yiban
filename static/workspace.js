@@ -1,7 +1,7 @@
 // Display-only navigation. Switching pages never submits, confirms or resets a draft.
-const workspacePages={chat:['navChat','viewChat'],personal:['navPersonal','viewPersonal'],shared:['navShared','viewShared'],speech:['navSpeech','viewSpeech'],models:['navModels','viewModels'],diagnostics:['navDiagnostics','viewDiagnostics']};
+const workspacePages={chat:['navChat','viewChat'],personal:['navPersonal','viewPersonal'],shared:['navShared','viewShared'],memoryV2:['navMemoryV2','viewMemoryV2'],speech:['navSpeech','viewSpeech'],models:['navModels','viewModels'],diagnostics:['navDiagnostics','viewDiagnostics']};
 const sharedPages={question:['navSharedQuestion','sharedPageQuestion'],library:['navSharedLibrary','sharedPageLibrary'],import:['navSharedImport','sharedPageImport'],backup:['navSharedBackup','sharedPageBackup'],members:['navSharedMembers','sharedPageMembers']};
-let workspacePage='chat',sharedPage='question',workspaceReturn='chat';
+let workspacePage='chat',sharedPage='question',workspaceReturn='chat',workspaceLoginTarget=null;
 function setWorkspaceTabs(pages,selected){
   for(const [key,[button,panel]] of Object.entries(pages)){$(button).setAttribute('aria-selected',String(key===selected));$(button).tabIndex=key===selected?0:-1;$(panel).hidden=key!==selected;}
 }
@@ -14,6 +14,7 @@ function showWorkspacePage(key){
   if(key==='models'&&typeof modelSettingsUI!=='undefined')modelSettingsUI.load();
   // 回到对话页时重新核对登录/空间状态：令牌过期或空间被移除后，开关要立刻变灰并说明原因。
   if(key==='chat'&&typeof sharedChatMemorySync==='function')sharedChatMemorySync();
+  if(key==='memoryV2'&&typeof structuredMemory!=='undefined'){structuredMemory.sync();}
   workspaceActivity();
 }
 function showSharedPage(key){
@@ -26,7 +27,7 @@ function showSharedEditor(){showWorkspacePage('shared');showSharedPage('library'
 function workspaceActivity(){
   const active=[];
   const profile=typeof profiles!=='undefined'&&typeof activeProfile!=='undefined'?profiles.find(p=>p.id===activeProfile):null;
-  $('workspaceProfile').textContent='当前身份：'+(profile?.name||'访客')+' · 管理档案';
+  $('workspaceProfile').textContent='称呼档案：'+(profile?.name||'访客')+' · 档案与声纹';
   const preview=typeof speechPreviewActive==='function'&&speechPreviewActive();
   workspaceReturn=typeof enrolling!=='undefined'&&enrolling?'personal':preview?'speech':typeof sharedState!=='undefined'&&sharedState.asking?'shared':'chat';
   if(preview)active.push('正在试听声音');
@@ -67,3 +68,22 @@ $('workspaceSharedVoice').onclick=()=>{
 };
 $('workspaceReviewDraft').onclick=()=>{showWorkspacePage('shared');showSharedPage('question');$('sharedAgentReview').scrollIntoView?.({block:'nearest'});};
 showWorkspacePage('chat');showSharedPage('question');
+
+// Navigation is explicit; none of these actions creates a space or saves data.
+function workspaceOpenMemory(){
+  if(!sharedState.token){workspaceLoginTarget='memoryV2';showWorkspacePage('shared');$('sharedAccountName').focus();return;}
+  showWorkspacePage('memoryV2');
+}
+function workspaceOpenAccount(target='chat'){
+  workspaceLoginTarget=sharedState.token?null:target;
+  showWorkspacePage('shared');showSharedPage('members');
+  if(!sharedState.token)$('sharedAccountName').focus();
+}
+async function workspaceAfterLogin(){
+  const target=workspaceLoginTarget;workspaceLoginTarget=null;
+  if(target==='memoryV2'){showWorkspacePage('memoryV2');await structuredMemory.refresh();}
+  else if(target==='chat')showWorkspacePage('chat');
+}
+$('chatOpenMemory').onclick=workspaceOpenMemory;
+$('sharedOpenMemory').onclick=workspaceOpenMemory;
+$('personalOpenMemory').onclick=workspaceOpenMemory;

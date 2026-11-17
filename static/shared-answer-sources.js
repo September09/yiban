@@ -25,12 +25,12 @@ function sharedRenderAnswerSources(result){
   sharedClearSourceCards();const sources=Array.isArray(result.sources)?result.sources:[];
   if(!sources.length)return;
   const ids=result.answer_source_ids,known=new Set(sources.map(item=>item.id));
-  const confirmed=['model_reported','linked_record'].includes(result.source_usage)&&Array.isArray(ids)&&new Set(ids).size===ids.length&&ids.every(id=>typeof id==='string'&&known.has(id));
+  const confirmed=['model_reported','linked_record','program_selected'].includes(result.source_usage)&&Array.isArray(ids)&&new Set(ids).size===ids.length&&ids.every(id=>typeof id==='string'&&known.has(id));
   const cited=new Set(confirmed?ids:[]);
   const used=sources.filter(item=>cited.has(item.id)),candidates=sources.filter(item=>!cited.has(item.id));
   $('sharedAnswerSources').hidden=false;
   $('sharedCitationStatus').textContent=confirmed
-    ?(used.length?(result.source_usage==='linked_record'?'实际引用由程序按替代关联定位，并直接展示已读取的旧记录；过时内容仅供回顾。':'实际引用依据模型返回的编号区分，已核对编号范围；仍请结合原文核实回答。'):'本轮没有实际引用；下方候选资料不能作为这个回答的事实依据。')
+    ?(used.length?(result.source_usage==='program_selected'?'程序直接展示了已读取且明确说明缺失字段的记录；未补造缺失值。':result.source_usage==='linked_record'?'实际引用由程序按替代关联定位，并直接展示已读取的旧记录；过时内容仅供回顾。':'实际引用依据模型返回的编号区分，已核对编号范围；仍请结合原文核实回答。'):'本轮没有实际引用；下方候选资料不能作为这个回答的事实依据。')
     :'引用关系未确认：模型未返回有效的引用编号。下方仅列候选资料，不能认定它们支持回答。';
   const space=sharedState.space?.id,version=sharedState.askVersion;
   for(const source of used)$('sharedCitedSources').append(sharedSourceCard(source,'实际引用',space,version));

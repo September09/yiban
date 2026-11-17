@@ -35,7 +35,7 @@ function materialReset(){
   materialDiscardDrafts();$('materialKeepEvidence').checked=false;
   materialStop();materialInvalidate();materialState.sources=[];materialState.candidates=[];
   $('materialSources').replaceChildren();$('materialCandidates').replaceChildren();$('materialAudience').replaceChildren();
-  $('materialBatchName').value='';$('materialFiles').value='';$('materialMode').value='paragraphs';$('materialVisibility').value='selected';$('materialPolicy').value='author';
+  $('materialBatchName').value='';$('materialFiles').value='';$('materialReviewedFile').value='';$('materialMode').value='paragraphs';$('materialVisibility').value='selected';$('materialPolicy').value='author';
   $('materialRemoteConsent').checked=false;$('materialModelInfo').textContent='选择 AI 时会检查当前模型。';
   materialMessage('');materialControls();
 }
@@ -47,7 +47,7 @@ function materialControls(){
   $('materialClear').disabled=locked;
   $('materialConfirm').disabled=locked||!materialState.plan||!$('materialConsent').checked||(!!materialState.plan?.conflicts.length&&!$('materialConflictConsent').checked);
   $('materialConsent').disabled=locked;$('materialConflictConsent').disabled=locked;$('materialBack').disabled=locked;
-  $('materialOrganize').disabled=!materialState.sources.length;$('materialPreview').disabled=!materialState.candidates.some(x=>x.selected);
+  $('materialOrganize').disabled=!materialState.sources.length||$('materialMode').value==='manual';$('materialPreview').disabled=!materialState.candidates.some(x=>x.selected);
   // 按钮为什么点不了，要在按钮上方直接写清楚，不能只靠禁用状态。
   const selected=materialState.candidates.filter(x=>x.selected).length;let hint='';
   if(!space)hint='请先登录空间账号并选择空间。';
@@ -72,6 +72,7 @@ function materialAudienceHint(){
         :'注意：当前空间只有你一位成员，「指定成员」等于只有你自己能看到。要让以后加入的成员也能看到，请改选「全体成员」。';
   }
   node.textContent=hint;node.classList.toggle('audience-warning',hint.startsWith('注意：'));
+
 }
 function materialAudience(){
   const chosen=new Set([...$('materialAudience').querySelectorAll('input:checked')].map(x=>x.value));
@@ -133,7 +134,7 @@ function materialRenderCandidates(){
   materialState.candidates.forEach((candidate,index)=>{
     const card=document.createElement('section');card.className='material-card';
     const label=document.createElement('label'),box=document.createElement('input'),title=document.createElement('span');
-    box.type='checkbox';box.checked=candidate.selected;title.textContent='导入第 '+(index+1)+' 条';
+    box.type='checkbox';box.checked=candidate.selected;title.textContent=(candidate.review_key?candidate.review_key+' · ':'')+'导入第 '+(index+1)+' 条';
     box.onchange=()=>{candidate.selected=box.checked;materialInvalidate();materialControls();};label.append(box,title);
     const text=document.createElement('textarea');text.rows=3;text.maxLength=1200;text.value=candidate.content;text.setAttribute('aria-label','候选 '+(index+1)+' 内容');
     text.oninput=()=>{candidate.content=text.value;materialInvalidate();};
@@ -156,6 +157,17 @@ $('materialAddText').onclick=()=>{
   materialState.sources.push({name:'粘贴资料 '+(materialState.sources.length+1),text:'',warnings:[]});
   materialSourcesChanged();materialRenderSources();
 };
+$('materialReviewedFile').onchange=()=>materialRun(async(request,active)=>{
+  const file=$('materialReviewedFile').files?.[0];$('materialReviewedFile').value='';if(!file)return;
+  if(file.size>4_000_000)throw new Error('审阅包最多4 MB，请分批读取。');
+  let document;try{document=JSON.parse(await file.text());}catch{throw new Error('审阅包JSON无法读取。');}
+  if(!active())return;
+  const result=await request('reviewed',{document});
+  materialDiscardDrafts();materialInvalidate();
+  materialState.sources=result.sources;materialState.candidates=result.candidates.map(c=>({...c,selected:true}));
+  $('materialBatchName').value=result.batch_name;$('materialMode').value='manual';$('materialKeepEvidence').checked=true;
+  $('materialRemoteConsent').checked=false;materialRenderSources();materialRenderCandidates();materialAudience();materialMessage(result.notice);
+});
 $('materialFiles').onchange=()=>materialRun(async(request,active)=>{
   const files=Array.from($('materialFiles').files||[]);$('materialFiles').value='';
   if(files.length+materialState.sources.length>60)throw new Error('本批最多 60 份资料（含大文件自动分块），请减少文件数量。');

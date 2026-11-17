@@ -151,7 +151,7 @@ class BatchTests(unittest.TestCase):
         with self.store.connect() as db:
             record=self.shared._record(db,items[0]['id']);snapshot=self.shared.recovery.encode(self.shared.recovery.snapshot(db,record))
             db.executemany('INSERT INTO shared_trash(id,space,memory,author,deleted_by,snapshot) VALUES (?,?,?,?,?,?)',
-                           [('dummy'+str(i),self.space,'dummy'+str(i),self.uid('owner'),self.uid('owner'),snapshot) for i in range(99)])
+                           [('dummy'+str(i),self.space,'dummy'+str(i),self.uid('owner'),self.uid('owner'),snapshot) for i in range(self.shared.recovery.MAX_TRASH_ITEMS-1)])
         before=self.dump();self.error(400,self.propose,batch);self.assertEqual(before,self.dump())
 
     def test_retrieval_invalidation_and_recovery_keep_batch_identity(self):

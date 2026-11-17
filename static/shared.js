@@ -71,7 +71,7 @@ async function sharedApi(path,data={},signal=null){
   return result;
 }
 async function sharedRun(work){
-  if(sharedState.busy||sharedState.asking){
+  if(sharedState.busy||sharedState.asking||(typeof companionMemoryPending==='function'&&companionMemoryPending())){
     const wait='上一步操作还在处理，请稍候再点。';sharedMessage(wait);
     if($('sharedEditorDisclosure').open)sharedEditorNotice(wait);
     return;
@@ -85,45 +85,9 @@ async function sharedRun(work){
   }
   finally{if(epoch===sharedState.epoch)sharedState.busy=false;sharedControls();}
 }
-let sharedChatScopeSpace='';
-function sharedChatMemorySync(){
-  const box=$('chatSharedMemory'),hint=$('chatSharedMemoryHint'),go=$('chatSharedMemoryGo');if(!box)return;
-  const space=sharedState.space,logged=!!sharedState.token,ready=logged&&!!space;
-  // 切换空间或退出后必须重新确认，避免把上一个空间的资料带进对话。
-  if(!ready||space.id!==sharedChatScopeSpace){sharedChatScopeSpace=ready?space.id:'';box.checked=false;}
-  box.disabled=!ready;
-  if(!hint)return;
-  if(ready){
-    hint.textContent=`已登录「${sharedState.account?.name||'空间账号'}」，当前空间「${space.name}」（${sharedRoles[space.role]||space.role}）：勾选后，陪伴对话只带入你在这个空间可见的共同记忆；云端模型仅使用全体成员可见的部分。回答会被朗读，注意周围人。`;
-    if(go)go.hidden=true;
-  }else if(logged){
-    // 登录了但空间下拉还是「请选择空间」时，最容易误以为“开关坏了”，这里必须说清缺哪一步。
-    hint.textContent=`已登录「${sharedState.account?.name||'空间账号'}」，但还没有选择空间：先到「共同记忆」的「当前共同记忆空间」里选一个${sharedState.spaces.length===1?'（你只有「'+sharedState.spaces[0].name+'」，点一下即可）':''}，回到这里就能勾选。`;
-    if(go){go.hidden=false;go.textContent='去选择空间';}
-  }else{
-    hint.textContent='未登录空间账号：陪伴对话只读个人记忆。团队记忆需要先在「共同记忆」登录空间账号；账号只在本机有效，刷新页面后要重新登录。';
-    if(go){go.hidden=false;go.textContent='去登录空间账号';}
-  }
-}
-// 提示旁的一键入口：把用户送到真正缺的那一步，而不是让他自己找。
-function sharedChatMemoryGo(){
-  if(typeof showWorkspacePage!=='function')return;
-  showWorkspacePage('shared');
-  if(typeof showSharedPage==='function')showSharedPage('question');
-  const target=sharedState.token?$('sharedSpaceSelect'):$('sharedAccountName');
-  if(!target)return;
-  if(typeof target.scrollIntoView==='function')target.scrollIntoView({block:'center'});
-  target.focus();
-}
-// 只有勾选且确实登录并选了空间时才附带令牌，默认不带任何共同记忆。
-function sharedChatScope(){
-  const box=$('chatSharedMemory');
-  if(!box||!box.checked||!sharedState.token||!sharedState.space)return null;
-  return {shared_token:sharedState.token,shared_space_id:sharedState.space.id};
-}
 function sharedControls(){
   if(typeof workspaceActivity==='function')workspaceActivity();
-  const logged=!!sharedState.token,space=sharedState.space,locked=sharedState.busy||sharedState.asking||(typeof sharedVoiceActive==='function'&&sharedVoiceActive());
+  const logged=!!sharedState.token,space=sharedState.space,locked=sharedState.busy||sharedState.asking||(typeof companionMemoryPending==='function'&&companionMemoryPending())||(typeof sharedVoiceActive==='function'&&sharedVoiceActive());
   const writer=!!space&&space.role!=='reader',editable=writer&&(!sharedState.edit||sharedState.edit.can_edit);
   const configurable=editable&&(!sharedState.edit||sharedState.edit.can_configure);
   $('sharedLoginPanel').hidden=logged;$('sharedSignedIn').hidden=!logged;
@@ -135,7 +99,6 @@ function sharedControls(){
   for(const id of ['sharedMemoryText','sharedMemoryStatus','sharedStatusReason','sharedEventDate','sharedSourceNote','sharedPreview'])$(id).disabled=!editable||locked;
   for(const id of ['sharedVisibility','sharedEditPolicy'])$(id).disabled=!configurable||locked;
   if(typeof sharedFeedbackControls==='function')sharedFeedbackControls();
-  sharedChatMemorySync();
   if(typeof sharedBackupControls==='function')sharedBackupControls();
   if(typeof sharedRecoveryControls==='function')sharedRecoveryControls();
   if(typeof sharedBatchesControls==='function')sharedBatchesControls();
@@ -155,6 +118,8 @@ function sharedControls(){
   if(typeof sharedAuditControls==='function'){sharedAuditControls();sharedAuditSchedule();}
   if(typeof sharedVoiceControls==='function')sharedVoiceControls();
   if(typeof materialControls==='function')materialControls();
+  if(typeof companionMemorySync==='function')companionMemorySync();
+  if(typeof structuredMemory!=='undefined')structuredMemory.sync();
 }
 function sharedAudienceHintText(){
   if($('sharedVisibility').value==='all')return '全体成员可见，包括以后加入的成员。';
@@ -199,8 +164,8 @@ async function sharedRefresh(){
   sharedState.account=result.account;sharedState.spaces=result.spaces;$('sharedIdentity').textContent='当前空间账号：'+result.account.name;
   if(sharedState.space&&!result.spaces.some(s=>s.id===sharedState.space.id))sharedClearSpace();
   sharedRenderSpaces();
-  // 只有一个空间时直接选中，省掉“登录了却因为没点下拉而以为开关坏了”的坑。
-  if(!sharedState.space&&sharedState.spaces.length===1){sharedState.space=sharedState.spaces[0];sharedRenderSpaces();}
+  // Default only among the authenticated account's authorized spaces.
+  if(!sharedState.space&&sharedState.spaces.length){sharedState.space=sharedState.spaces[0];sharedRenderSpaces();}
   if(sharedState.space)await sharedLoadCurrent();else sharedControls();
 }
 async function sharedLoadCurrent(){
@@ -298,7 +263,7 @@ function sharedPayload(){
     viewers:[...$('sharedAudience').querySelectorAll('input:checked')].filter(x=>x.dataset.implicit!=='true').map(x=>x.value)};
 }
 $('sharedRegister').onclick=()=>sharedRun(async()=>{await sharedApi('/auth/register',{name:$('sharedAccountName').value,password:$('sharedPassword').value});$('sharedPassword').value='';sharedMessage('空间账号已注册，请输入口令登录。');});
-$('sharedLogin').onclick=()=>sharedRun(async epoch=>{const result=await sharedApi('/auth/login',{name:$('sharedAccountName').value,password:$('sharedPassword').value});if(epoch!==sharedState.epoch)return;sharedState.token=result.token;sharedState.account=result.account;$('sharedPassword').value='';await sharedRefresh();sharedMessage('已登录空间账号。请选择空间或创建家庭／团队空间。');});
+$('sharedLogin').onclick=()=>sharedRun(async epoch=>{const result=await sharedApi('/auth/login',{name:$('sharedAccountName').value,password:$('sharedPassword').value});if(epoch!==sharedState.epoch)return;sharedState.token=result.token;sharedState.account=result.account;$('sharedPassword').value='';await sharedRefresh();sharedMessage(sharedState.space?'已登录，默认进入「'+sharedState.space.name+'」。可切换其他有权限的空间。':'已登录，可以使用账号个人记忆；也可以在“空间与成员”创建团队空间。');if(typeof workspaceAfterLogin==='function')await workspaceAfterLogin();});
 $('sharedLogout').onclick=async()=>{const token=sharedLock();if(token)try{await fetch('/api/shared/auth/logout',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:'{}'});}catch{sharedMessage('页面已锁定；网络异常时请注意其他已登录会话可能仍有效。');}};
 $('sharedChangePassword').onclick=()=>sharedRun(async()=>{await sharedApi('/auth/password',{old_password:$('sharedOldPassword').value,new_password:$('sharedNewPassword').value});sharedLock('口令已修改，所有空间登录会话已退出。请重新登录。');});
 $('sharedRefresh').onclick=()=>sharedRun(sharedRefresh);
@@ -421,4 +386,3 @@ function sharedRenderAgent(agent){
 }
 
 // 对话页缺少哪一步，就把用户直接送到那一步（登录框或空间下拉）。
-try{const chatMemoryGo=document.getElementById('chatSharedMemoryGo');if(chatMemoryGo)chatMemoryGo.onclick=sharedChatMemoryGo;}catch(error){}

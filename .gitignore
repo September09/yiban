@@ -23,3 +23,7 @@ Thumbs.db
 .idea/
 .workbuddy/
 25A/
+
+# 本机交付物和图片生成底稿；运行形象已包含在static/aifeng.svg
+output/
+generated_images/

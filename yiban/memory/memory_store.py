@@ -299,7 +299,7 @@ class MemoryStore(MemoryReviewMixin):
         self.delete_memory(identity,matches[0]['id'],matches[0]['revision'])
         return '这条长期记忆已删除。'
 
-    def identity_reply(self, identity, text):
+    def identity_reply(self, identity, text, assistant_name=None):
         text = re.sub(r'[\s，。！？、,:：.!?]', '', text)
         identity_questions = {
             '我是谁', '你知道我是谁吗', '你知道我是谁', '你还记得我是谁吗',
@@ -312,12 +312,20 @@ class MemoryStore(MemoryReviewMixin):
             r'(?:通过|根据|凭|听)(?:这样的|我的|这段|这句|刚才的)?(?:声音|声纹|语音)(?:来)?'
             r'(?:猜猜我是谁|猜出我是谁|猜我是谁|判断我是谁|认出我|识别我|知道我是谁)(?:了)?(?:吗|么|呢)?', text,
         )
-        if text not in identity_questions and not voice_identity_question:
+        conversational_identity = re.fullmatch(
+            r'(?:你)?(?:能不能|能|可以)?(?:猜一下|猜一猜|猜猜|看看|说说|知道|认得|认识)?'
+            r'(?:现在|此刻)?(?:正在|在)?(?:和你|跟你|对你)(?:讲话|说话|聊天)的(?:人)?是谁(?:呀|啊|呢|吗|么|吧)?', text,
+        )
+        simple_identity = re.fullmatch(
+            r'(?:你)?(?:猜一下|猜一猜|猜猜|猜|知道|记得|认出|听出|能认出|能听出|能猜出)'
+            r'(?:我是谁|我叫什么(?:名字)?)(?:了)?(?:吗|么|呢|呀|啊|吧)?', text,
+        )
+        if text not in identity_questions and not voice_identity_question and not conversational_identity and not simple_identity:
             return None
         if not identity:
             return '这轮还没有确认你的用户档案，目前按访客处理。请查看页面的声音识别诊断；测试声纹需要通过麦克风说话，文字发送不会重新识别人。'
         # A profile may be selected manually; do not claim biometric verification.
-        return f'当前对话的用户档案是「{self.profile(identity)["name"]}」。'
+        return f'{self.profile(identity)["name"]}，你好。我是{assistant_name or "小伴"}，很高兴和你聊天。'
 
     def context(self, identity, query):
         from yiban.memory.personal_retrieval import PersonalMemory

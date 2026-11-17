@@ -33,7 +33,9 @@ class AudioDeviceTests(unittest.TestCase):
         self.assertEqual(len(self.calls),2)
         self.assertTrue(self.calls[0][0].endswith('swiftc'))
         self.assertTrue(Path(self.calls[1][0]).name.startswith('audio-devices-'))
-        self.assertFalse(any(x in str(self.calls) for x in ('osascript','say','afplay','AudioObjectSetPropertyData')))
+        # A random temporary directory can contain 'say'; inspect executables, not path substrings.
+        self.assertFalse({Path(args[0]).name for args in self.calls} & {'osascript','say','afplay'})
+        self.assertFalse(any('AudioObjectSetPropertyData' in str(arg) for args in self.calls for arg in args))
 
     def test_unsupported_platform_does_not_run_any_native_command(self):
         service=AudioDevices(self.root,runner=lambda *a,**k:self.fail('must not run'),system=lambda:'Windows')

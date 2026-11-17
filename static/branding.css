@@ -15,3 +15,10 @@
 @keyframes ip-breathe{to{transform:translate(-50%,-53%) scale(1.035)}}
 @media(max-width:760px){.ip-grid{grid-template-columns:1fr}.brand .brand-caption{display:none}}
 @media(prefers-reduced-motion:reduce){#ipAvatar{animation:none!important}}
+/* Lean uses individual transforms, so action and breathing transforms keep priority. */
+#robot[role=button]{cursor:pointer;touch-action:manipulation}
+#robot[role=button]:focus-visible{outline:3px solid var(--ip-accent,#d9a441);outline-offset:22px;border-radius:30px}
+#ipAvatar{rotate:var(--ip-lean,0deg);translate:var(--ip-shift,0px) 0;transition:rotate .2s ease-out,translate .2s ease-out;user-select:none;-webkit-user-drag:none}
+.ip-reaction{position:absolute;top:2px;left:50%;transform:translate(-50%,-75%);max-width:260px;width:max-content;padding:10px 16px;border:1px solid color-mix(in srgb,var(--ip-primary,#71529d) 16%,transparent);border-radius:18px;background:#fff;color:var(--ink);font-size:13px;line-height:1.6;box-shadow:0 6px 20px #30223f0d;pointer-events:none;z-index:2}
+@media(prefers-reduced-motion:reduce){#robot[role=button]{animation:none!important}#ipAvatar{rotate:none;translate:none;transition:none}}
+.robot-scene{margin-top:40px}

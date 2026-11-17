@@ -3,7 +3,7 @@ const sharedVoiceState={session:null,token:null,profile:null,epoch:0,starting:fa
 function sharedVoiceActive(){return !!sharedVoiceState.session;}
 function sharedVoiceControls(){
   const active=sharedVoiceActive();
-  $('sharedVoiceStart').disabled=sharedVoiceState.starting||active||!sharedState.token||!sharedState.space||busy||recording||enrolling||sharedState.busy||sharedState.asking||!asrReady||!wakeReady||!speakerReady||!ttsReady||!activeProfile;
+  $('sharedVoiceStart').disabled=(typeof companionMemoryManual==='function'&&companionMemoryManual())||sharedVoiceState.starting||active||!sharedState.token||!sharedState.space||busy||recording||enrolling||sharedState.busy||sharedState.asking||!asrReady||!wakeReady||!speakerReady||!ttsReady||!activeProfile;
   $('sharedVoicePrivate').disabled=active||sharedVoiceState.starting;
   $('sharedVoiceStop').disabled=!active&&!sharedVoiceState.starting;
   $('sharedVoiceBanner').hidden=!active&&!sharedVoiceState.starting;

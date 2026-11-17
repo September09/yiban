@@ -34,6 +34,17 @@ const conversationDiagnostics=(()=>{
     r.outcome=outcomes[outcome]?outcome:'error';r.elapsed_ms=Math.round(now()-r.start);r.reason=reasons[reason]?reason:null;
     if(active===id)active=null;render();
   }
+  function playbackStarted(id){
+    const r=live(id);if(!r||Number.isFinite(r.first_playback_ms))return;
+    r.first_playback_ms=Math.round(now()-r.start);render();
+  }
+  function audioStream(id,stats){
+    const r=find(id);if(!r)return;
+    r.audio_stream=r.audio_stream||{};
+    if(stats.received_first&&!Number.isFinite(r.audio_stream.first_audio_ms))r.audio_stream.first_audio_ms=Math.round(now()-r.start);
+    for(const key of ['chunks','model_calls','underruns'])if(Number.isInteger(stats[key])&&stats[key]>=0&&stats[key]<=100000)r.audio_stream[key]=stats[key];
+    render();
+  }
   function warn(id,reason){const r=live(id);if(r&&reasons[reason]){r.warning=reason;render();}}
   function audioResult(id,result){
     const r=live(id);if(!r)return;
@@ -59,7 +70,7 @@ const conversationDiagnostics=(()=>{
     return labels[(['listening','recognizing','request','shared','tts'].includes(r.stage)&&server)?server.stage:r.stage]||'准备中';
   }
   function duration(ms){return (Math.max(0,ms)/1000).toFixed(1)+' 秒';}
-  function exportData(){return {version:1,scope:'本页面最近20轮；不含正文、身份与录音',turns:rows.map(r=>({id:r.id,source:r.source,time:r.time,outcome:r.outcome,reason:r.reason,warning:r.warning||null,elapsed_ms:r.elapsed_ms??Math.round(now()-r.start),audio:{...r.audio},retrieval:r.retrieval?{...r.retrieval}:null,steps:r.steps.map(s=>({stage:s.stage,status:s.status,elapsed_ms:s.elapsed_ms??Math.round(now()-s.start)})),backend:r.backend.map(s=>({...s}))}))};}
+  function exportData(){return {version:1,scope:'本页面最近20轮；不含正文、身份与录音',turns:rows.map(r=>({id:r.id,source:r.source,time:r.time,first_playback_ms:r.first_playback_ms??null,outcome:r.outcome,reason:r.reason,warning:r.warning||null,elapsed_ms:r.elapsed_ms??Math.round(now()-r.start),audio:{...r.audio},audio_stream:r.audio_stream?{...r.audio_stream}:null,retrieval:r.retrieval?{...r.retrieval}:null,steps:r.steps.map(s=>({stage:s.stage,status:s.status,elapsed_ms:s.elapsed_ms??Math.round(now()-s.start)})),backend:r.backend.map(s=>({...s}))}))};}
   function render(){
     if(!el('conversationTraceList'))return;
     const current=live(active),last=rows[0];
@@ -71,6 +82,11 @@ const conversationDiagnostics=(()=>{
     add('h3',sourceLabels[r.source]+' · '+outcomes[r.outcome]);
     add('p','轮次 '+r.id.slice(0,8)+' · 总耗时 '+duration(r.elapsed_ms??now()-r.start));
     if(r.outcome==='running')add('p','当前：'+currentLabel(r)+(now()-(r.steps.at(-1)?.start??r.start)>15000?'。等待较久；可以点击“打断 / 停止”后重试。':'。'));
+    if(Number.isFinite(r.first_playback_ms))add('p','首次播放：'+duration(r.first_playback_ms)+'（含本轮前序处理）');
+    if(r.audio_stream){
+      if(Number.isFinite(r.audio_stream.first_audio_ms))add('p','首批音频到达：'+duration(r.audio_stream.first_audio_ms)+'（含本轮前序处理）');
+      if(r.audio_stream.model_calls===1)add('p','连续声音：同一次合成 · 已接收 '+r.audio_stream.chunks+' 帧 · 播放缓冲不足 '+r.audio_stream.underruns+' 次');
+    }
     if(r.reason)add('p',reasons[r.reason]);
     if(r.warning)add('p','提示：'+reasons[r.warning]);
     add('h4','页面流程（依次发生）');
@@ -90,5 +106,5 @@ const conversationDiagnostics=(()=>{
     if(r&&['listening','recognizing','request','shared','tts'].includes(r.stage)&&!polling){polling=true;try{await refresh(r.id);}finally{polling=false;}}
     if(el('conversationDiagnosticsPanel').open)render();
   },1200);
-  render();return {render,start,stage,finish,warn,audioResult,refresh,exportData,current:()=>active,isLive:id=>!!live(id),headers:id=>id?{'X-Conversation-Trace':id}:{}};
+  render();return {render,start,stage,playbackStarted,audioStream,finish,warn,audioResult,refresh,exportData,current:()=>active,isLive:id=>!!live(id),headers:id=>id?{'X-Conversation-Trace':id}:{}};
 })();
