@@ -11,8 +11,9 @@ import time
 
 from yiban.settings import ROOT
 from yiban.audio.qwen_profile import GENERATION_OPTIONS, SEED, STYLE, speech_segments, generation_settings
+from yiban.audio.qwen_voices import VOICES
+from yiban.audio.qwen_voice_model import VoiceModel
 
-VOICES = ("Serena", "Vivian", "Uncle_Fu")
 
 
 class SpeechLengthError(RuntimeError):
@@ -130,14 +131,15 @@ def serve():
             from mlx_audio.tts.utils import load_model
             import mlx.core as mx
             started = time.monotonic()
-            model = load_model(str(ROOT / "models/Qwen3-TTS-12Hz-1.7B-CustomVoice-4bit"))
+            initial_voice = os.environ.get("YIBAN_TTS_INITIAL_VOICE", "Serena")
+            model = VoiceModel(load_model, initial_voice)
             if stopped.is_set():
                 return
             # Compile the generation/decoder path once, silently; never play or
             # persist warm-up audio and never use personal text for warm-up.
             mx.random.seed(SEED)
             generated = model.generate_custom_voice(
-                text="你好。", speaker="Serena", language="Chinese", instruct=STYLE,
+                text="你好。", speaker=initial_voice, language="Chinese", instruct=STYLE,
                 max_tokens=128, stream=True, streaming_interval=.5, **GENERATION_OPTIONS)
             try:
                 for _ in generated:

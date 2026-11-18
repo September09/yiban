@@ -89,8 +89,8 @@ def load_settings(path=None):
     if type(result["tts"]["rate"]) is not int or result["tts"]["rate"] <= 0:
         raise ValueError("tts.rate 必须为正整数。")
     if result["tts"]["backend"] == "qwen3_tts":
-        if result["tts"]["voice"] not in ("Serena", "Vivian", "Uncle_Fu"):
-            raise ValueError("Qwen3-TTS 音色须为 Serena、Vivian 或 Uncle_Fu。")
+        if result["tts"]["voice"] not in ("Serena", "Vivian", "Uncle_Fu", "Bright_Female"):
+            raise ValueError("Qwen3-TTS 音色须为列表中支持的声音。")
         if result["tts"]["rate"] != 195:
             raise ValueError("Qwen3-TTS 使用自然语速，请保留 rate=195。")
     if result["audio"]["input"] != "browser":

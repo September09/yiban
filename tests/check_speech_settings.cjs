@@ -17,7 +17,12 @@ vm.runInContext(fs.readFileSync(path.join(__dirname,'../static/speech-settings.j
  ids.speechRestoreGeneration.onclick();assert.equal(ids.speechSeed.value,42);assert.equal(saved.length,1,'restore edits draft only');
  ids.speechSeed.value='';await vm.runInContext('saveSpeechSettings()',context);assert.equal(saved.length,1);assert.match(ids.speechSettingsStatus.textContent,/未保存/);
  vm.runInContext('speaking=true;speechSettingsControls()',context);assert.equal(ids.speechTemperature.disabled,true);
- vm.runInContext('speaking=false',context);data={...data,generation_defaults:null,engine:'macOS',supports_rate:true};
+ vm.runInContext('speaking=false',context);
+ data={...data,current:{voice:'Bright_Female',rate:195,generation:{...defaults}},voices:[{name:'Bright_Female',label:'明亮女声',locale:'zh_CN'},{name:'Serena',locale:'zh_CN'}]};
+ await vm.runInContext('loadSpeechSettings()',context);
+ assert.equal(ids.speechVoice.value,'Bright_Female');assert.match(ids.speechCurrent.textContent,/明亮女声/);
+ assert.ok(ids.speechVoice.children.some(option=>option.value==='Bright_Female'&&option.textContent.includes('明亮女声')));
+ data={...data,generation_defaults:null,engine:'macOS',supports_rate:true};
  await vm.runInContext('loadSpeechSettings()',context);assert.equal(ids.speechGenerationPanel.hidden,true);
  console.log('Speech settings checks passed: defaults, explicit save, draft restore, validation and playback locks.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

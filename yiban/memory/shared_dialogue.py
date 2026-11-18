@@ -163,7 +163,7 @@ class SharedDialogue:
         identity=secrets.token_urlsafe(32)
         entry={k:plan[k] for k in ('session','guard','scope')}
         # Retain identifiers and labels, never prior model answers or record bodies.
-        entry.update(focus=focus,pending=pending,expires=time.monotonic()+self.TTL)
+        entry.update(focus=focus,pending=pending,recent=plan.get('recent',[]),expires=time.monotonic()+self.TTL)
         with self._lock:
             while len(self._entries)>=self.LIMIT:self._entries.pop(next(iter(self._entries)))
             self._entries[identity]=entry

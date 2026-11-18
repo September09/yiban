@@ -10,11 +10,11 @@ from decimal import Decimal
 UNKNOWN = '目前我能查看的记忆里，还没有足够资料回答这个问题，我暂时无法确认。'
 
 
-def term_number(text):
-    match = re.search(r'第([一二三四五六七八九十零\d]+)届|首届', text)
-    if not match:
-        return None
-    value = match[1] or '一'
+TERM_PATTERN = r'第([一二三四五六七八九十零\d]+)届|首届'
+SUPERVISION_SECRETARY = '班务监督秘书长'
+
+
+def _term_value(value):
     if value.isdigit():
         return int(value)
     digits = dict(zip('零一二三四五六七八九', range(10)))
@@ -24,15 +24,35 @@ def term_number(text):
     return digits.get(value)
 
 
+def term_numbers(text):
+    parsed = (_term_value(m[1] or '一') for m in re.finditer(TERM_PATTERN, text))
+    return tuple(dict.fromkeys(term for term in parsed if term is not None))
+
+
+def term_number(text):
+    return next(iter(term_numbers(text)), None)
+
+
+def _role_label(name):
+    return SUPERVISION_SECRETARY if name == '班务监督委员会秘书长' else name
+
+
 def role_names(query, items):
     names = {r['fact']['value'] for r in items if (r.get('fact') or {}).get('predicate') == 'holds_role'}
     # Longer labels occupy their own spans: 执行班长 must not also mean 班长.
     names.update(('执行班长', '班长'))
     pattern = '|'.join(re.escape(n) for n in sorted(names, key=lambda n: (-len(n), n)))
-    return sorted(set(re.findall(pattern, query))) if pattern else []
+    matches = {_role_label(name) for name in re.findall(pattern, query)}
+    if SUPERVISION_SECRETARY in {_role_label(name) for name in names} and re.search(
+            r'班务监督.{0,8}秘书长', query):
+        matches.add(SUPERVISION_SECRETARY)
+    return sorted(matches)
 
 
 def request(query, items, previous=None):
+    # “比分数线高” compares a score against a threshold, not a team score.
+    if re.search(r'分数线|合格线|及格线|晋级线|评分门槛', query):
+        return None
     roles = role_names(query, items)
     # A person/committee doing something is not a request for its office holders.
     action=bool(re.search(r'如何|怎么|怎样|为什么|过程|设计|画图|讨论|修改|定稿|制作|排练|讲授|演讲|发言|筹备',query))
@@ -79,11 +99,13 @@ def insufficient(detail='', sources=()):
 
 def roles_answer(query, facts, roles, today, fact_text):
     rows = [r for r in facts if r['fact']['predicate'] == 'holds_role'
-            and (not roles or r['fact']['value'] in roles)]
-    term = term_number(query)
+            and (not roles or _role_label(r['fact']['value']) in roles)]
+    terms = term_numbers(query)
+    if len(roles) != 1:
+        terms = terms[:1]
     note = ''
-    if term is not None:
-        rows = [r for r in rows if term_number(r['fact']['term']) == term]
+    if terms:
+        rows = [r for r in rows if term_number(r['fact']['term']) in terms]
     elif re.search(r'现在|现任|目前|当前', query) or re.search(r'20\d{2}[年-]', query):
         from yiban.memory.v2_query import requested_dates
         dates = requested_dates(query)
@@ -104,6 +126,11 @@ def roles_answer(query, facts, roles, today, fact_text):
         grouped[(r['fact']['term'], r['fact']['value'])].append(r)
     lines = [term + role + '是' + '、'.join(dict.fromkeys(r['entities'].get(r['fact']['subject_key'], '未匹配主体') for r in group)) + '。' + ''.join(sorted({state(r) for r in group}))
              for (term, role), group in grouped.items()]
+    present = {term_number(r['fact']['term']) for r in rows}
+    missing = [term for term in terms if term not in present]
+    if missing:
+        lines.extend(f'第{term}届：{UNKNOWN}' for term in missing)
+        return note + '\n'.join(lines), rows, {'kind': 'structured_partial', 'missing_terms': missing}
     return note + '\n'.join(lines), rows, {'kind': 'structured_facts'}
 
 
@@ -208,7 +235,7 @@ def quantities_answer(query, facts, today, fact_text, date_matches):
         rows = [r for r in rows if quantity_stage(r['fact']['metric']) == stage]
         if not rows:
             return insufficient('记忆里有捐书活动的相关记录，但没有记载' + stage + '的准确数量，我暂时无法确认。', related) if related else insufficient()
-    if re.search(r'一共|合计|加总|总共|加起来|总数|总计|总量', query):
+    if re.search(r'一共|合计|加总|总共|加起来|总数|总计|总量', query) or (stage and re.search(r'最后|最终',query) and not re.search(r'新书|二手书|分别|各自',query)):
         return sum_books(rows)
     wanted = [k for k in ('新书', '二手书') if k in query]
     if len(wanted) == 1:

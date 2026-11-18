@@ -98,6 +98,9 @@ function sharedControls(){
   for(const id of ['sharedMemberName','sharedMemberRole','sharedSetMember','sharedDeleteSpace'])$(id).disabled=!space||space.role!=='owner'||locked;
   for(const id of ['sharedMemoryText','sharedMemoryStatus','sharedStatusReason','sharedEventDate','sharedSourceNote','sharedPreview'])$(id).disabled=!editable||locked;
   for(const id of ['sharedVisibility','sharedEditPolicy'])$(id).disabled=!configurable||locked;
+  if(typeof membershipUI!=='undefined')membershipUI.controls();
+  if(typeof voiceMemoryUI!=='undefined')voiceMemoryUI.sync();
+  if(typeof gettingStarted!=='undefined')gettingStarted.refresh();
   if(typeof sharedFeedbackControls==='function')sharedFeedbackControls();
   if(typeof sharedBackupControls==='function')sharedBackupControls();
   if(typeof sharedRecoveryControls==='function')sharedRecoveryControls();
@@ -161,12 +164,13 @@ function sharedRenderSpaces(){
 }
 async function sharedRefresh(){
   const epoch=sharedState.epoch,result=await sharedApi('/spaces/list');if(epoch!==sharedState.epoch)return;
+  if(typeof voiceMemoryUI!=='undefined')void voiceMemoryUI.refresh();
   sharedState.account=result.account;sharedState.spaces=result.spaces;$('sharedIdentity').textContent='当前空间账号：'+result.account.name;
   if(sharedState.space&&!result.spaces.some(s=>s.id===sharedState.space.id))sharedClearSpace();
   sharedRenderSpaces();
   // Default only among the authenticated account's authorized spaces.
   if(!sharedState.space&&sharedState.spaces.length){sharedState.space=sharedState.spaces[0];sharedRenderSpaces();}
-  if(sharedState.space)await sharedLoadCurrent();else sharedControls();
+  if(sharedState.space)await sharedLoadCurrent();else {sharedControls();if(typeof membershipUI!=='undefined')await membershipUI.refresh();}
 }
 async function sharedLoadCurrent(){
   if(!sharedState.space)return;
@@ -180,6 +184,7 @@ async function sharedLoadCurrent(){
   else if(typeof materialAudience==='function')materialAudience();
   if(sharedState.edit&&!result.memories.some(x=>x.id===sharedState.edit.id&&x.can_edit))sharedResetEditor();
   $('sharedSpaceInfo').textContent=`${result.space.kind==='family'?'家庭':'团队'}空间 · 我的角色：${sharedRoles[result.space.role]}。管理员始终可管理空间内全部记忆。`;
+  if(typeof membershipUI!=='undefined')await membershipUI.refresh();
   if($('sharedStatus').textContent==='已登录空间账号。请选择空间或创建家庭／团队空间。')sharedMessage('当前空间已就绪。');
   sharedRenderMembers();sharedRenderMemories();if(!sharedState.edit)sharedRenderAudience();sharedControls();sharedAudienceControls();
   // 停在「资料导入」页时，登录、切换空间或内容变化后自动读取批次，避免用户看到空白列表以为资料丢了。

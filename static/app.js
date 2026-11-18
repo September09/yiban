@@ -17,7 +17,8 @@ let activeProfile='', speakerReady=false, turnVersion=0, turnId=null, chatAbort=
 let cameraStream=null, cameraStarting=false, cameraVersion=0, motion=null, motionTimer;
 function assistantName(){return typeof branding!=='undefined'?branding.name():'小伴';}
 function wakePhrase(){return typeof branding!=='undefined'?branding.wakeWord():'你好小伴';}
-function identifySpeechSpeaker(){return $('speakerAuto').checked&&!(typeof companionMemoryVoiceActive==='function'&&companionMemoryVoiceActive());}
+function memoryVoiceIdentityRequired(){return typeof companionMemoryVoiceActive==='function'&&companionMemoryVoiceActive();}
+function identifySpeechSpeaker(){return memoryVoiceIdentityRequired()||$('speakerAuto').checked;}
 function keepMemoryVoiceTopic(){return typeof companionMemoryKeepVoiceTopic==='function'&&companionMemoryKeepVoiceTopic();}
 function welcome(){return `我是${assistantName()}，现在可以听你叫我，也可以看你拍的照片。\n开启语音唤醒后，说「${wakePhrase()}」，看到我回应后再提问。你也可以试试说「请点点头」。`;}
 
@@ -251,10 +252,10 @@ function takePhoto(){
   canvas.width=Math.round(video.videoWidth*scale);canvas.height=Math.round(video.videoHeight*scale);canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
   return canvas.toDataURL('image/jpeg',.82).split(',')[1];
 }
-async function send(text,{image=null,source='text',traceId=null}={}){
+async function send(text,{image=null,source='text',traceId=null,voiceReceipt=null}={}){
   text=text.trim();if(!text||busy||!ready||recording||enrolling)return;
   if(typeof sharedVoiceActive==='function'&&sharedVoiceActive()){notice('当前是共同记忆语音模式，请使用麦克风；文字输入不能代替口头确认。');return;}
-  if(typeof companionMemoryActive==='function'&&companionMemoryActive()){if(image||(source!=='text'&&!companionMemoryV2())){notice('当前记忆查询不支持这个输入，请直接输入问题。');return;}return companionMemorySend(text,{source,traceId});}
+  if(typeof companionMemoryActive==='function'&&companionMemoryActive()){if(image||(source!=='text'&&!companionMemoryV2())){notice('当前记忆查询不支持这个输入，请直接输入问题。');return;}return companionMemorySend(text,{source,traceId,voiceReceipt});}
   traceId=traceId&&conversationDiagnostics.isLive(traceId)?traceId:conversationDiagnostics.start(source);
   if(source==='text'&&typeof speakerDiagnostic==='function')speakerDiagnostic('文字发送',{'说明':'此按钮只发送文字，不采集声音，也不会重新匹配声纹。','声纹开关':$('speakerAuto').checked?'已开启，但本次没有音频':'关闭'});
   if(!image&&isVisualRequest(text)){
@@ -349,12 +350,12 @@ class WakeListener{
             await sharedVoiceReceive(result,'wake',traceId);
             return;
           }
-          if(identifySpeechSpeaker()&&result.speaker&&typeof applySpeaker==='function')applySpeaker(result.speaker);
-          if(identifySpeechSpeaker()&&speakerRetryNeeded(result,traceId)){
+          if(!memoryVoiceIdentityRequired()&&identifySpeechSpeaker()&&result.speaker&&typeof applySpeaker==='function')applySpeaker(result.speaker);
+          if(!memoryVoiceIdentityRequired()&&identifySpeechSpeaker()&&speakerRetryNeeded(result,traceId)){
             await resumeWake();
             return;
           }
-          if(result.text)await send(result.text,{source:'wake',traceId});
+          if(result.text)await send(result.text,{source:'wake',traceId,voiceReceipt:result.voice_receipt_id});
           else{
             conversationDiagnostics.finish(traceId,'empty','empty');
             notice(result.event==='timeout'?'没有听到问题，已回到唤醒待机。':'没有听清，请再叫我一次。');
@@ -410,10 +411,10 @@ async function stopRecording(){
     conversationDiagnostics.audioResult(traceId,result);conversationDiagnostics.refresh(traceId);
     if(typeof transcriptionDiagnostic==='function')transcriptionDiagnostic(result,'manual');
     if(typeof sharedVoiceActive==='function'&&sharedVoiceActive()){busy=false;controls();await sharedVoiceReceive(result,'manual',traceId);return;}
-    if(identifySpeechSpeaker()&&result.speaker&&typeof applySpeaker==='function')applySpeaker(result.speaker);
+    if(!memoryVoiceIdentityRequired()&&identifySpeechSpeaker()&&result.speaker&&typeof applySpeaker==='function')applySpeaker(result.speaker);
     busy=false;controls();
-    if(identifySpeechSpeaker()&&speakerRetryNeeded(result,traceId)){await resumeWake();return;}
-    if(result.text)send(result.text,{source:'manual',traceId});else{conversationDiagnostics.finish(traceId,'empty','empty');notice('没有听清，请再说一次。');resumeWake();}
+    if(!memoryVoiceIdentityRequired()&&identifySpeechSpeaker()&&speakerRetryNeeded(result,traceId)){await resumeWake();return;}
+    if(result.text)send(result.text,{source:'manual',traceId,voiceReceipt:result.voice_receipt_id});else{conversationDiagnostics.finish(traceId,'empty','empty');notice('没有听清，请再说一次。');resumeWake();}
   }catch(error){if(version===turnVersion){conversationDiagnostics.finish(traceId,'error','recognition');conversationDiagnostics.refresh(traceId);if(typeof speakerDiagnostic==='function')speakerDiagnostic('录音处理失败',{'原因':error.message});busy=false;controls();notice(error.message);resumeWake();}}
 }
 async function stopInteraction(){

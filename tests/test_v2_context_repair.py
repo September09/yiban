@@ -13,6 +13,49 @@ from yiban.turns import Cancellation,Cancelled
 class ContextRepairTests(unittest.TestCase):
     def setup_dialogue(self):
         return SimpleNamespace(dialogue=SharedDialogue(SharedError)),[{'id':'team:test','version':1,'member_version':1}]
+    def test_episode_followups_and_habits_have_different_scopes(self):
+        service,scopes=self.setup_dialogue()
+        training=event('stair','首次爬楼训练','training')
+        race=event('race','秋季比赛','competition')
+        rows=[row('first','首次爬楼','在教学楼训练。',training),
+              row('habit','日常训练','经常在湖边训练。',race),
+              row('partner','训练搭子','与柳叶一起练习。',race)]
+        p,_,_,_=v2_dialogue.begin(service,'token',{'query':'首次爬楼在哪里？'},scopes,rows)
+        previous=v2_dialogue.finish(service,p,rows,['first'])
+        for q in ['平时我在哪里训练？','我的训练搭子是谁？','比赛后有什么感悟？']:
+            p,found,_,clarify=v2_dialogue.begin(service,'token',{'query':q,'conversation_id':previous['id']},scopes,rows)
+            self.assertIsNone(clarify);self.assertEqual(len(found),3,q)
+            previous=v2_dialogue.finish(service,p,[],[])
+    def test_combined_object_followup_and_judge_followup_reuse_current_event(self):
+        service,scopes=self.setup_dialogue()
+        a=event('a','秋季摄影赛','photography');b=event('b','春季案例赛','competition')
+        rows=[row('a','摄影纪念品','柳叶制作并赠给松石。',a),row('b','案例评委','陈老师担任评委。',b)]
+        p,_,_,_=v2_dialogue.begin(service,'token',{'query':'秋季摄影赛有什么纪念品？'},scopes,rows)
+        previous=v2_dialogue.finish(service,p,rows,['a'])
+        for q in ['是谁做的，送给了谁？','评委是哪两位？']:
+            p,found,_,clarify=v2_dialogue.begin(service,'token',{'query':q,'conversation_id':previous['id']},scopes,rows)
+            self.assertIsNone(clarify);self.assertEqual([x['id'] for x in found],['a'])
+            previous=v2_dialogue.finish(service,p,found,['a'])
+    def test_this_gift_refers_to_last_cited_object(self):
+        service,scopes=self.setup_dialogue()
+        activity=event('trip','秋季出游','hiking')
+        rows=[row('cup','纪念杯','青石赠送纪念杯。',activity),
+              row('badge','纪念徽章','柳叶制作徽章。',activity)]
+        p,_,_,_=v2_dialogue.begin(service,'token',{'query':'秋季出游的纪念杯是什么？'},scopes,rows)
+        previous=v2_dialogue.finish(service,p,rows,['cup'])
+        p,members,_,clarify=v2_dialogue.begin(service,'token',{'query':'这份礼物有什么纪念意义？','conversation_id':previous['id']},scopes,rows)
+        self.assertIsNone(clarify);self.assertTrue(p['object_followup'])
+        self.assertEqual([r['id'] for r in v2_dialogue.expand_sources(p,p['query'],members,rows)],['cup'])
+    def test_attribute_question_keeps_content_evidence_despite_title_overlap(self):
+        rows=[row('route','高山森林徒步','路线约八公里，爬升三百米。'),
+              row('gift','高山徒步纪念品','赠送徽章。')]
+        plan={'focus':{'title':'高山森林徒步','primary_ids':[]}}
+        found=v2_dialogue.expand_sources(plan,'高山徒步多长、爬升多高？',rows,rows)
+        self.assertEqual({x['id'] for x in found},{'route','gift'})
+        self.assertNotIn('facet_ids',plan)
+        self.assertIsNone(v2_dialogue.extractive_overview({'facet_ids':['gift']},'柳叶拿了什么奖，属于哪个赛道？',[{**rows[1],'reference':1}]))
+    def test_music_and_photo_cross_activity_is_broad(self):
+        self.assertTrue(v2_tools.broad_request('歌唱比赛集体奖和摄影一等奖分别是什么？'))
     def test_committee_actions_are_not_office_queries(self):
         for q in ('班委如何讨论包装设计并修改定稿？','班长如何安排这次排练？'):
             self.assertIsNone(v2_facts.request(q,[]))

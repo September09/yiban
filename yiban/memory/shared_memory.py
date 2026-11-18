@@ -80,6 +80,8 @@ class SharedMemory:
         self.recovery=SharedRecovery(self)
         from yiban.memory.shared_batches import SharedBatches
         self.batches=SharedBatches(self)
+        from yiban.memory.space_joining import SpaceJoining
+        self.joining=SpaceJoining(self)
 
     @staticmethod
     def _text(value, label, maximum, minimum=1):
@@ -607,6 +609,8 @@ class SharedMemory:
 
     def dispatch(self, path, data, token):
         if not isinstance(data,dict):raise SharedError('请求格式不正确。')
+        if path.startswith('/joining/'):
+            return self.joining.dispatch(path[len('/joining/'):],token,data)
         routes={
             '/memories/lineage':lambda:self.replacements.lineage(token,data),
             '/ask/reset':lambda:self.reset_question(token,data),

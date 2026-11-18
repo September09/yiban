@@ -27,9 +27,9 @@ function speechSelection(){
 function displaySpeechSettings(data){
   speechPrefs.data=data;$('speechVoice').replaceChildren();
   const voices=[...data.voices].sort((a,b)=>Number(b.locale.startsWith('zh'))-Number(a.locale.startsWith('zh'))||a.name.localeCompare(b.name));
-  for(const v of voices){const option=document.createElement('option');option.value=v.name;option.textContent=`${v.name==='Tingting'?'婷婷 · Tingting':v.name}（${v.locale}）`;$('speechVoice').append(option);}
+  for(const v of voices){const option=document.createElement('option');option.value=v.name;option.textContent=`${v.label||(v.name==='Tingting'?'婷婷 · Tingting':v.name)}（${v.locale}）`;$('speechVoice').append(option);}
   $('speechVoice').value=data.current.voice;$('speechRate').value=data.current.rate;$('speechRateValue').textContent=data.current.rate;
-  $('speechCurrent').textContent=`已生效：${data.current.voice} · ${data.supports_rate===false?'自然语速':`语速 ${data.current.rate}`}`;
+  $('speechCurrent').textContent=`已生效：${data.voices.find(v=>v.name===data.current.voice)?.label||data.current.voice} · ${data.supports_rate===false?'自然语速':`语速 ${data.current.rate}`}`;
   $('speechRate').hidden=data.supports_rate===false;
   $('speechRateLabel').hidden=data.supports_rate===false;
   if($('speechGenerationPanel')){

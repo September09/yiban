@@ -69,9 +69,9 @@ const structuredMemory=(()=>{
   }
   async function request(path,data={},signal=null){
     const token=sharedState.token;
-    const response=await fetch('/api/memory/v2/'+path,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({...scope(),...data}),signal});
+    const response=await fetch('/api/memories/'+path,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({...scope(),...data}),signal});
     const result=await response.json();
-    if(!response.ok){if(response.status===401&&token===sharedState.token)sharedLock('登录已失效，请重新登录。');throw new Error(result.error||'新版记忆操作未完成。');}
+    if(!response.ok){if(response.status===401&&token===sharedState.token)sharedLock('登录已失效，请重新登录。');throw new Error(result.error||'记忆操作未完成。');}
     return result;
   }
   async function work(task){
@@ -149,7 +149,7 @@ const structuredMemory=(()=>{
     $('v2WarningsLabel').hidden=!(plan.warnings||[]).length;controls();
   }
   async function refresh(){
-    await work(async(active,signal)=>{const result=await request('list',{include_archived:true},signal);if(!active())return;state.rows=result.records;renderRecords();message(result.scope_name+'：'+result.records.length+'条可见新版记忆。');});
+    await work(async(active,signal)=>{const result=await request('list',{include_archived:true},signal);if(!active())return;state.rows=result.records;renderRecords();message(result.scope_name+'：'+result.records.length+'条可见记忆。');});
   }
   function renderRecords(){
     renderFocus();$('v2Records').replaceChildren();
@@ -345,7 +345,7 @@ const structuredMemory=(()=>{
   });
   $('v2Confirm').onclick=()=>work(async(active,signal)=>{
     const result=await request('confirm',{token:state.plan.token,confirmed:$('v2Consent').checked,acknowledge_warnings:$('v2WarningsConsent').checked},signal);
-    if(!active())return;invalidate();state.edit=null;$('v2Edit').hidden=true;$('v2EventEdit').hidden=true;message(result.imported?'已导入'+result.imported+'条新版记忆。':'修改已保存。');
+    if(!active())return;invalidate();state.edit=null;$('v2Edit').hidden=true;$('v2EventEdit').hidden=true;message(result.imported?'已导入'+result.imported+'条记忆。':'修改已保存。');
     const rows=await request('list',{include_archived:true},signal);if(active()){state.rows=rows.records;state.evidence.clear();renderRecords();}
   });
   $('v2EditPreview').onclick=()=>previewEdit();

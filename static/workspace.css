@@ -68,3 +68,10 @@
 .memory-start-guide{padding:18px 20px;margin:0 0 20px;border:1px solid var(--border,#ddd);border-radius:14px;background:var(--surface,#fff)}
 .memory-start-guide h2{font-size:1.1em;margin:0 0 10px}.memory-start-guide p{line-height:1.8;margin:0 0 12px}
 .memory-start-guide .personal-row{flex-wrap:wrap}#v2DraftTitle{width:100%;box-sizing:border-box}#v2FileImport{margin:18px 0}
+
+
+
+/* Shared onboarding sits outside the conversation, so messages keep their space. */
+.getting-started{max-width:1108px;margin:0 auto 20px;padding:14px 18px;border:1px solid var(--line,#ddd);border-radius:16px;background:var(--panel,#fff)}
+.getting-started summary{cursor:pointer;font-weight:600}.getting-started-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:14px}.getting-started-steps section{min-width:0}.getting-started-steps p{font-size:14px;line-height:1.7}.join-card{padding:18px;border:1px solid var(--line,#ddd);border-radius:14px;margin:16px 0}.join-card input:not([type=checkbox]){max-width:100%}.join-card .memory-list li{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.join-card .memory-list li span{flex:1;min-width:180px}.join-card p{white-space:pre-wrap}.join-card [readonly]{font-family:ui-monospace,monospace;user-select:all}
+@media(max-width:700px){.getting-started-steps{grid-template-columns:1fr;gap:14px}.getting-started{margin:0 12px 16px}.join-card{padding:14px}}

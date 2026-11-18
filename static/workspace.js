@@ -13,21 +13,34 @@ function showWorkspacePage(key){
   if(key==='speech'&&typeof audioDevices!=='undefined')audioDevices.refresh();
   if(key==='models'&&typeof modelSettingsUI!=='undefined')modelSettingsUI.load();
   // 回到对话页时重新核对登录/空间状态：令牌过期或空间被移除后，开关要立刻变灰并说明原因。
-  if(key==='chat'&&typeof sharedChatMemorySync==='function')sharedChatMemorySync();
+  if(key==='chat'&&typeof companionMemorySync==='function')companionMemorySync();
   if(key==='memoryV2'&&typeof structuredMemory!=='undefined'){structuredMemory.sync();}
   workspaceActivity();
 }
 function showSharedPage(key){
-  if(!sharedPages[key])return;sharedPage=key;setWorkspaceTabs(sharedPages,key);
-  // 进入资料导入页就自动读取已导入批次，不再要求用户先点“刷新”。
-  if(key==='import'&&typeof sharedBatchesAutoLoad==='function')sharedBatchesAutoLoad();
-  workspaceActivity();
+  if(key==='question'){
+    showWorkspacePage('chat');
+    if(typeof companionMemorySetMode==='function')companionMemorySetMode(sharedState.space?'shared':'auto');
+    return;
+  }
+  if(key==='library'||key==='import'){
+    workspaceOpenMemory();
+    if(typeof structuredMemory!=='undefined'&&sharedState.space){
+      $('v2Scope').value=sharedState.space.id;structuredMemory.refresh();
+      if(key==='import')$('v2ImportDisclosure').open=true;
+    }
+    return;
+  }
+  if(!sharedPages[key])return;sharedPage=key;setWorkspaceTabs(sharedPages,key);workspaceActivity();
 }
-function showSharedEditor(){showWorkspacePage('shared');showSharedPage('library');const panel=$('sharedEditorDisclosure');panel.open=true;if(typeof panel.scrollIntoView==='function')panel.scrollIntoView({block:'start'});}
+function showSharedEditor(){workspaceOpenMemory();}
+
 function workspaceActivity(){
   const active=[];
   const profile=typeof profiles!=='undefined'&&typeof activeProfile!=='undefined'?profiles.find(p=>p.id===activeProfile):null;
-  $('workspaceProfile').textContent='称呼档案：'+(profile?.name||'访客')+' · 档案与声纹';
+  const account=typeof sharedState!=='undefined'&&sharedState.token?sharedState.account:null;
+  $('workspaceProfile').textContent=account?account.name+'，欢迎回来':(profile?.name?profile.name+'，你好':'你好，欢迎来聊聊');
+  $('workspaceProfile').title=account?'管理账号与空间':'设置称呼与声音识别';
   const preview=typeof speechPreviewActive==='function'&&speechPreviewActive();
   workspaceReturn=typeof enrolling!=='undefined'&&enrolling?'personal':preview?'speech':typeof sharedState!=='undefined'&&sharedState.asking?'shared':'chat';
   if(preview)active.push('正在试听声音');
@@ -43,6 +56,7 @@ function workspaceActivity(){
   if(draft)active.push('共同记忆有待确认内容');
   $('workspaceActivity').hidden=!active.length;$('workspaceActivityText').textContent=active.join(' · ');
   $('workspaceReviewDraft').hidden=!draft;
+  if(typeof gettingStarted!=='undefined')gettingStarted.refresh();
   $('workspaceReturnChat').hidden=workspacePage===workspaceReturn;
   $('workspaceReturnChat').textContent={chat:'返回对话',personal:'返回声纹录入',speech:'返回声音试听',shared:'返回记忆问答'}[workspaceReturn];
 }
@@ -59,15 +73,11 @@ function bindWorkspaceTabs(pages,select){
 bindWorkspaceTabs(workspacePages,showWorkspacePage);bindWorkspaceTabs(sharedPages,showSharedPage);
 $('workspaceReturnChat').onclick=()=>{showWorkspacePage(workspaceReturn);if(workspaceReturn==='shared')showSharedPage('question');};
 $('sharedOpenOverview').onclick=()=>showWorkspacePage('diagnostics');
-$('workspaceProfile').onclick=()=>showWorkspacePage('personal');
-$('workspaceSharedVoice').onclick=()=>{
-  showWorkspacePage('shared');
-  showSharedPage('members');
-  $('sharedVoiceSetup').open=true;
-  if (!$('sharedSignedIn').hidden) $('sharedVoiceSetup').scrollIntoView?.({block:'nearest'});
-};
+$('workspaceProfile').onclick=()=>sharedState.token?workspaceOpenAccount('chat'):showWorkspacePage('personal');
+$('workspaceSharedVoice').hidden=true;
+$('workspaceSharedVoice').onclick=()=>showWorkspacePage('chat');
 $('workspaceReviewDraft').onclick=()=>{showWorkspacePage('shared');showSharedPage('question');$('sharedAgentReview').scrollIntoView?.({block:'nearest'});};
-showWorkspacePage('chat');showSharedPage('question');
+showWorkspacePage('chat');showSharedPage('members');
 
 // Navigation is explicit; none of these actions creates a space or saves data.
 function workspaceOpenMemory(){
@@ -82,6 +92,8 @@ function workspaceOpenAccount(target='chat'){
 async function workspaceAfterLogin(){
   const target=workspaceLoginTarget;workspaceLoginTarget=null;
   if(target==='memoryV2'){showWorkspacePage('memoryV2');await structuredMemory.refresh();}
+  else if(target==='join'){showWorkspacePage('shared');showSharedPage('members');$('joinCode').focus();}
+  else if(target==='memoryAdd'){showWorkspacePage('memoryV2');await structuredMemory.refresh();$('v2ImportDisclosure').open=true;}
   else if(target==='chat')showWorkspacePage('chat');
 }
 $('chatOpenMemory').onclick=workspaceOpenMemory;

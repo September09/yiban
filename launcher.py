@@ -1,6 +1,7 @@
 """Start/stop this demo without changing system startup settings."""
 import json
 import os
+import platform
 from pathlib import Path
 import signal
 import subprocess
@@ -31,10 +32,18 @@ def start(name, args, env=None):
     return child.pid
 
 
-def main():
-    settings = load_settings()
+def configure_launch_environment():
+    # Match start.command even when a developer calls launcher.py directly.
+    # Explicit profiles and backend overrides must retain their own choice.
     if os.environ.get("ASSISTANT_CONFIG"):
         os.environ["ASSISTANT_CONFIG"] = str(Path(os.environ["ASSISTANT_CONFIG"]).expanduser().resolve())
+    elif platform.system() == "Darwin":
+        os.environ.setdefault("ASSISTANT_TTS_BACKEND", "qwen3_tts")
+
+
+def main():
+    configure_launch_environment()
+    settings = load_settings()
     page_url = f"http://127.0.0.1:{settings['port']}"
     processes = json.loads(STATE.read_text()) if STATE.exists() else {}
     if "--restart-web" in sys.argv:

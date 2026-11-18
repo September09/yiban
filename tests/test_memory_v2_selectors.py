@@ -34,6 +34,13 @@ class SelectorTests(unittest.TestCase):
         self.publish();r=self.ask('第三届班长是谁？');self.assertEqual(r['answer'],UNKNOWN);self.assertEqual(r['answer_source_ids'],[]);self.assertEqual(self.fx.model.seen,[])
     def test_term_ten_does_not_substring_match_first_term(self):
         self.publish();self.assertEqual(self.ask('第十一届班长是谁？')['answer'],UNKNOWN)
+    def test_final_stage_count_sums_but_named_component_does_not(self):
+        self.book_components();self.publish()
+        result=self.ask('捐书最后筛选了多少本？')
+        self.assertIn('131+217=348本',result['answer'])
+        result=self.ask('最后筛选的新书是多少本？')
+        self.assertIn('131本',result['answer']);self.assertNotIn('348',result['answer'])
+
     def test_safe_sum_uses_stored_disjoint_components(self):
         self.book_components();self.publish();r=self.ask('131本新书加217本二手书，一共多少本？')
         self.assertIn('131+217=348本',r['answer']);self.assertIn('不代表签收',r['answer']);self.assertEqual(r['calculation']['kind'],'quantity_sum');self.assertEqual(len(r['answer_source_ids']),2)

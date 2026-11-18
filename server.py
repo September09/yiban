@@ -37,8 +37,8 @@ from yiban.memory.agent_audit import AgentAudit
 from yiban.memory.answer_feedback import AnswerFeedback
 from yiban.memory.shared_backup import SharedBackup
 from yiban.memory.personal_retrieval import PersonalMemory
-from yiban.memory.unified_memory import UnifiedMemory
-from yiban.memory.v2_store import StructuredMemory
+from yiban.memory.memory_service import MemoryService
+from yiban.memory.voice_account import VoiceAccount
 from yiban.audio.speakers import SpeakerService
 from yiban.turns import TurnRegistry, Cancelled
 from yiban.audio.diagnostics import audio_metadata, log_audio_diagnostic
@@ -79,8 +79,9 @@ RETRIEVER = MemoryRetriever(SETTINGS['retrieval'], STORE.path.parent/'retrieval/
 PERSONAL_MEMORY = PersonalMemory(STORE, RETRIEVER, SERVICES.models)
 STORE.personal_retriever = PERSONAL_MEMORY.retriever
 SHARED = SharedMemory(STORE, retriever=RETRIEVER)
-UNIFIED_MEMORY = UnifiedMemory(SHARED, PERSONAL_MEMORY, SERVICES.models)
-STRUCTURED_MEMORY = StructuredMemory(SHARED, SERVICES.models)
+MEMORY = MemoryService(SHARED, SERVICES.models)
+STRUCTURED_MEMORY = MEMORY  # Internal alias for existing integration fixtures.
+VOICE_ACCOUNT = VoiceAccount(SHARED, MEMORY)
 SHARED_BACKUP = SharedBackup(SHARED)
 SHARED_VOICE = SharedVoice(SHARED)
 SHARED_IMPORT = SharedImport(SHARED, SERVICES.models)
@@ -137,10 +138,15 @@ def transcribe(raw, identify_speaker=False):
         raise
     result = {"text": text}
     diagnostic['asr_status'] = 'text_detected' if text else 'empty'
+    voice_versions=VOICE_ACCOUNT.versions() if identify_speaker else {}
     if identify_speaker:
         result["speaker"] = measured('speaker', SPEAKERS.identify, raw)
         diagnostic.update(result['speaker']['diagnostics'])
     result['utterance_id'] = SHARED_VOICE.receipt(text, result.get('speaker', {}))
+    active_ip=APPEARANCE.snapshot()
+    prefix='|'.join(re.escape(active_ip[k]) for k in ('name','wake_word'))
+    voice_text=re.sub(r'^\s*(?:你好[，, ]*)?(?:'+prefix+r')[\s，。！？、,:：]*','',text).strip()
+    result['voice_receipt_id'] = VOICE_ACCOUNT.receipt(voice_text, result.get('speaker', {}), versions=voice_versions)
     result['diagnostics'] = diagnostic
     log_audio_diagnostic(diagnostic)
     return result
@@ -279,7 +285,7 @@ class Handler(BaseHTTPRequestHandler):
             status = {"chat": False, "vision": False, "model": active_llm["model"], "vision_model": active_llm["vision_model"],
                       "asr": SERVICES.asr.available(),
                       "wake": SETTINGS["audio"]["wake_enabled"] and voice_available(),
-                      "tts": SERVICES.tts.available(), "tts_streaming": SPEECH.streaming_available(), "wake_word": active_ip["wake_word"], "appearance": active_ip, "version": 52, "memory_schema_version": 2,
+                      "tts": SERVICES.tts.available(), "tts_streaming": SPEECH.streaming_available(), "wake_word": active_ip["wake_word"], "appearance": active_ip, "version": 55, "memory_schema_version": 2,
                       "retrieval": {"enabled": RETRIEVER is not None, "strategy": SETTINGS["retrieval"]["strategy"], "model": SETTINGS["retrieval"]["model"]},
                       "remote_model": urlsplit(active_llm['base_url']).hostname not in {'localhost', '127.0.0.1', '::1'},
                       "backends": {**{key: SETTINGS[key]["backend"] for key in ("asr", "tts", "actions")}, "llm":active_llm["backend"]},
@@ -314,6 +320,8 @@ class Handler(BaseHTTPRequestHandler):
                  "/memory-review.js": ("memory-review.js", "text/javascript; charset=utf-8"),
                  "/memory-import.js": ("memory-import.js", "text/javascript; charset=utf-8"),
                  "/personal.js": ("personal.js", "text/javascript; charset=utf-8"),
+                 "/member-onboarding.js": ("member-onboarding.js", "text/javascript; charset=utf-8"),
+                 "/voice-account.js": ("voice-account.js", "text/javascript; charset=utf-8"),
                  "/style.css": ("style.css", "text/css; charset=utf-8"),
                  "/recorder.js": ("recorder.js", "text/javascript; charset=utf-8")}
         if self.path in files:
@@ -326,6 +334,8 @@ class Handler(BaseHTTPRequestHandler):
         if not isinstance(data, dict):
             raise ValueError("请求格式不正确。")
         profile = data.get("profile_id")
+        if self.path.startswith('/api/memory/'):
+            raise SharedError('记忆入口已统一，请登录记忆账号后在记忆库中操作。',410)
         if self.path == "/api/profiles/list":
             result = {"profiles": STORE.profiles()}
         elif self.path == "/api/profiles/create":
@@ -335,36 +345,6 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/api/profiles/delete":
             STORE.delete_profile(profile)
             result = {"deleted": True}
-        elif self.path == "/api/memory/list":
-            items=STORE.memories(profile)
-            result = {"memories":items,"conflicts":conflict_pairs(items)}
-        elif self.path == "/api/memory/ask":
-            result = PERSONAL_MEMORY.answer(profile, data.get("query"), TURNS.get(data.get("turn_id")),include_outdated=data.get('include_outdated') is True)
-            TRACES.retrieval(CURRENT.get(), result.get("retrieval"))
-        elif self.path == "/api/memory/search":
-            result = PERSONAL_MEMORY.public(PERSONAL_MEMORY.search(profile, data.get("query"), TURNS.get(data.get("turn_id")),include_outdated=data.get('include_outdated') is True))
-        elif self.path == "/api/memory/export":
-            result = STORE.export_memories(profile)
-        elif self.path == "/api/memory/import/preview":
-            result = STORE.preview_import(profile, data.get("document"))
-        elif self.path == "/api/memory/import/confirm":
-            result = STORE.confirm_import(profile, data.get("token"), data.get("confirmed"), data.get("acknowledge_conflicts", False))
-        elif self.path == "/api/memory/save":
-            result = STORE.request_save(profile, data.get("content"), data.get("id"), data.get("expected_revision"),status=data.get("status"),status_reason=data.get("status_reason"),event_date=data.get("event_date"))
-        elif self.path == '/api/memory/conflicts':
-            result=STORE.conflicts(profile)
-        elif self.path == '/api/memory/conflicts/preview':
-            result=STORE.request_conflict(profile,data.get('left_id'),data.get('right_id'),data.get('action'),data.get('preferred_id'),data.get('reason'))
-        elif self.path == '/api/memory/conflicts/confirm':
-            result=STORE.confirm_conflict(profile,data.get('token'),data.get('confirmed'))
-        elif self.path == '/api/memory/review/cancel':
-            result=STORE.cancel_review(profile,data.get('token'))
-        elif self.path == "/api/memory/history":
-            result = STORE.history(profile, data.get("id"))
-        elif self.path == "/api/memory/review/confirm":
-            result = STORE.confirm_save(profile, data.get("token"), data.get("confirmed"), data.get("resolution"), data.get("replace_id"))
-        elif self.path == "/api/memory/delete":
-            result = {"deleted": STORE.delete_memory(profile, data.get("id"), data.get("expected_revision"))}
         elif self.path == "/api/speaker/enroll":
             recordings = data.get("recordings")
             if not isinstance(recordings, list) or len(recordings) != 3 or any(not isinstance(x, str) or len(x) > 1500000 for x in recordings):
@@ -414,9 +394,9 @@ class Handler(BaseHTTPRequestHandler):
                 elif self.path in ('/api/models/compare/preview','/api/models/compare/confirm','/api/models/compare/cancel'):
                     auth=self.headers.get('Authorization','')
                     token=auth[7:] if auth.startswith('Bearer ') else None
-                    if self.path.endswith('/preview'):result=MODEL_SETTINGS.prepare(data,SHARED,token,cancel)
+                    if self.path.endswith('/preview'):result=MODEL_SETTINGS.prepare(data,MEMORY,token,cancel)
                     elif self.path.endswith('/cancel'):result=MODEL_SETTINGS.discard(data,token)
-                    else:result=MODEL_SETTINGS.compare(data,SHARED,token,cancel)
+                    else:result=MODEL_SETTINGS.compare(data,MEMORY,token,cancel)
                 else:raise ValueError('未知的模型设置操作。')
                 self.json_response(result)
             elif self.path == '/api/diagnostics/trace':
@@ -424,27 +404,74 @@ class Handler(BaseHTTPRequestHandler):
                 if not isinstance(data, dict):
                     raise ValueError('请求格式不正确。')
                 self.json_response(TRACES.read(data.get('trace_id')))
-            elif self.path.startswith('/api/memory/v2/'):
+            elif self.path.startswith('/api/voice-memory/'):
+                data=json.loads(raw)
+                auth=self.headers.get('Authorization','');token=auth[7:] if auth.startswith('Bearer ') else None
+                try:
+                    context=(system_prompt()+current_time_context()) if not REMOTE_REQUEST.get() else '你是中文记忆助手。'
+                    result=VOICE_ACCOUNT.dispatch(self.path[len('/api/voice-memory/'):],token,data,
+                        TURNS.get(data.get('turn_id')) if isinstance(data,dict) else None,context)
+                except SharedError as error:
+                    self.json_response({'error':str(error),'voice_memory':True},error.status);return
+                self.json_response(result)
+            elif self.path.startswith(('/api/memories/', '/api/memory/v2/')):
                 data=json.loads(raw)
                 auth=self.headers.get('Authorization','');token=auth[7:] if auth.startswith('Bearer ') else None
                 context=(system_prompt()+current_time_context()) if not REMOTE_REQUEST.get() else '你是中文记忆助手。'
-                result=STRUCTURED_MEMORY.dispatch(self.path[len('/api/memory/v2/'):],token,data,TURNS.get(data.get('turn_id')) if isinstance(data,dict) else None,context)
+                prefix='/api/memories/' if self.path.startswith('/api/memories/') else '/api/memory/v2/'
+                result=MEMORY.dispatch(self.path[len(prefix):],token,data,TURNS.get(data.get('turn_id')) if isinstance(data,dict) else None,context)
                 self.json_response(result)
             elif self.path in ('/api/companion/ask','/api/companion/reset'):
                 data=json.loads(raw)
                 if not isinstance(data,dict):raise SharedError('请求格式不正确。')
                 auth=self.headers.get('Authorization','');token=auth[7:] if auth.startswith('Bearer ') else None
                 if self.path.endswith('/reset'):
-                    result=STRUCTURED_MEMORY.dispatch('reset',token,data) if data.get('memory_version')==2 else UNIFIED_MEMORY.reset(token,data)
+                    result=MEMORY.dispatch('reset',token,data)
                 else:
                     context=(system_prompt()+current_time_context()) if not REMOTE_REQUEST.get() else '你是中文陪伴助手。'
-                    if data.get('memory_version')==2:result=STRUCTURED_MEMORY.dispatch('ask',token,data,TURNS.get(data.get('turn_id')),context)
-                    else:result=UNIFIED_MEMORY.answer(token,data,TURNS.get(data.get('turn_id')),context)
+                    result=MEMORY.dispatch('ask',token,data,TURNS.get(data.get('turn_id')),context)
                 self.json_response(result)
             elif self.path.startswith("/api/shared/"):
                 auth = self.headers.get('Authorization', '')
                 token = auth[7:] if auth.startswith('Bearer ') else None
                 data = json.loads(raw)
+                if self.path in ('/api/shared/ask','/api/shared/agent/ask','/api/shared/agent/memory/ask','/api/shared/ask/reset'):
+                    if not isinstance(data,dict):raise SharedError('请求格式不正确。')
+                    data={**data,'scope_kind':'team'}
+                    context=(system_prompt()+current_time_context()) if not REMOTE_REQUEST.get() else '你是中文记忆助手。'
+                    result=MEMORY.dispatch('reset' if self.path.endswith('/reset') else 'ask',token,data,TURNS.get(data.get('turn_id')),context)
+                    self.json_response(result);return
+                retired=('/api/shared/import/','/api/shared/voice/','/api/shared/agent/memory/replace-preview','/api/shared/agent/memory/confirm')
+                if self.path.startswith(retired) or self.path in ('/api/shared/memories/preview','/api/shared/memories/confirm'):
+                    SHARED.me(token)
+                    raise SharedError('保存与修改已统一到记忆库，请核对候选并预览确认；本次没有写入。',410)
+                if self.path=='/api/shared/memories/list':
+                    result=MEMORY.dispatch('list',token,{'scope_kind':'team','space_id':data.get('space_id')})
+                    with STORE.connect() as db:
+                        actor=SHARED._actor(db,token);space=SHARED._member(db,actor['id'],data.get('space_id'))
+                    self.json_response({'space':space,'memories':result['records'],'scope_name':result['scope_name']});return
+                if self.path=='/api/shared/memories/evidence':
+                    with STORE.connect() as db:
+                        current=bool(db.execute('SELECT 1 FROM memory_v2_records WHERE id=?',(data.get('id'),)).fetchone())
+                    if current:
+                        scope={'scope_kind':'team','space_id':data.get('space_id'),'id':data.get('id'),'expected_version':data.get('expected_version')}
+                        result=MEMORY.evidence(token,scope)
+                        can_full=False;full=None
+                        try:
+                            full=MEMORY.read_trace(token,scope,'source');can_full=True
+                        except SharedError as error:
+                            if error.status!=403:raise
+                        result.update(source_name='；'.join(dict.fromkeys(q['source_name'] for q in result['quotes'])),captured_content='',created='',content_changed=False,can_read_full=can_full)
+                        if data.get('include_full'):
+                            if not can_full:raise SharedError('完整原文仅作者和管理员可查看。',403)
+                            result['source_text']='\n\n'.join(x['text'] for x in full['sources'])
+                        self.json_response(result);return
+                if self.path=='/api/shared/spaces/delete':
+                    with STORE.connect() as db:
+                        populated=bool(db.execute('SELECT 1 FROM memory_v2_records WHERE scope=? LIMIT 1',('team:'+str(data.get('space_id')),)).fetchone())
+                    if populated:
+                        SHARED.question_guard(token,data.get('space_id'))
+                        raise SharedError('这个空间含统一记忆，请先完整备份并在记忆库中归档；此入口不会删除空间。',409)
                 # 出错时把关键字段（不含正文）打进日志，便于定位“点了没反应”的请求。
                 self.shared_request = data
                 feedback_guard = None
@@ -534,8 +561,8 @@ class Handler(BaseHTTPRequestHandler):
                 if profile:
                     STORE.profile(profile)
                 identity_response = False
-                reply = measured('routing', STORE.command, profile, clean[-1]["content"]) if not picture else None
-                memory_changed = reply is not None
+                reply = ('请登录记忆账号，在记忆库中生成候选并预览确认保存。' if not picture and has_write_intent(clean[-1]['content']) else None)
+                memory_changed = False
                 memory_review = None
                 if isinstance(reply, dict):
                     memory_review, reply = reply['review'], reply['reply']
@@ -550,30 +577,13 @@ class Handler(BaseHTTPRequestHandler):
                 if reply is not None:
                     self.send_bytes(200, (json.dumps({"message": {"role": "assistant", "content": reply}, "memory_changed": memory_changed, "memory_review": memory_review, "identity_greeting": bool(identity_response and profile), "reply_mode": "memory_command" if memory_changed or memory_review else "rule", "done": True}, ensure_ascii=False) + "\n").encode(), "application/x-ndjson; charset=utf-8")
                     return
-                personal = measured('memory', PERSONAL_MEMORY.search, profile, clean[-1]['content'][:1200], cancel, not bool(picture) and not bool(action_for_text(clean[-1]['content'], PERSONA.get())))
-                TRACES.retrieval(CURRENT.get(), personal['retrieval'])
-                if personal.get('conflicts') and re.search(r'我|个人|记忆|偏好|喜欢|住哪|居住',clean[-1]['content']):
-                    cancel.check();result=PERSONAL_MEMORY.conflict_answer(personal);PERSONAL_MEMORY.validate(personal)
-                    self.send_bytes(200,(json.dumps({'message':{'role':'assistant','content':result['answer']},'personal_memory':result,'reply_mode':'personal_conflict','done':True},ensure_ascii=False)+'\n').encode(),'application/x-ndjson; charset=utf-8')
-                    return
-                # 陪伴对话按需接入共同记忆：必须显式带上当前登录空间账号的令牌，作用域仍由服务端重新校验。
-                shared_context = None
-                shared_token, shared_space = data.get('shared_token'), data.get('shared_space_id')
-                if shared_token or shared_space:
-                    if (not isinstance(shared_token, str) or not isinstance(shared_space, str)
-                            or not 0 < len(shared_token) <= 200 or not 0 < len(shared_space) <= 64):
-                        raise ValueError('共同记忆参数无效，请刷新页面后重试。')
-                    question = clean[-1]['content'][:1200]
-                    if question.strip():
-                        try:
-                            shared_context = measured('memory', SHARED.question_context, shared_token, shared_space,
-                                question, public_only=REMOTE_REQUEST.get(), cancel=cancel)
-                        except SharedError as error:
-                            raise ValueError(f'共同记忆读取失败：{error}请回到「共同记忆」重新登录空间账号。') from None
-                # 顺序有讲究：固定说明在前、随轮次变化的资料和时钟在后，模型服务才能复用上一轮的提示前缀。
-                system = (system_prompt() + personal['context']
-                          + PERSONAL_MEMORY.scope_note(profile, shared_context)
-                          + (SHARED.chat_block(shared_context) if shared_context else ''))
+                # Ordinary chat has no saved-memory context. Authenticated memory
+                # questions use MEMORY through /api/memories/ask in every UI mode.
+                if data.get('shared_token') or data.get('shared_space_id'):
+                    raise ValueError('请使用统一记忆问答入口；普通聊天不读取账号记忆。')
+                personal={'sources':[]}
+                shared_context=None
+                system=system_prompt()+'\n本轮为普通聊天，没有提供已保存记忆；不能声称记得某条个人或团队资料。'
                 if picture:
                     if not isinstance(picture, str) or len(picture) > 3_000_000:
                         raise ValueError("图片过大，请重新拍照。")
@@ -597,23 +607,7 @@ class Handler(BaseHTTPRequestHandler):
                 events = model_events(SERVICES.models.chat([{"role": "system", "content": system}] + clean, vision=bool(picture), cancel=cancel))
                 try:
                     # 含记忆的回答先完成生成、复核快照再发送，避免生成中删改资料或撤权后泄露旧内容。
-                    # 没有记忆资料的普通聊天仍即时分片，保留分句朗读的响应速度。
-                    if personal['sources'] or shared_context:
-                        buffered = []
-                        for event in events:
-                            cancel.check()
-                            buffered.append(event)
-                        if personal['sources']:
-                            PERSONAL_MEMORY.validate(personal)
-                        if shared_context:
-                            SHARED.validate_answer(shared_token, shared_context['guard'])
-                        cancel.check()
-                        events = iter(buffered)
-                    first = next(events)  # Fail before sending HTTP 200 when the backend rejects the request.
-                    first = {**first, 'personal_memory': PERSONAL_MEMORY.public(personal)}
-                    if shared_context:
-                        first['shared_memory'] = {'space': shared_context['space_name'], 'space_id': shared_space,
-                                                  'count': len(shared_context['sources']), 'public_only': bool(REMOTE_REQUEST.get())}
+                    first = next(events)
                     self.send_response(200)
                     self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
                     self.send_header("Cache-Control", "no-store")

@@ -10,8 +10,8 @@ class Element{
   animate(frames,options){this.animation={frames,options};return{cancel(){}};}
 }
 const ids=Object.fromEntries([...fs.readFileSync('static/index.html','utf8').matchAll(/id="([^"]+)"/g)].map(m=>[m[1],new Element()]));
-const calls=[],saved={};let micCalls=0,heldReply=null,sharedFailure=false,v2Saved=false;
-const sharedResult={answer:'第二届负责人是角色乙。',sources:[{id:'mem',content:'第二届负责人是角色乙。',status:'valid',source_note:'虚构资料',event_date:'2026-01-01',reference:1,version:1,has_evidence:true}],answer_source_ids:['mem'],source_usage:'model_reported',conversation:{id:'topic-test',choices:[]},agent:{status:'done',steps:[]}};
+const calls=[],saved={};let micCalls=0,heldReply=null,sharedFailure=false,v2Saved=false,voiceFailure=false;
+const sharedResult={answer:'第二届负责人是角色乙。',sources:[{id:'mem',scope_kind:'team',memory_version:2,content:'第二届负责人是角色乙。',status:'valid',source_note:'虚构资料',event_date:'2026-01-01',reference:1,version:1,has_evidence:true}],answer_source_ids:['mem'],source_usage:'model_reported',conversation:{id:'topic-test',choices:[]},agent:{status:'done',steps:[]}};
 const context=vm.createContext({
   document:{getElementById:id=>{assert.ok(ids[id],id);return ids[id];},createElement:()=>new Element(),createTextNode:text=>({textContent:text}),querySelectorAll:()=>[],body:{className:''}},
   localStorage:{getItem:k=>saved[k]??null,setItem:(k,v)=>saved[k]=v,removeItem:k=>delete saved[k]},
@@ -24,9 +24,10 @@ const context=vm.createContext({
     if(path==='/api/shared/spaces/list')return{ok:true,json:async()=>({account:{id:'owner',name:'测试账号'},spaces:context.mockSpaces||[]})};
     if(path==='/api/shared/memories/list')return{ok:true,json:async()=>({space:(context.mockSpaces||[]).find(s=>s.id===JSON.parse(options.body).space_id),memories:[]})};
     if(path==='/api/shared/members/list')return{ok:true,json:async()=>({members:[]})};
-    if(path==='/api/shared/agent/ask'||path==='/api/companion/ask'){if(heldReply)await heldReply;return sharedFailure?{ok:false,status:401,json:async()=>({error:'会话已失效'})}:{ok:true,json:async()=>sharedResult};}
-    if(path==='/api/shared/memories/evidence')return{ok:true,json:async()=>({available:true,quotes:[{location:'原文第1行',text:'虚构原文摘录'}]})};
-    if(path==='/api/companion/reset'||path==='/api/shared/ask/reset'||path==='/api/shared/auth/logout')return{ok:true,json:async()=>({})};
+    if(path==='/api/voice-memory/ask'&&voiceFailure)return{ok:false,status:403,json:async()=>({error:'未确认本人声音，没有读取记忆。',voice_memory:true})};
+    if(path==='/api/shared/agent/ask'||path==='/api/memories/ask'||path==='/api/voice-memory/ask'){if(heldReply)await heldReply;return sharedFailure?{ok:false,status:401,json:async()=>({error:'会话已失效'})}:{ok:true,json:async()=>sharedResult};}
+    if(path==='/api/memories/evidence'&&JSON.parse(options.body).id==='mem')return{ok:true,json:async()=>({available:true,quotes:[{location:'原文第1行',text:'虚构原文摘录'}]})};
+    if(path==='/api/memories/reset'||path==='/api/shared/ask/reset'||path==='/api/shared/auth/logout')return{ok:true,json:async()=>({})};
     if(path==='/api/status')return{json:async()=>({chat:true,asr:true,wake:true,vision:true})};
     if(path==='/api/turn/cancel')return{ok:true,json:async()=>({cancelled:true})};
     if(path==='/api/profiles/list')return{ok:true,json:async()=>({profiles:[]})};
@@ -34,10 +35,10 @@ const context=vm.createContext({
     if(path==='/api/chat'){
       let consumed=false;return{ok:true,body:{getReader:()=>({read:async()=>consumed?{done:true}:(consumed=true,{done:false,value:new TextEncoder().encode(JSON.stringify({message:{content:'已收到'},done:true})+'\n')})})}};
     }
-    if(path.startsWith('/api/memory/v2/')){
+    if(path.startsWith('/api/memories/')){
       if(path.endsWith('/draft')){if(heldReply)await heldReply;context.lastDraft=JSON.parse(options.body);return{ok:true,json:async()=>({document:context.mockDraftDocument})};}
       if(path.endsWith('/validate')){if(heldReply)await heldReply;return{ok:true,json:async()=>({document:context.mockDocument})};}
-      if(path==='/api/memory/v2/preview')return{ok:true,json:async()=>({token:'review-token',scope_kind:'personal',scope_name:'个人 · 测试账号',items:context.mockDocument.records,warnings:[],options:{visibility:'selected'}})};
+      if(path==='/api/memories/preview')return{ok:true,json:async()=>({token:'review-token',scope_kind:'personal',scope_name:'个人 · 测试账号',items:context.mockDocument.records,warnings:[],options:{visibility:'selected'}})};
       if(path.endsWith('/confirm')){if(context.lastUpdate){const plan=context.lastUpdate;context.mockRows=context.mockRows.map(r=>r.id===plan.before.id?{...r,...plan.after,version:r.version+1}:r);context.lastUpdate=null;}v2Saved=true;return{ok:true,json:async()=>({saved:true,imported:1})};}
       if(path.endsWith('/update/preview')){const req=JSON.parse(options.body),before=context.mockRows.find(r=>r.id===req.id);context.lastUpdate={token:'update-token',scope_name:'测试团队',before,after:{...before,...req.changes},lifecycle:before.lifecycle,warnings:[]};return{ok:true,json:async()=>context.lastUpdate};}
       if(path.endsWith('/list'))return{ok:true,json:async()=>({scope_name:'个人 · 测试账号',records:context.mockRows||(v2Saved?[{...context.mockDocument.records[0],id:'record-new',version:1,lifecycle:'active',content:'虚构摘要',can_edit:true}]:[])})};
@@ -84,27 +85,27 @@ const context=vm.createContext({
   await new Promise(r=>setImmediate(r));
   const run=s=>vm.runInContext(s,context);
   assert.equal(ids.v2Controls.disabled,true);
-  ids.chatMemoryVersion.value='2';ids.chatMemoryVersion.onchange();
+  assert.equal(ids.chatMemoryVersion,undefined,'不再提供新旧记忆切换');
   assert.equal(ids.send.disabled,false,'访客无需空间登录即可普通聊天');
   assert.equal(run('companionMemoryActive()'),false,'访客不进入需要授权的记忆查询');
   ids.autoplay.checked=false;
   await run("send('自我介绍一下')");
   assert.equal(calls.filter(c=>c.path==='/api/chat').length,1,'访客发送走普通对话');
-  assert.equal(calls.filter(c=>c.path==='/api/companion/ask').length,0,'访客不会发起团队查询');
+  assert.equal(calls.filter(c=>c.path==='/api/memories/ask').length,0,'访客不会发起团队查询');
   assert.equal(calls.filter(c=>c.path==='/api/chat').at(-1).data.profile_id,'');
   run("sharedState.token='empty-token';sharedState.account={id:'empty-owner',name:'无空间账号'};sharedState.spaces=[];sharedState.space=null;sharedControls();");
   await run("send('没有空间也能聊天吗')");
   assert.equal(calls.filter(c=>c.path==='/api/chat').length,1,'已登录但无团队空间应查询账号自己的记忆');
-  const emptyAsk=calls.filter(c=>c.path==='/api/companion/ask').at(-1);
-  assert.equal(emptyAsk.data.memory_version,2);assert.equal(emptyAsk.data.space_id,undefined);
+  const emptyAsk=calls.filter(c=>c.path==='/api/memories/ask').at(-1);
+  assert.equal(emptyAsk.data.memory_version,undefined);assert.equal(emptyAsk.data.space_id,undefined);
   assert.equal(emptyAsk.data.profile_id,undefined);assert.match(ids.chatMemoryHint.textContent,/自己的个人记忆/);
   assert.equal(run('companionMemoryActive()'),true);
   await run("companionMemorySetMode('chat')");
   assert.equal(run('companionMemoryActive()'),false);assert.match(ids.chatMemoryHint.textContent,/不参与本轮/);
-  const accountRequests=calls.filter(c=>c.path==='/api/companion/ask').length;
+  const accountRequests=calls.filter(c=>c.path==='/api/memories/ask').length;
   await run("send('现在随便聊聊')");
   assert.equal(calls.filter(c=>c.path==='/api/chat').length,2);
-  assert.equal(calls.filter(c=>c.path==='/api/companion/ask').length,accountRequests,'显式普通聊天不读取账号记忆');
+  assert.equal(calls.filter(c=>c.path==='/api/memories/ask').length,accountRequests,'显式普通聊天不读取账号记忆');
 
   await run("companionMemorySetMode('shared')");
   assert.equal(ids.send.disabled,false,'指定空间模式在无空间时也不锁死普通对话');
@@ -117,16 +118,16 @@ const context=vm.createContext({
   assert.equal(run('sharedState.space.id'),'team-b','已选择的有权限空间不会被刷新覆盖');
   assert.equal(ids.v2Controls.disabled,false);assert.equal(ids.send.disabled,false);
   await run("send('新版测试问题')");
-  let ask=calls.filter(c=>c.path==='/api/companion/ask').at(-1);
-  assert.equal(ask.data.memory_version,2);
+  let ask=calls.filter(c=>c.path==='/api/memories/ask').at(-1);
+  assert.equal(ask.data.memory_version,undefined);
   const firstEvidenceRow=ids.messages.children.at(-1);
   await run("send('那是谁制作的？')");
   const priorEvidenceCard=firstEvidenceRow.children[2].children[1].children[0];await priorEvidenceCard.children[3].onclick();assert.ok(priorEvidenceCard.children[4].textContent,'追问后上一轮仍可查看原文');
-  assert.equal(calls.filter(c=>c.path==='/api/companion/ask').at(-1).data.conversation_id,'topic-test');
-  ids.clear.onclick();assert.ok(calls.some(c=>c.path==='/api/memory/v2/reset'),'新版新对话清除新版话题');assert.equal(ask.data.profile_id,undefined);assert.equal(ask.data.messages,undefined);
+  assert.equal(calls.filter(c=>c.path==='/api/memories/ask').at(-1).data.conversation_id,'topic-test');
+  ids.clear.onclick();assert.ok(calls.some(c=>c.path==='/api/memories/reset'),'新版新对话清除新版话题');assert.equal(ask.data.profile_id,undefined);assert.equal(ask.data.messages,undefined);
   await run("companionMemorySetMode('personal')");
   await run("send('自己的新版记忆')");
-  ask=calls.filter(c=>c.path==='/api/companion/ask').at(-1);assert.equal(ask.data.scope_kind,'personal');assert.equal(ask.data.space_id,undefined);
+  ask=calls.filter(c=>c.path==='/api/memories/ask').at(-1);assert.equal(ask.data.scope_kind,'personal');assert.equal(ask.data.space_id,undefined);
   assert.equal(ids.chatMemorySpace.hidden,true);
   context.mockDraftDocument={schema:'yiban.memory-candidates.v2',batch_name:'手动文字记忆',entities:[],events:[],sources:[{key:'manual-source',kind:'manual',text:'我喜欢茉莉茶。'}],records:[{key:'manual-note',type:'quote',title:'饮茶偏好',summary:'我喜欢茉莉茶。',detail:'',participants:[],emotions:[],tags:[],evidence:[{text:'我喜欢茉莉茶。'}],verification:'pending',sensitivity:'personal',fact:null}]};
   const writesBefore=calls.filter(c=>/preview|confirm/.test(c.path)).length;
@@ -192,26 +193,41 @@ const context=vm.createContext({
   };
   run("sharedState.token='voice-token';sharedState.account={id:'owner',name:'测试账号'};sharedState.spaces=[{id:'voice-team',name:'测试团队',version:1,role:'owner'}];sharedState.space=sharedState.spaces[0];companionMemory.mode='auto';ready=true;asrReady=true;wakeReady=true;ttsReady=true;sharedControls();$('autoplay').checked=true;$('speakerAuto').checked=true;");
   assert.equal(ids.mic.disabled,false);assert.equal(ids.autoplay.disabled,false);
-  assert.equal(run('identifySpeechSpeaker()'),false,'声纹不替代登录账号权限');
+  assert.equal(run('identifySpeechSpeaker()'),true,'语音记忆必须识别声纹，授权仍由服务器检查');
+  const beforeNoProof=calls.length;
+  await run("send('不带凭证的语音',{source:'manual'})");
+  assert.equal(calls.slice(beforeNoProof).filter(c=>c.path.includes('/ask')).length,0,'缺少声纹凭证不降级成文字记忆查询');
+  voiceFailure=true;
+  await run("send('未知声音',{source:'manual',voiceReceipt:'unknown-speaker-receipt'})");
+  assert.equal(run('sharedState.token'),'voice-token','声纹未匹配不把本人账号换成其他账号');
+  assert.equal(ids.messages.children.length,1,'失败后清除之前的记忆与原文卡片');
+  assert.match(ids.messages.children[0].children[1].textContent,/没有读取记忆/);
+  assert.equal(players.length,0,'未知声音不朗读此前的私人回答');
+  voiceFailure=false;
   const historyBeforeVoice=JSON.stringify(saved),beforeVoice=calls.length;
   const trace=run("conversationDiagnostics.start('manual')");
   context.voiceTrace=trace;
   let voiceDone=false;
-  const speaking=run("send('这是谁制作的？',{source:'manual',traceId:voiceTrace})").then(()=>{voiceDone=true;});
+  const speaking=run("send('这是谁制作的？',{source:'manual',traceId:voiceTrace,voiceReceipt:'server-voice-receipt'})").then(()=>{voiceDone=true;});
   for(let i=0;i<60&&!players[0]?.onended;i++)await new Promise(r=>setImmediate(r));
   assert.ok(players[0]?.onended,'新版回答应真实进入播放器');
   assert.equal(run('companionMemory.conversation'),'topic-test');
-  const queryCall=calls.slice(beforeVoice).find(c=>c.path==='/api/companion/ask');
-  assert.equal(queryCall.headers.Authorization,'Bearer voice-token');assert.equal(queryCall.data.memory_version,2);
-  assert.equal(queryCall.data.profile_id,undefined);
+  const queryCall=calls.slice(beforeVoice).find(c=>c.path==='/api/voice-memory/ask');
+  assert.equal(queryCall.headers.Authorization,'Bearer voice-token');assert.equal(queryCall.data.memory_version,undefined);
+  assert.equal(queryCall.data.profile_id,undefined);assert.equal(queryCall.data.query,undefined);assert.equal(queryCall.data.receipt_id,'server-voice-receipt');
   await run('stopInteraction()');
   for(let i=0;i<60&&!voiceDone;i++)await new Promise(r=>setImmediate(r));
   assert.ok(voiceDone,'暂停播放后旧语音任务必须结束');await speaking;
   assert.equal(run('companionMemory.conversation'),'topic-test','已回答的话题在停止朗读后保留');
   ids.autoplay.checked=false;await run("send('他送给谁了？')");
-  assert.equal(calls.filter(c=>c.path==='/api/companion/ask').at(-1).data.conversation_id,'topic-test');
+  assert.equal(calls.filter(c=>c.path==='/api/memories/ask').at(-1).data.conversation_id,'topic-test');
   assert.equal(JSON.stringify(saved),historyBeforeVoice,'团队语音不进入个人聊天记录');
   assert.equal(micCalls,0,'自动测试不打开真实麦克风');
   assert.ok(!calls.slice(beforeVoice).some(c=>/preview|confirm|\/voice\//.test(c.path)),'只读语音不能走写入或旧版语音接口');
+  run("sharedState.token='demo-token';sharedState.account={id:'demo',name:'其他账号'};sharedState.spaces=[{id:'demo-team',name:'虚构测试空间',role:'reader',version:1}];sharedState.space=null;busy=false;recording=false;enrolling=false;speaking=false;sharedState.busy=false;sharedState.asking=false;sharedControls()");
+  assert.equal(ids.workspaceProfile.textContent,'其他账号，欢迎回来','登录后的欢迎语使用账号，不展示声纹档案');
+  assert.ok(!ids.workspaceProfile.textContent.includes('档案'));
+  ids.workspaceProfile.onclick();assert.equal(run('workspacePage'),'shared','点击欢迎语管理账号与空间');
+  run("showWorkspacePage('chat')");
   console.log('Structured memory frontend passed: authenticated personal scope, v2 chat routing, preview before write, logout isolation, focus review with exact evidence/version guards, permission checks, one-click status-only review, automatic next, deferred correction, read-only v2 speech, interruption continuity and no real microphone.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

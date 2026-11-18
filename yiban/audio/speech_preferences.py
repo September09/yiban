@@ -27,6 +27,8 @@ class SpeechPreferences:
                 self.current = self.validate(saved)
             except Exception:
                 self.warning = "已保存的声音设置无法读取或音色不可用，暂用配置中的声音。请重新选择并保存。"
+        if callable(getattr(type(speech), "set_default_voice", None)):
+            speech.set_default_voice(self.current["voice"])
 
     def voices(self):
         with self.lock:
@@ -112,6 +114,8 @@ class SpeechPreferences:
                 if name and os.path.exists(name):
                     os.unlink(name)
             self.current = selected
+            if callable(getattr(type(self.speech), "set_default_voice", None)):
+                self.speech.set_default_voice(selected["voice"])
             self.revision = uuid.uuid4().hex
             self.warning = ""
             return self.describe()

@@ -10,7 +10,7 @@ class Element{
 }
 const ids=Object.fromEntries([...fs.readFileSync('static/index.html','utf8').matchAll(/id="([^"]+)"/g)].map(m=>[m[1],new Element()]));
 const calls=[],saved={};let micCalls=0,heldReply=null,sharedFailure=false;
-const sharedResult={answer:'第二届负责人是角色乙。',sources:[{id:'mem',content:'第二届负责人是角色乙。',status:'valid',source_note:'虚构资料',event_date:'2026-01-01',reference:1,version:1,has_evidence:true}],answer_source_ids:['mem'],source_usage:'model_reported',conversation:{id:'topic-test',choices:[]},agent:{status:'done',steps:[]}};
+const sharedResult={answer:'第二届负责人是角色乙。',sources:[{id:'mem',scope_kind:'team',memory_version:2,content:'第二届负责人是角色乙。',status:'valid',source_note:'虚构资料',event_date:'2026-01-01',reference:1,version:1,has_evidence:true}],answer_source_ids:['mem'],source_usage:'model_reported',conversation:{id:'topic-test',choices:[]},agent:{status:'done',steps:[]}};
 const context=vm.createContext({
   document:{getElementById:id=>{assert.ok(ids[id],id);return ids[id];},createElement:()=>new Element(),createTextNode:text=>({textContent:text}),querySelectorAll:()=>[],body:{className:''}},
   localStorage:{getItem:k=>saved[k]??null,setItem:(k,v)=>saved[k]=v,removeItem:k=>delete saved[k]},
@@ -20,9 +20,9 @@ const context=vm.createContext({
     if(path==='/api/audio/devices')return{ok:true,json:async()=>({available:false,devices:[],message:'模拟平台无系统元数据'})};
     if(path==='/api/diagnostics/trace')return{ok:true,json:async()=>({steps:[],available:true})};
     calls.push({path,data:options?.body?JSON.parse(options.body):null,headers:options?.headers});
-    if(path==='/api/shared/agent/ask'||path==='/api/companion/ask'){if(heldReply)await heldReply;return sharedFailure?{ok:false,status:401,json:async()=>({error:'会话已失效'})}:{ok:true,json:async()=>sharedResult};}
-    if(path==='/api/shared/memories/evidence')return{ok:true,json:async()=>({available:true,quotes:[{location:'原文第1行',text:'虚构原文摘录'}]})};
-    if(path==='/api/companion/reset'||path==='/api/shared/ask/reset'||path==='/api/shared/auth/logout')return{ok:true,json:async()=>({})};
+    if(path==='/api/shared/agent/ask'||path==='/api/memories/ask'){if(heldReply)await heldReply;return sharedFailure?{ok:false,status:401,json:async()=>({error:'会话已失效'})}:{ok:true,json:async()=>sharedResult};}
+    if(path==='/api/memories/evidence')return{ok:true,json:async()=>({available:true,quotes:[{location:'原文第1行',text:'虚构原文摘录'}]})};
+    if(path==='/api/memories/reset'||path==='/api/shared/ask/reset'||path==='/api/shared/auth/logout')return{ok:true,json:async()=>({})};
     if(path==='/api/status')return{json:async()=>({chat:true,asr:true,wake:true,vision:true})};
     if(path==='/api/turn/cancel')return{ok:true,json:async()=>({cancelled:true})};
     if(path==='/api/profiles/list')return{ok:true,json:async()=>({profiles:[]})};
@@ -75,20 +75,20 @@ const context=vm.createContext({
   sharedResult.sources[0].origin='shared';sharedResult.sources[0].scope_name='团队 · 甲团队';
   sharedResult.sources[0].space_id='team-a';sharedResult.sources[0].record_id='raw-memory-id';
   await run("send('自动查询的测试问题')");
-  const request=calls.find(c=>c.path==='/api/companion/ask');
+  const request=calls.find(c=>c.path==='/api/memories/ask');
   assert.ok(request);assert.equal(request.headers.Authorization,'Bearer test-token');
-  assert.equal(request.data.profile_id,'profile-a');assert.equal(request.data.space_id,undefined);
+  assert.equal(request.data.profile_id,undefined,'称呼档案不参与账号授权');assert.equal(request.data.space_id,undefined);
   assert.equal(request.data.messages,undefined);assert.ok(!JSON.stringify(request.data).includes('私人聊天内容'));
   assert.equal(bubble(),sharedResult.answer);assert.equal(JSON.stringify(saved),original);
   const card=ids.messages.children.at(-1).children[2].children[1].children[0];
   assert.match(card.children[0].textContent,/团队 · 甲团队/);
   await card.children[3].onclick();
-  const evidence=calls.find(c=>c.path==='/api/shared/memories/evidence');
+  const evidence=calls.find(c=>c.path==='/api/memories/evidence');
   assert.equal(evidence.data.space_id,'team-a');assert.equal(evidence.data.id,'raw-memory-id');
   sharedResult.space_choices=[{id:'team-b',label:'乙团队'}];
   await run("send('另一个问题')");
   const choices=ids.messages.children.at(-1).children[3];await choices.children[0].onclick();
-  assert.equal(calls.filter(c=>c.path==='/api/companion/ask').at(-1).data.space_choice,'team-b');
+  assert.equal(calls.filter(c=>c.path==='/api/memories/ask').at(-1).data.space_choice,'team-b');
   delete sharedResult.space_choices;
   ids.clear.onclick();assert.equal(JSON.stringify(saved),original);
   let release;heldReply=new Promise(resolve=>release=resolve);
@@ -98,5 +98,5 @@ const context=vm.createContext({
   assert.ok(!ids.messages.children.some(row=>row.children[1]?.textContent===sharedResult.answer));
   assert.equal(JSON.stringify(saved),original);
   assert.equal(micCalls,0);assert.equal(calls.filter(c=>/\/api\/(speak|listen|transcribe)/.test(c.path)).length,0);
-  console.log('Automatic memory frontend passed: default auto, no selected team required, selected profile ID only, no chat-history export/storage, scoped evidence, team clarification, logout late-response isolation and no audio.');
+  console.log('Automatic memory frontend passed: default auto, no selected team required, profile-independent account scope, no chat-history export/storage, scoped evidence, team clarification, logout late-response isolation and no audio.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

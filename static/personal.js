@@ -109,7 +109,7 @@ function applySpeaker(result){
     $('workspaceSpeakerResult').hidden=false;
   }else{
     // 匹配成功也要说出来，否则用户无法确认这一轮到底用了谁的档案。
-    $('workspaceSpeakerResult').textContent=`本轮声音匹配：${result.name}，已按该档案读取个人记忆。若不是你本人，可在上方手动切换。`;
+    $('workspaceSpeakerResult').textContent=`本轮声音匹配：${result.name}，已按该档案设置称呼；记忆仍按登录账号权限查询。若不是你本人，可在上方手动切换。`;
     $('workspaceSpeakerResult').hidden=false;
   }
   $('speakerStatus').textContent=identity?'本轮声音匹配：'+result.name+'（可在上方更正）':'本轮按访客处理：'+(result.reason||'未确认说话人');
@@ -186,20 +186,9 @@ function renderMemories(){
   if(!items.length){const row=document.createElement('li');row.textContent=memoryItems.length?'没有匹配的记忆，试试其他关键词。':'还没有保存的记忆。可以在上方添加，或在聊天中说“记住：……”。';$('memoryList').append(row);}
 }
 async function refreshMemories(){
-  if(typeof diagnosticOverview!=='undefined')diagnosticOverview.clearLocal();
-  const version=++personalVersion,identity=activeProfile;
-  if(typeof personalConflictClear==='function')personalConflictClear();
-  if(typeof personalMemoryCancel==='function')personalMemoryCancel();
-  memoryItems=[];memoryLoaded=false;renderMemories();personalControls();if(!identity)return;
-  $('memoryCount').textContent='正在加载记忆…';
-  try{
-    const data=await(await api('/api/memory/list',{profile_id:identity})).json();
-    if(version!==personalVersion||identity!==activeProfile)return;
-    memoryItems=data.memories;memoryLoaded=true;
-    if(typeof personalConflictRender==='function')personalConflictRender(data.conflicts);
-    if(memoryEdit&&!memoryItems.some(item=>item.id===memoryEdit))resetMemoryEditor();
-    renderMemories();personalControls();
-  }catch(error){if(version===personalVersion){$('memoryCount').textContent='加载失败，请重新选择用户重试';notice(error.message);}}
+  personalVersion++;memoryItems=[];memoryLoaded=false;
+  $('memoryList').replaceChildren();$('memoryCount').textContent='记忆统一在记忆库中管理。';
+  personalControls();
 }
 async function exportMemories(){
   if(!activeProfile||!memoryLoaded||memoryLocked())return;
@@ -317,6 +306,12 @@ $('saveVoice').onclick=async()=>{
 $('deleteVoice').onclick=async()=>{if(!activeProfile||!window.confirm('删除当前用户的声纹特征？'))return;try{await api('/api/speaker/delete',{profile_id:activeProfile});await cancelEnrollment();await refreshProfiles();$('speakerStatus').textContent='声纹已删除。';}catch(error){notice(error.message);}};
 $('speakerAuto').onchange=async()=>{
   await pauseWake();
+  if(typeof companionMemoryVoiceActive==='function'&&companionMemoryVoiceActive()){
+    $('speakerAuto').checked=true;
+    $('speakerStatus').textContent='语音查询记忆时会核对本人声纹和账号授权；文字查询仍按登录账号权限执行。';
+    notice('查询记忆时需要核对说话人。可在“声纹查询设置”管理授权，或切到普通聊天。');
+    controls();resumeWake();return;
+  }
   const unsaved=enrollmentSamples.length;
   if($('speakerAuto').checked)switchProfile('');
   $('speakerStatus').textContent=$('speakerAuto').checked?'下次说话时匹配；不确定时按访客处理。':'已关闭声纹识别，可手动选择用户。';

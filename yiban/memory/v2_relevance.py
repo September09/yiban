@@ -6,14 +6,21 @@ from yiban.memory.retrieval import bigrams, normalize
 
 # Vocabulary, not facts: aliases never supply people, dates, quantities or answers.
 ALIASES = (
+    ('搭子', '搭档', '陪练', '训练伙伴', '陪练伙伴'),
+    ('体重', '减重', '重量', '称重', '轻了', '瘦了'),
+    ('期望', '期待', '寄托'),
+    ('沟通', '商量', '征求'),
     ('摄影', '拍照', '照相'),
     ('案例', '案例比赛', '案例大赛', '案例赛'),
     ('电竞', '王者荣耀', '王者'),
     ('总决赛', '学校总决赛', '校园总决赛'),
     ('赛后', '比赛后', '赛事结束后'),
-    ('聚餐', '小聚', '聚会吃饭'),
+    ('聚餐', '小聚', '聚会吃饭', '吃的饭'),
+    ('啦啦队', '舞蹈队', '啦啦操'),
+    ('拍摄', '镜头点位', '镜头位置', '拍摄角度', '运镜'),
     ('距离', '里程', '公里', '路线'),
     ('分组', '赛道', '组别'),
+    ('纪念', '礼物', '纪念品', '纪念物'),
     ('萌宠', '小动物', '宠物'),
     ('风景', '自然风光', '景色'),
 )
@@ -66,11 +73,45 @@ def compatible_kind(kind, wanted):
 
 
 
+def specific_attribute(query, *, narrow=False):
+    detail = r'(?:什么|哪种)传统手艺|(?:从|源自).{0,16}(?:灵感|来源)|面料成分|文件名|哪个补给点|起初.{0,12}倍速'
+    return bool(re.search(detail if narrow else detail + r'|谁|多少|多长|多高|爬升|哪里|在哪|何时|哪天|几点|名次|什么奖|赛道', query))
+
+
 def document_facets(query,items):
     # An explicit document field overrides an unrelated topic, even when the
     # note is attached to a meeting. Labels select records, never stored answers.
     fields=[word for word in ('公约','章程','愿景','目标','宗旨','口号') if word in query]
     return [r for r in items if any(word in r['title'] for word in fields)]
+
+
+def returning_record(query, items):
+    """Explicit return-to-subject wording can replace the last personal topic.
+
+    Select only a unique title match beyond the parent event, from authorized
+    rows. Ambiguous matches keep the ordinary event/clarification path.
+    """
+    # Narrative title matching must never narrow structured roles/counts/scores.
+    from yiban.memory.v2_facts import request
+    if request(query,items):return None
+    returning=bool(re.match(r'^(?:回到|说回|再说|再问|切回)',query))
+    team_object=bool(re.search(r'我们班|班里|班级|团队',query) and re.search(r'这个|那个|这份|那份|礼物|纪念品|物品',query))
+    named_relation=bool(re.search(r'我们班|班里|班级|团队',query) and re.search(r'谁(?:制作|设计|做|打造|准备)',query))
+    if not (returning or team_object or named_relation) or re.search(r'所有|哪些|各自|对比|比较', query):
+        return None
+    query = re.sub(r'^(?:回到|说回|再说|再问|切回)(?:那份|这份|那个|这个|一下|一下子)?', '', query)
+    # Function-word bigrams such as “的木” cannot identify a named object.
+    q = {term for term in terms(query) if not re.search(r'^[的里是那这]|[的里是]$',term)}
+    scores=[]
+    for row in items:
+        if row.get('fact'):continue
+        if team_object and (row.get('scope_kind')!='team' or row.get('fact')):continue
+        specific=terms(row['title'])-terms((row.get('event') or {}).get('title',''))
+        score=len(q & specific)
+        if score:scores.append((score,row))
+    best=max((score for score,_ in scores),default=0)
+    winners=[row for score,row in scores if score==best]
+    return winners[0] if len(winners)==1 else None
 
 
 def requested_month(query):
@@ -80,7 +121,7 @@ def requested_month(query):
 
 
 def query_domains(query):
-    patterns=(r'摄影|拍照|照相',r'案例|Robotaxi',r'品牌|班徽|文创|吉祥物',
+    patterns=(r'摄影|拍照|照相',r'新歌声|歌唱|唱歌',r'案例|Robotaxi',r'品牌|班徽|文创|吉祥物',
               r'捐书|捐赠|公益',r'晚宴|聚餐|联谊',r'生日|庆生',r'班会',r'篮球|比分')
     return {i for i,p in enumerate(patterns) if re.search(p,query,re.I)}
 
@@ -99,6 +140,8 @@ def event_scores(query, topics, items=()):
     titles = [t['title'] for t in topics.values()]
     idf = weights(titles)
     anchor_query=re.sub(r'第[一二三四五六七八九十\d]+(?:学年|学期)|本学年|本学期|年度','',query)
+    # An item's version is not an event ordinal.
+    anchor_query = re.sub(r'第[一二三四五六七八九十\d]+版', '', anchor_query)
     q = terms(anchor_query)
     wanted = event_kind(query)
     months=requested_month(query)

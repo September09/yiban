@@ -8,6 +8,45 @@ def envelope(body, rows):
     return json.dumps({'answer': body, 'references': [r['reference'] for r in rows]}, ensure_ascii=False)
 
 
+def item_field_unknown(query, sources, quotes, plan):
+    """A resolved item's absent fields cannot be inferred from its recipients."""
+    primary=(plan.get('focus') or {}).get('primary_ids',[])
+    row=next((r for r in sources if len(primary)==1 and r['id']==primary[0]),None)
+    if not row or row.get('fact'):return None
+    proof=quotes.get(row['id'],'')
+    if not proof.strip():return None
+    if re.search(r'(?:每个人|每人|人人|人手).{0,12}(?:收到|得到|获赠)',query):
+        if not re.search(r'(?:每人|人手|每位|一人|各自|分别).{0,12}[一二两三四五六七八九十\d]+[个只件份套枚]',proof):
+            return envelope(UNKNOWN,[])
+    proposed=re.search(r'(?:一共|总共|合计|总计|做了|送了).{0,10}([一二两三四五六七八九十0-9]+)([只件枚套])',query)
+    if proposed and not re.search(r'[一二两三四五六七八九十0-9]+\\s*'+proposed[2],proof):
+        return envelope(UNKNOWN,[])
+    if re.search(r'(?:这些|那些|各个|每个|各地).{0,12}(?:多少|几)公里',query):
+        if not re.search(r'[一二两三四五六七八九十0-9]+(?:\\.[0-9]+)?\\s*公里',proof):
+            return envelope(UNKNOWN,[])
+    if re.search(r'谁|何时|什么时候|意义|含义|象征|来自|哪里',query):return None
+    requested=[]
+    for question,field in [
+        (r'费用|花了|多少钱|多少元|价格|成本|预算',r'费用|元|价格|成本|预算|花费'),
+        (r'尺寸|规格|多大|多高|多宽|直径|大小',r'尺寸|规格|厘米|毫米|cm|mm|直径|长\d|高\d|宽\d'),
+        (r'店铺|商店|店家|哪家店|制作店|制作商',r'店铺|商店|店家|门店|工作室|公司|厂商'),
+    ]:
+        if re.search(question,query):requested.append(bool(re.search(field,proof,re.I)))
+    return envelope(UNKNOWN,[]) if requested and not any(requested) else None
+
+
+def unsupported_negative(answer, sources, quotes, cited):
+    """Absence in an excerpt is not proof that an action did not happen."""
+    action=r'送给|赠给|赠予|赠送|发生|参加|出席|到场|收到|制作|设计|准备|帮助|支持|带回'
+    claims=re.findall(r'(?:并没有|并未|未曾|没有|并非|不是)(?:再|额外)?(?:'+action+r')[^，,。！？；;\n]{0,48}',answer)
+    if not claims:return False
+    proof='。'.join(quotes.get(r['id'],'') for r in sources if r['id'] in set(cited))
+    clean=lambda s:re.sub(r'\s+','',s).replace('并没有','没有').replace('并未','未')
+    # Match the negative action and its object, not an unrelated negation of
+    # the same verb elsewhere in the excerpt.
+    return any(clean(claim) not in clean(proof) for claim in claims)
+
+
 def identifier_missing(query, sources, quotes):
     # A logistics identifier is not a book quantity. Do not substitute other digits.
     if not re.search(r'运单(?:号|号码)|快递(?:单号|.{0,4}号码)|物流(?:单号|编号)', query):
@@ -162,4 +201,40 @@ def personal_date_unknown(target, sources, quotes):
     # just because a public team event happens to share a keyword.
     if not any(matches_personal_date(target, quotes.get(r['id'], '')) for r in sources):
         return envelope(UNKNOWN, [])
+    return None
+
+
+def attribute_boundary(query, sources, quotes, plan):
+    """Preserve action/uncertainty boundaries from freshly authorized evidence."""
+    if re.search(r'药名|药物|处方|剂量|什么药',query):
+        if not any(re.search(r'药名|药物|处方|剂量|服用|开药',quotes.get(r['id'],'')) for r in sources):
+            return envelope(UNKNOWN, [])
+    if re.search(r'妻子|太太|老婆|丈夫|老公',query) and re.search(r'名字|姓名|叫什么|名叫',query):
+        relationship=r'(?:妻子|太太|老婆|丈夫|老公)'
+        explicit=relationship+r'(?:的)?(?:名字|姓名)?(?:是|叫|名叫|名为|为|[：:])\s*[一-鿿]{2,8}'
+        reverse=r'[一-鿿]{2,8}(?:是|为)(?:我的)?'+relationship
+        if not any(re.search(explicit+'|'+reverse,quotes.get(r['id'],'')) for r in sources):
+            return envelope(UNKNOWN, [])
+    if plan.get('personal_result'):
+        explicit=r'(?:最终(?:赛事)?名次|最终排名|完赛用时|完赛时间)(?:是|为|[：:])\s*[第\d一二三四五六七八九十]'
+        if not any(re.search(explicit, quotes.get(r['id'], '')) for r in sources):
+            return envelope(UNKNOWN, [])
+    for row in sources:
+        original=quotes.get(row['id'],'')
+        if not original:continue
+        if re.search(r'沟通|商量|征求',query) and re.search(r'跑步|锻炼|出门',query) and re.search(r'每次|通常|日常',row['content']) and re.search(r'沟通|商量',original):
+            return envelope('原文记载：'+original,[row])
+        if re.search(r'确诊|确定诊断',query) and re.search(r'有可能|可能是|疑似',original) and re.search(r'康复|诊断|确诊',original):
+            return envelope('记录中的说法是：'+row['content']+' 原文没有记载确定的诊断结论。',[row])
+        if re.search(r'生日|出生',query) and re.search(r'就一定|生日吗|生日么|能.*证明',query) and '待产' in original:
+            return envelope('原文记载的是待产期间的安排，没有记载出生日期，不能据此确认生日。',[row])
+        if re.search(r'请教|肌贴',original) and '请教' in original and re.search(r'谁|哪处|哪个|帮|贴',query) and '肌贴' in query:
+            return envelope('原文记载：'+original,[row])
+        if re.search(r'前.{0,8}后|实际称重|确切体重',query) and re.search(r'公斤|体重|称重',query) and re.search(r'瘦|减重|体重',row['content']):
+            absolute=r'(?:训练|备赛)(?:前|后)(?:体重)?[为是：:\s]*[\d一二三四五六七八九十百两]+(?:\.\d+)?(?:公斤|千克|kg)'
+            if not re.search(absolute,original):
+                return envelope('记忆里记载：'+row['content']+' 没有提供前后各自的具体体重，我暂时无法确认。',[row])
+        if re.search(r'期望|期待|寄托',query) and not re.search(r'分别|各自|同时',query):
+            match=re.search(r'(?:期望|希望|期待)[^。；;\n]{2,180}',original)
+            if match:return envelope('原文写道：“'+match[0].rstrip('，,')+'”。',[row])
     return None

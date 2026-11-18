@@ -20,6 +20,7 @@ import math
 from yiban.settings import ROOT
 from yiban.turns import Cancellation, Cancelled
 from yiban.audio.qwen_profile import GENERATION_OPTIONS, MAX_SEGMENT_CHARS, SEED, generation_settings
+from yiban.audio.qwen_voices import BUILTIN_VOICES, BRIGHT_VOICE, VOICES, bright_assets, validate_voice
 
 
 class SpeechLengthError(RuntimeError):
@@ -29,12 +30,13 @@ class SpeechLengthError(RuntimeError):
 class QwenSpeech:
     supports_rate = False
     engine_name = "Qwen3-TTS"
-    VOICES = ("Serena", "Vivian", "Uncle_Fu")
+    VOICES = VOICES
     LOAD_TIMEOUT, REQUEST_TIMEOUT, CANCEL_TIMEOUT = 180, 120, 3
     QUEUE_TIMEOUT, MAX_WAITERS, CACHE_TTL = 8, 4, 180
 
     def __init__(self, config):
         self.config = config
+        self.preferred_voice = config.get("voice", "Serena")
         self.lock = threading.Lock()
         self.write_lock = threading.Lock()
         self.admission = threading.Condition()
@@ -54,7 +56,17 @@ class QwenSpeech:
         return platform.system() == "Darwin" and self.python.is_file() and (self.model / "config.json").is_file()
 
     def voices(self):
-        return [{"name": voice, "locale": "zh_CN"} for voice in self.VOICES]
+        result = [{"name": voice, "locale": "zh_CN"} for voice in BUILTIN_VOICES]
+        try:
+            bright_assets()
+            result.append({"name": BRIGHT_VOICE, "label": "明亮女声", "locale": "zh_CN"})
+        except ValueError:
+            pass
+        return result
+
+    def set_default_voice(self, voice):
+        validate_voice(voice)
+        self.preferred_voice = voice
 
     def runtime_status(self):
         state = self.state
@@ -150,7 +162,7 @@ class QwenSpeech:
         self.responses = queue.Queue()
         self.process = subprocess.Popen(
             self._command(), cwd=ROOT,
-            env=dict(os.environ, HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1"),
+            env=dict(os.environ, HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1", YIBAN_TTS_INITIAL_VOICE=self.preferred_voice),
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             text=True, encoding="utf-8", bufsize=1)
         threading.Thread(target=self._read_responses, args=(self.process, self.responses), daemon=True).start()
@@ -208,7 +220,8 @@ class QwenSpeech:
             raise RuntimeError("Qwen3-TTS 独立环境或模型未安装，请先完成本机安装。")
         selected = dict(selection or self.config)
         if selected.get("voice") not in self.VOICES:
-            raise ValueError("请选择 Serena、Vivian 或 Uncle_Fu。")
+            raise ValueError("请选择声音列表中的音色。")
+        validate_voice(selected["voice"])
         if not isinstance(text, str) or not text.strip() or len(text) > 6000:
             raise ValueError("朗读内容为空或过长。")
         cancel = cancel or Cancellation()
@@ -268,7 +281,8 @@ class QwenSpeech:
             raise RuntimeError("Qwen3-TTS 独立环境或模型未安装。")
         selected = dict(selection or self.config)
         if selected.get("voice") not in self.VOICES:
-            raise ValueError("请选择 Serena、Vivian 或 Uncle_Fu。")
+            raise ValueError("请选择声音列表中的音色。")
+        resources = validate_voice(selected["voice"])
         if not isinstance(text, str) or not text.strip() or len(text) > 1200:
             raise ValueError("单次连续朗读须为 1 到 1200 字，请缩短回答后重试。")
         options = generation_settings(selected.get("generation"))
@@ -276,7 +290,8 @@ class QwenSpeech:
         cancel.check()
         # Only exact completed audio is cached, briefly in RAM. No memory,
         # answer, authentication or permission decision is cached here.
-        key = hashlib.sha256(json.dumps([str(self.model), text, selected["voice"], options], sort_keys=True).encode()).hexdigest()
+        key = hashlib.sha256(json.dumps([str(self.model), text, selected["voice"], options,
+                resources["fingerprint"] if resources else None], sort_keys=True).encode()).hexdigest()
         cached = self._cached(key)
         if cached:
             for packet in cached:

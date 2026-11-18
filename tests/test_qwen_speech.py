@@ -16,6 +16,9 @@ class QwenSpeechTests(unittest.TestCase):
         self.ready = patch.object(QwenSpeech, "available", return_value=True)
         self.ready.start()
         self.addCleanup(self.ready.stop)
+        self.no_designed_voice = patch('yiban.backends.qwen_speech.bright_assets', side_effect=ValueError('not installed'))
+        self.no_designed_voice.start()
+        self.addCleanup(self.no_designed_voice.stop)
 
     def test_preferences_default_catalog_save_restore_and_old_voice(self):
         with tempfile.TemporaryDirectory() as tmp:
